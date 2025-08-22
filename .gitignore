@@ -1,0 +1,30 @@
+# OS
+.DS_Store
+
+# Env files (do not commit secrets)
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Node / TypeScript (backend)
+backend/node_modules/
+backend/dist/
+backend/coverage/
+backend/npm-debug.log*
+backend/yarn-error.log*
+
+# Flutter (frontend)
+frontend/.dart_tool/
+frontend/.packages
+frontend/build/
+frontend/ios/Flutter/flutter_export_environment.sh
+frontend/ios/Flutter/Generated.xcconfig
+frontend/ios/Flutter/ephemeral/
+frontend/ios/.symlinks/
+frontend/ios/Pods/
+
+# IDE/editor
+**/.idea/
+**/.vscode/
+*.iml
