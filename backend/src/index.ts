@@ -5,6 +5,7 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { getMongoClient } from './db/mongoClient.js';
+import authRouter from './features/auth/routes.js';
 import eventsRouter from './features/events/routes.js';
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(helmet());
 app.use(morgan('dev'));
 
 app.use('/events', eventsRouter);
+app.use('/auth', authRouter);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ ok: true, service: 'backend', timestamp: new Date().toISOString() });

@@ -1,4 +1,31 @@
 # Nexa Staffside
+## Auth setup (Google + Apple)
+
+Backend env (.env):
+
+```
+PORT=4000
+MONGODB_URI=mongodb://localhost:27017/nexa
+BACKEND_JWT_SECRET=change_me
+GOOGLE_CLIENT_ID_IOS=your_ios_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_ID_ANDROID=your_android_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_ID_WEB=your_web_client_id.apps.googleusercontent.com
+APPLE_BUNDLE_ID=com.example.frontend
+```
+
+Frontend iOS (`ios/Runner/Info.plist`):
+- Replace `REVERSED_GOOGLE_CLIENT_ID_PLACEHOLDER` with your reversed iOS client ID (reverse of `GOOGLE_CLIENT_ID_IOS`).
+- Ensure bundle ID matches `APPLE_BUNDLE_ID`.
+
+Flutter env (`frontend/.env`):
+
+```
+API_BASE_URL=http://127.0.0.1:4000
+```
+
+Run backend: `cd backend && npm run dev`
+
+Run iOS app: `cd frontend && flutter run -d ios`
 
 Monorepo with:
 - `backend`: Node.js + TypeScript + Express + MongoDB Atlas

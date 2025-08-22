@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import 'auth_service.dart';
+import 'login_page.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
@@ -32,22 +35,41 @@ class MyApp extends StatelessWidget {
         ),
         appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
       ),
-      home: const EventsPage(),
+      home: const RootPage(),
     );
   }
 }
 
-class EventsPage extends StatefulWidget {
-  const EventsPage({super.key});
+class RootPage extends StatefulWidget {
+  const RootPage({super.key});
 
   @override
-  State<EventsPage> createState() => _EventsPageState();
+  State<RootPage> createState() => _RootPageState();
 }
 
-class _EventsPageState extends State<EventsPage> {
+class _RootPageState extends State<RootPage> {
   bool _loading = false;
   String? _error;
   List<Map<String, dynamic>> _events = [];
+  bool _checkingAuth = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureSignedIn();
+  }
+
+  Future<void> _ensureSignedIn() async {
+    final token = await AuthService.getJwt();
+    if (token == null && mounted) {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
+    }
+    if (mounted) {
+      setState(() => _checkingAuth = false);
+    }
+  }
 
   Future<void> _loadEvents() async {
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
@@ -80,6 +102,9 @@ class _EventsPageState extends State<EventsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (_checkingAuth) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
       appBar: AppBar(
