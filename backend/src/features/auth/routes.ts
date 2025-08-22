@@ -7,9 +7,9 @@ import { getMongoClient } from '../../db/mongoClient.js';
 type VerifiedProfile = {
   provider: 'google' | 'apple';
   subject: string;
-  email?: string;
-  name?: string;
-  picture?: string;
+  email?: string | undefined;
+  name?: string | undefined;
+  picture?: string | undefined;
 };
 
 const router = Router();
@@ -74,10 +74,10 @@ async function verifyGoogleIdToken(idToken: string): Promise<VerifiedProfile> {
 
 async function verifyAppleIdentityToken(identityToken: string): Promise<VerifiedProfile> {
   const JWKS = jose.createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
-  const { payload } = await jose.jwtVerify(identityToken, JWKS, {
-    issuer: 'https://appleid.apple.com',
-    audience: APPLE_BUNDLE_ID ? [APPLE_BUNDLE_ID] : undefined,
-  });
+  const options: jose.JWTVerifyOptions = APPLE_BUNDLE_ID
+    ? { issuer: 'https://appleid.apple.com', audience: APPLE_BUNDLE_ID }
+    : { issuer: 'https://appleid.apple.com' };
+  const { payload } = await jose.jwtVerify(identityToken, JWKS, options);
   const subject = payload.sub as string | undefined;
   if (!subject) {
     throw new Error('Invalid Apple token');

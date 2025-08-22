@@ -955,21 +955,31 @@ class EventDetailPage extends StatelessWidget {
   void _showAcceptDialog(BuildContext context, ThemeData theme) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Accept Event'),
         content: const Text('Are you sure you want to accept this event?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              final id = event['id']?.toString();
+              if (id == null) return;
+              final ok = await AuthService.respondToEvent(
+                eventId: id,
+                response: 'accept',
+              );
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Event accepted successfully!'),
-                  backgroundColor: Colors.green,
+                SnackBar(
+                  content: Text(
+                    ok
+                        ? 'Event accepted successfully!'
+                        : 'Failed to accept event',
+                  ),
+                  backgroundColor: ok ? Colors.green : theme.colorScheme.error,
                 ),
               );
             },
@@ -983,21 +993,29 @@ class EventDetailPage extends StatelessWidget {
   void _showDeclineDialog(BuildContext context, ThemeData theme) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Decline Event'),
         content: const Text('Are you sure you want to decline this event?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              final id = event['id']?.toString();
+              if (id == null) return;
+              final ok = await AuthService.respondToEvent(
+                eventId: id,
+                response: 'decline',
+              );
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Event declined.'),
-                  backgroundColor: Colors.orange,
+                SnackBar(
+                  content: Text(
+                    ok ? 'Event declined.' : 'Failed to decline event',
+                  ),
+                  backgroundColor: ok ? Colors.orange : theme.colorScheme.error,
                 ),
               );
             },

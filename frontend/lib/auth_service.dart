@@ -74,4 +74,21 @@ class AuthService {
     }
     return false;
   }
+
+  static Future<bool> respondToEvent({
+    required String eventId,
+    required String response,
+  }) async {
+    final token = await getJwt();
+    if (token == null) return false;
+    final resp = await http.post(
+      Uri.parse('$_apiBaseUrl/events/$eventId/respond'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'response': response}),
+    );
+    return resp.statusCode == 200;
+  }
 }
