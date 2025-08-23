@@ -16,9 +16,16 @@ app.use(morgan('dev'));
 
 app.use('/events', eventsRouter);
 app.use('/auth', authRouter);
+// Also mount under /api/* to support deployments that prefix routes
+app.use('/api/events', eventsRouter);
+app.use('/api/auth', authRouter);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ ok: true, service: 'backend', timestamp: new Date().toISOString() });
+});
+// Common healthz path used by orchestrators/proxies
+app.get('/healthz', (_req: Request, res: Response) => {
+  res.status(200).send('OK');
 });
 
 const port = process.env.PORT || 4000;

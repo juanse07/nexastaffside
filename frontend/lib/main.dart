@@ -69,16 +69,22 @@ class _RootPageState extends State<RootPage> {
     if (mounted) {
       setState(() => _checkingAuth = false);
     }
+    // Load events automatically after ensuring auth
+    await _loadEvents();
   }
 
   Future<void> _loadEvents() async {
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
+    final rawPrefix = (dotenv.env['API_PATH_PREFIX'] ?? '').trim();
+    final prefix = rawPrefix.isEmpty
+        ? ''
+        : (rawPrefix.startsWith('/') ? rawPrefix : '/$rawPrefix');
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final resp = await http.get(Uri.parse('$baseUrl/events'));
+      final resp = await http.get(Uri.parse('$baseUrl$prefix/events'));
       if (resp.statusCode == 200) {
         final data = json.decode(resp.body) as List<dynamic>;
         setState(() {
@@ -116,6 +122,18 @@ class _RootPageState extends State<RootPage> {
         ),
         backgroundColor: theme.colorScheme.surface,
         surfaceTintColor: theme.colorScheme.surfaceTint,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'signout') {
+                await _handleSignOut();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(value: 'signout', child: Text('Sign out')),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -212,6 +230,42 @@ class _RootPageState extends State<RootPage> {
     );
   }
 
+  Future<void> _handleSignOut() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('You will need to sign in again to continue.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    await AuthService.signOut();
+    if (!mounted) return;
+
+    setState(() {
+      _events = [];
+      _error = null;
+    });
+
+    final signedIn = await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
+    if (signedIn == true && mounted) {
+      await _loadEvents();
+    }
+  }
+
   Widget _buildEventCard(
     BuildContext context,
     Map<String, dynamic> event,
@@ -242,12 +296,15 @@ class _RootPageState extends State<RootPage> {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          final changed = await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => EventDetailPage(event: event),
             ),
           );
+          if (changed == true && mounted) {
+            await _loadEvents();
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -966,8 +1023,16 @@ class EventDetailPage extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               Navigator.of(dialogContext).pop();
-              final id = event['id']?.toString();
-              if (id == null) return;
+              final id = _resolveEventId(event);
+              if (id == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Missing event id'),
+                    backgroundColor: theme.colorScheme.error,
+                  ),
+                );
+                return;
+              }
               final ok = await AuthService.respondToEvent(
                 eventId: id,
                 response: 'accept',
@@ -982,6 +1047,9 @@ class EventDetailPage extends StatelessWidget {
                   backgroundColor: ok ? Colors.green : theme.colorScheme.error,
                 ),
               );
+              if (ok) {
+                Navigator.of(context).pop(true);
+              }
             },
             child: const Text('Accept'),
           ),
@@ -1004,8 +1072,16 @@ class EventDetailPage extends StatelessWidget {
           FilledButton(
             onPressed: () async {
               Navigator.of(dialogContext).pop();
-              final id = event['id']?.toString();
-              if (id == null) return;
+              final id = _resolveEventId(event);
+              if (id == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Missing event id'),
+                    backgroundColor: theme.colorScheme.error,
+                  ),
+                );
+                return;
+              }
               final ok = await AuthService.respondToEvent(
                 eventId: id,
                 response: 'decline',
@@ -1018,6 +1094,9 @@ class EventDetailPage extends StatelessWidget {
                   backgroundColor: ok ? Colors.orange : theme.colorScheme.error,
                 ),
               );
+              if (ok) {
+                Navigator.of(context).pop(true);
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: theme.colorScheme.error,
@@ -1028,4 +1107,15 @@ class EventDetailPage extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _resolveEventId(Map<String, dynamic> event) {
+  final dynamic primary = event['id'] ?? event['_id'];
+  if (primary == null) return null;
+  if (primary is String) return primary;
+  if (primary is Map) {
+    final dynamic oid = primary['\$oid'] ?? primary['oid'] ?? primary['_id'];
+    if (oid is String) return oid;
+  }
+  return null;
 }

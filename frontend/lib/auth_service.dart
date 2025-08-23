@@ -12,6 +12,14 @@ class AuthService {
 
   static String get _apiBaseUrl =>
       dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
+  static String get _apiPathPrefix {
+    final raw = (dotenv.env['API_PATH_PREFIX'] ?? '').trim();
+    if (raw.isEmpty) return '';
+    final withLead = raw.startsWith('/') ? raw : '/$raw';
+    return withLead.endsWith('/')
+        ? withLead.substring(0, withLead.length - 1)
+        : withLead;
+  }
 
   static Future<void> signOut() async {
     await _storage.delete(key: _jwtStorageKey);
@@ -34,7 +42,7 @@ class AuthService {
     if (idToken == null) return false;
 
     final resp = await http.post(
-      Uri.parse('$_apiBaseUrl/auth/google'),
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/auth/google'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'idToken': idToken}),
     );
@@ -60,7 +68,7 @@ class AuthService {
     if (identityToken == null) return false;
 
     final resp = await http.post(
-      Uri.parse('$_apiBaseUrl/auth/apple'),
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/auth/apple'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'identityToken': identityToken}),
     );
@@ -82,7 +90,7 @@ class AuthService {
     final token = await getJwt();
     if (token == null) return false;
     final resp = await http.post(
-      Uri.parse('$_apiBaseUrl/events/$eventId/respond'),
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/$eventId/respond'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
