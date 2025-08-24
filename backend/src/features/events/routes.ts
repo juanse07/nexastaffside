@@ -24,7 +24,7 @@ router.get('/', async (_req, res) => {
 router.post('/:id/respond', requireAuth, async (req, res) => {
   try {
     const eventId = req.params.id ?? '';
-    const { response } = req.body ?? {};
+    const { response, role } = req.body ?? {};
     if (!ObjectId.isValid(eventId)) {
       return res.status(400).json({ message: 'Invalid event id' });
     }
@@ -62,6 +62,8 @@ router.post('/:id/respond', requireAuth, async (req, res) => {
       last_name: lastName,
       picture,
       response,
+      // Optional role context so we know which role was accepted/declined (e.g., bartender)
+      role: typeof role === 'string' && role.trim() ? String(role).trim() : undefined,
       respondedAt: new Date(),
     } as const;
 
