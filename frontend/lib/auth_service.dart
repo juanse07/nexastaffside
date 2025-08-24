@@ -86,6 +86,7 @@ class AuthService {
   static Future<bool> respondToEvent({
     required String eventId,
     required String response,
+    String? role,
   }) async {
     final token = await getJwt();
     if (token == null) return false;
@@ -95,7 +96,7 @@ class AuthService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'response': response}),
+      body: jsonEncode({'response': response, if (role != null) 'role': role}),
     );
     return resp.statusCode == 200;
   }
