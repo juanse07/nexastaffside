@@ -43,6 +43,8 @@ router.post('/:id/respond', requireAuth, async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     const userKey = `${req.user.provider}:${req.user.sub}`;
+    // Debug log for tracing
+    console.log('[events/respond]', { eventId, response, role, userKey });
 
     // Fetch latest user profile details
     const userDoc = await users.findOne({ provider: req.user.provider, subject: req.user.sub });
@@ -101,7 +103,36 @@ router.post('/:id/respond', requireAuth, async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
 
+    // Recompute role_stats (capacity/taken/remaining) and persist
     const updated = await events.findOne({ _id: new ObjectId(eventId) });
+    if (updated) {
+      try {
+        const roles: any[] = Array.isArray(updated.roles) ? updated.roles : [];
+        const accepted: any[] = Array.isArray(updated.accepted_staff)
+          ? updated.accepted_staff
+          : [];
+        const roleStats = roles.map((r: any) => {
+          const roleName = (r?.role ?? '').toString();
+          const capacity = Number.parseInt((r?.count ?? 0).toString());
+          // Count taken only from object-style entries having a role match
+          const taken = accepted.reduce((acc: number, a: any) => {
+            if (a && typeof a === 'object' && (a.role ?? '').toString() === roleName) {
+              return acc + 1;
+            }
+            return acc;
+          }, 0);
+          const remaining = Math.max(0, capacity - taken);
+          return { role: roleName, capacity, taken, remaining };
+        });
+        await events.updateOne(
+          { _id: new ObjectId(eventId) },
+          { $set: { role_stats: roleStats, updatedAt: new Date() } },
+        );
+        (updated as any).role_stats = roleStats;
+      } catch (e) {
+        console.warn('[events/respond] role_stats recompute failed', e);
+      }
+    }
     return res.json(mapEvent(updated));
   } catch (err) {
     return res.status(500).json({ message: 'Failed to update response' });

@@ -17,6 +17,21 @@ class EventDetailPage extends StatelessWidget {
     final clientName = event['client_name']?.toString() ?? '';
     final headcount = event['headcount_total']?.toString() ?? '0';
 
+    bool isRoleFull = false;
+    if (roleName != null && roleName!.isNotEmpty) {
+      final stats = event['role_stats'];
+      if (stats is List) {
+        for (final s in stats) {
+          if (s is Map && (s['role']?.toString() ?? '') == roleName) {
+            final remaining = int.tryParse(s['remaining']?.toString() ?? '');
+            if (remaining != null && remaining <= 0) {
+              isRoleFull = true;
+            }
+          }
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
       appBar: AppBar(
@@ -119,7 +134,9 @@ class EventDetailPage extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: FilledButton(
-                      onPressed: () => _respond(context, theme, 'accept'),
+                      onPressed: isRoleFull
+                          ? null
+                          : () => _respond(context, theme, 'accept'),
                       style: FilledButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,
@@ -128,7 +145,7 @@ class EventDetailPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('ACCEPT'),
+                      child: Text(isRoleFull ? 'FULL' : 'ACCEPT'),
                     ),
                   ),
                 ],

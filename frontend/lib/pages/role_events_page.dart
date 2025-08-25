@@ -33,11 +33,25 @@ class RoleEventsPage extends StatelessWidget {
         itemBuilder: (context, index) {
           final event = events[index];
           final title = event['event_name']?.toString() ?? 'Untitled Event';
+          String? remainingLabel;
+          final stats = event['role_stats'];
+          if (stats is List) {
+            for (final s in stats) {
+              if (s is Map && (s['role']?.toString() ?? '') == roleName) {
+                final cap = s['capacity']?.toString();
+                final rem = s['remaining']?.toString();
+                if (cap != null && rem != null) {
+                  remainingLabel = 'Remaining: $rem / $cap';
+                }
+              }
+            }
+          }
           return Card(
             child: ListTile(
               title: Text(title),
               subtitle: Text(
-                (event['venue_name']?.toString() ?? '').toString(),
+                remainingLabel ??
+                    (event['venue_name']?.toString() ?? '').toString(),
               ),
               onTap: () {
                 Navigator.of(context).push(

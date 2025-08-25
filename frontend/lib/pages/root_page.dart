@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import '../auth_service.dart';
 import '../login_page.dart';
+import '../utils/jwt.dart';
 import '../widgets/event_card.dart';
 import 'role_events_page.dart';
 
@@ -21,6 +22,7 @@ class _RootPageState extends State<RootPage> {
   String? _error;
   List<Map<String, dynamic>> _events = [];
   bool _checkingAuth = true;
+  String? _userKey;
 
   @override
   void initState() {
@@ -35,6 +37,8 @@ class _RootPageState extends State<RootPage> {
         context,
       ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
     }
+    final newToken = await AuthService.getJwt();
+    _userKey = newToken == null ? null : decodeUserKeyFromJwt(newToken);
     if (mounted) {
       setState(() => _checkingAuth = false);
     }
@@ -78,33 +82,51 @@ class _RootPageState extends State<RootPage> {
     if (_checkingAuth) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surfaceContainerLowest,
-      appBar: AppBar(
-        title: Text(
-          'Events',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: theme.colorScheme.surface,
-        surfaceTintColor: theme.colorScheme.surfaceTint,
-      ),
-      body: Column(
-        children: [
-          _Header(
-            loading: _loading,
-            error: _error,
-            totalEvents: _events.length,
-            onRefresh: _loadEvents,
-          ),
-          Expanded(
-            child: _RoleList(
-              summaries: _computeRoleSummaries(),
-              loading: _loading,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: theme.colorScheme.surfaceContainerLowest,
+        appBar: AppBar(
+          title: Text(
+            'Events',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
           ),
-        ],
+          backgroundColor: theme.colorScheme.surface,
+          surfaceTintColor: theme.colorScheme.surfaceTint,
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Roles'),
+              Tab(text: 'My Events'),
+            ],
+          ),
+        ),
+        body: Column(
+          children: [
+            _Header(
+              loading: _loading,
+              error: _error,
+              totalEvents: _events.length,
+              onRefresh: _loadEvents,
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _RoleList(
+                    summaries: _computeRoleSummaries(),
+                    loading: _loading,
+                  ),
+                  _MyEventsList(
+                    events: _events,
+                    userKey: _userKey,
+                    loading: _loading,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -129,12 +151,33 @@ class _RootPageState extends State<RootPage> {
     }
     final summaries = <RoleSummary>[];
     roleToEvents.forEach((role, evs) {
+      int? remaining;
+      // If backend embedded role_stats, aggregate remaining across events for this role
+      int sumRemaining = 0;
+      bool hasAny = false;
+      for (final e in evs) {
+        final stats = e['role_stats'];
+        if (stats is List) {
+          for (final s in stats) {
+            if (s is Map && (s['role']?.toString() ?? '') == role) {
+              final r = int.tryParse(s['remaining']?.toString() ?? '');
+              if (r != null) {
+                sumRemaining += r;
+                hasAny = true;
+              }
+            }
+          }
+        }
+      }
+      if (hasAny) remaining = sumRemaining;
+
       summaries.add(
         RoleSummary(
           roleName: role,
           totalNeeded: roleToNeeded[role] ?? 0,
           eventCount: evs.length,
           events: evs,
+          remainingTotal: remaining,
         ),
       );
     });
@@ -146,6 +189,113 @@ class _RootPageState extends State<RootPage> {
       return a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase());
     });
     return summaries;
+  }
+}
+
+class _MyEventsList extends StatelessWidget {
+  final List<Map<String, dynamic>> events;
+  final String? userKey;
+  final bool loading;
+
+  const _MyEventsList({
+    required this.events,
+    required this.userKey,
+    required this.loading,
+  });
+
+  List<Map<String, dynamic>> _filterMyAccepted() {
+    if (userKey == null) return const [];
+    final List<Map<String, dynamic>> mine = [];
+    for (final e in events) {
+      final accepted = e['accepted_staff'];
+      if (accepted is List) {
+        for (final a in accepted) {
+          if (a is String && a == userKey) {
+            mine.add(e);
+            break;
+          }
+          if (a is Map && a['userKey'] == userKey) {
+            mine.add(e);
+            break;
+          }
+        }
+      }
+    }
+    return mine;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mine = _filterMyAccepted();
+    if (mine.isEmpty && !loading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.event_available_outlined,
+              size: 64,
+              color: theme.colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No accepted events yet',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      itemCount: mine.length,
+      itemBuilder: (context, index) {
+        final e = mine[index];
+        final title = e['event_name']?.toString() ?? 'Untitled Event';
+        final venue = e['venue_name']?.toString() ?? '';
+        final address = e['venue_address']?.toString() ?? '';
+        final city = e['city']?.toString() ?? '';
+        final state = e['state']?.toString() ?? '';
+        String? role;
+        final acc = e['accepted_staff'];
+        if (acc is List) {
+          for (final a in acc) {
+            if (a is Map && a['userKey'] == userKey) {
+              role = a['role']?.toString();
+              break;
+            }
+          }
+        }
+        final subtitleParts = <String>[];
+        if (role != null && role.isNotEmpty) subtitleParts.add('Role: $role');
+        final loc = [
+          venue,
+          address,
+          [city, state].where((s) => s.isNotEmpty).join(', '),
+        ].where((s) => s.toString().trim().isNotEmpty).join(' • ');
+        if (loc.isNotEmpty) subtitleParts.add(loc);
+        return Card(
+          child: ListTile(
+            title: Text(title),
+            subtitle: subtitleParts.isEmpty
+                ? null
+                : Text(subtitleParts.join('  •  ')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      RoleEventsPage(roleName: role ?? 'My Role', events: [e]),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -258,12 +408,15 @@ class _RoleList extends StatelessWidget {
       itemCount: summaries.length,
       itemBuilder: (context, index) {
         final s = summaries[index];
+        final neededLabel = s.remainingTotal != null
+            ? '${s.remainingTotal} remaining'
+            : '${s.totalNeeded} needed';
         return EventCard(
           title: s.roleName,
           chips: [
             InfoChipData(
               icon: Icons.people_outline,
-              label: '${s.totalNeeded} needed',
+              label: neededLabel,
               colorKey: InfoChipColor.primary,
             ),
             InfoChipData(
@@ -291,11 +444,13 @@ class RoleSummary {
   final int totalNeeded;
   final int eventCount;
   final List<Map<String, dynamic>> events;
+  final int? remainingTotal;
 
   RoleSummary({
     required this.roleName,
     required this.totalNeeded,
     required this.eventCount,
     required this.events,
+    this.remainingTotal,
   });
 }
