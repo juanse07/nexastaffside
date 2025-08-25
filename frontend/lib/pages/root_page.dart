@@ -134,7 +134,11 @@ class _RootPageState extends State<RootPage> {
   List<RoleSummary> _computeRoleSummaries() {
     final Map<String, List<Map<String, dynamic>>> roleToEvents = {};
     final Map<String, int> roleToNeeded = {};
-    for (final event in _events) {
+    // Exclude events the current user already accepted
+    final Iterable<Map<String, dynamic>> sourceEvents = _events.where(
+      (e) => !_isAcceptedByUser(e, _userKey),
+    );
+    for (final event in sourceEvents) {
       final roles = event['roles'] as List<dynamic>? ?? const [];
       for (final r in roles) {
         final roleMap = r as Map<String, dynamic>? ?? const {};
@@ -152,7 +156,7 @@ class _RootPageState extends State<RootPage> {
     final summaries = <RoleSummary>[];
     roleToEvents.forEach((role, evs) {
       int? remaining;
-      // If backend embedded role_stats, aggregate remaining across events for this role
+      // Prefer backend-provided role_stats if present
       int sumRemaining = 0;
       bool hasAny = false;
       for (final e in evs) {
@@ -169,7 +173,34 @@ class _RootPageState extends State<RootPage> {
           }
         }
       }
-      if (hasAny) remaining = sumRemaining;
+      if (hasAny) {
+        remaining = sumRemaining;
+      } else {
+        // Fallback: compute remaining from roles[].count minus accepted_staff[].role counts
+        int sumCapacity = 0;
+        int sumTaken = 0;
+        for (final e in evs) {
+          final roles = e['roles'];
+          if (roles is List) {
+            for (final r in roles) {
+              if (r is Map && (r['role']?.toString() ?? '') == role) {
+                final cap = int.tryParse(r['count']?.toString() ?? '');
+                if (cap != null) sumCapacity += cap;
+              }
+            }
+          }
+          final accepted = e['accepted_staff'];
+          if (accepted is List) {
+            for (final a in accepted) {
+              if (a is Map && (a['role']?.toString() ?? '') == role) {
+                sumTaken += 1;
+              }
+            }
+          }
+        }
+        remaining = (sumCapacity - sumTaken);
+        if (remaining < 0) remaining = 0;
+      }
 
       summaries.add(
         RoleSummary(
@@ -189,6 +220,18 @@ class _RootPageState extends State<RootPage> {
       return a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase());
     });
     return summaries;
+  }
+
+  bool _isAcceptedByUser(Map<String, dynamic> event, String? userKey) {
+    if (userKey == null) return false;
+    final accepted = event['accepted_staff'];
+    if (accepted is List) {
+      for (final a in accepted) {
+        if (a is String && a == userKey) return true;
+        if (a is Map && a['userKey'] == userKey) return true;
+      }
+    }
+    return false;
   }
 }
 
@@ -374,7 +417,11 @@ class _RoleList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (summaries.isEmpty && !loading) {
+    // Hide roles that are full (remainingTotal == 0) when backend provides role_stats
+    final display = summaries
+        .where((s) => s.remainingTotal == null || (s.remainingTotal ?? 0) > 0)
+        .toList();
+    if (display.isEmpty && !loading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -405,9 +452,9 @@ class _RoleList extends StatelessWidget {
     }
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 16),
-      itemCount: summaries.length,
+      itemCount: display.length,
       itemBuilder: (context, index) {
-        final s = summaries[index];
+        final s = display[index];
         final neededLabel = s.remainingTotal != null
             ? '${s.remainingTotal} remaining'
             : '${s.totalNeeded} needed';
@@ -428,8 +475,12 @@ class _RoleList extends StatelessWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) =>
-                    RoleEventsPage(roleName: s.roleName, events: s.events),
+                builder: (_) => RoleEventsPage(
+                  roleName: s.roleName,
+                  events: s.events,
+                  userKey: (context.findAncestorStateOfType<_RootPageState>())
+                      ?._userKey,
+                ),
               ),
             );
           },
