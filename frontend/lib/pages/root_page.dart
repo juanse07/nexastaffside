@@ -76,6 +76,17 @@ class _RootPageState extends State<RootPage> {
     }
   }
 
+  Future<void> _signOut() async {
+    await AuthService.signOut();
+    if (!mounted) return;
+    setState(() {
+      _events = [];
+      _userKey = null;
+      _checkingAuth = true;
+    });
+    await _ensureSignedIn();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -95,6 +106,13 @@ class _RootPageState extends State<RootPage> {
           ),
           backgroundColor: theme.colorScheme.surface,
           surfaceTintColor: theme.colorScheme.surfaceTint,
+          actions: [
+            IconButton(
+              onPressed: _signOut,
+              icon: const Icon(Icons.logout),
+              tooltip: 'Sign out',
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Roles'),

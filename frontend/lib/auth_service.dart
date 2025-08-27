@@ -58,29 +58,37 @@ class AuthService {
   }
 
   static Future<bool> signInWithApple() async {
-    final credential = await SignInWithApple.getAppleIDCredential(
-      scopes: [
-        AppleIDAuthorizationScopes.email,
-        AppleIDAuthorizationScopes.fullName,
-      ],
-    );
-    final identityToken = credential.identityToken;
-    if (identityToken == null) return false;
-
-    final resp = await http.post(
-      Uri.parse('$_apiBaseUrl$_apiPathPrefix/auth/apple'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'identityToken': identityToken}),
-    );
-    if (resp.statusCode == 200) {
-      final body = json.decode(resp.body) as Map<String, dynamic>;
-      final token = body['token']?.toString();
-      if (token != null) {
-        await _saveJwt(token);
-        return true;
+    try {
+      final available = await SignInWithApple.isAvailable();
+      if (!available) {
+        return false;
       }
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final identityToken = credential.identityToken;
+      if (identityToken == null) return false;
+
+      final resp = await http.post(
+        Uri.parse('$_apiBaseUrl$_apiPathPrefix/auth/apple'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'identityToken': identityToken}),
+      );
+      if (resp.statusCode == 200) {
+        final body = json.decode(resp.body) as Map<String, dynamic>;
+        final token = body['token']?.toString();
+        if (token != null) {
+          await _saveJwt(token);
+          return true;
+        }
+      }
+      return false;
+    } catch (_) {
+      return false;
     }
-    return false;
   }
 
   static Future<bool> respondToEvent({
