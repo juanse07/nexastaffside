@@ -48,7 +48,29 @@ class RoleEventsPage extends StatelessWidget {
         itemCount: filtered.length,
         itemBuilder: (context, index) {
           final event = filtered[index];
-          final title = event['event_name']?.toString() ?? 'Untitled Event';
+          final eventName = event['event_name']?.toString() ?? 'Untitled Event';
+          final venueName = event['venue_name']?.toString() ?? '';
+          // Build time label from start/end times if present
+          final startTime = event['start_time']?.toString().trim();
+          final endTime = event['end_time']?.toString().trim();
+          String? timeLabel;
+          if ((startTime != null && startTime.isNotEmpty) ||
+              (endTime != null && endTime.isNotEmpty)) {
+            final start = (startTime == null || startTime.isEmpty)
+                ? '—'
+                : startTime;
+            final end = (endTime == null || endTime.isEmpty) ? '—' : endTime;
+            timeLabel = '$start - $end';
+          }
+          // Extract third-party company name if available
+          String companyName = '';
+          final thirdParty = event['third_party'];
+          if (thirdParty is Map) {
+            final comp = thirdParty['company_name'];
+            if (comp != null) companyName = comp.toString();
+          } else if (event['third_party_company_name'] != null) {
+            companyName = event['third_party_company_name'].toString();
+          }
           String? remainingLabel;
           int? remInt;
           int? capInt;
@@ -85,13 +107,45 @@ class RoleEventsPage extends StatelessWidget {
           if (remInt != null && capInt != null) {
             remainingLabel = 'Remaining: $remInt / $capInt';
           }
+          // Compose header: time and company shown prominently when present
+          final List<String> headerParts = [];
+          if (timeLabel != null && timeLabel.isNotEmpty)
+            headerParts.add(timeLabel);
+          if (companyName.isNotEmpty) headerParts.add(companyName);
+          final String? headerTitle = headerParts.isEmpty
+              ? null
+              : headerParts.join(' • ');
+
           return Card(
             child: ListTile(
-              title: Text(title),
-              subtitle: Text(
-                remainingLabel ??
-                    (event['venue_name']?.toString() ?? '').toString(),
+              title: Text(
+                headerTitle ?? eventName,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
+              subtitle: headerTitle == null
+                  ? Text(
+                      (remainingLabel?.isNotEmpty == true)
+                          ? remainingLabel!
+                          : venueName,
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          eventName,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          (remainingLabel?.isNotEmpty == true)
+                              ? remainingLabel!
+                              : venueName,
+                        ),
+                      ],
+                    ),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
