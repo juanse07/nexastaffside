@@ -3,12 +3,26 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../auth_service.dart';
 import '../login_page.dart';
+import '../utils/id.dart';
 import '../utils/jwt.dart';
-import '../widgets/event_card.dart';
 import 'role_events_page.dart';
+
+Future<void> _launchMapUrl(String url) async {
+  try {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Could not launch map';
+    }
+  } catch (e) {
+    print('Error launching map: $e');
+  }
+}
 
 class RootPage extends StatefulWidget {
   const RootPage({super.key});
@@ -19,7 +33,6 @@ class RootPage extends StatefulWidget {
 
 class _RootPageState extends State<RootPage> {
   bool _loading = false;
-  String? _error;
   List<Map<String, dynamic>> _events = [];
   bool _checkingAuth = true;
   String? _userKey;
@@ -53,7 +66,6 @@ class _RootPageState extends State<RootPage> {
         : (rawPrefix.startsWith('/') ? rawPrefix : '/$rawPrefix');
     setState(() {
       _loading = true;
-      _error = null;
     });
     try {
       final resp = await http.get(Uri.parse('$baseUrl$prefix/events'));
@@ -62,15 +74,9 @@ class _RootPageState extends State<RootPage> {
         setState(() {
           _events = data.cast<Map<String, dynamic>>();
         });
-      } else {
-        setState(() {
-          _error = 'HTTP ${resp.statusCode}';
-        });
       }
     } catch (e) {
-      setState(() {
-        _error = 'Error: $e';
-      });
+      // Error handling can be added here if needed
     } finally {
       setState(() => _loading = false);
     }
@@ -91,57 +97,49 @@ class _RootPageState extends State<RootPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     if (_checkingAuth) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: theme.colorScheme.surfaceContainerLowest,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: theme.colorScheme.surfaceContainerLowest,
         appBar: AppBar(
-          title: Text(
-            'Events',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          backgroundColor: theme.colorScheme.surface,
-          surfaceTintColor: theme.colorScheme.surfaceTint,
+          title: const Text('Nexa Staff'),
           actions: [
             IconButton(
               onPressed: _signOut,
-              icon: const Icon(Icons.logout),
+              icon: const Icon(Icons.logout_rounded),
               tooltip: 'Sign out',
             ),
           ],
           bottom: const TabBar(
             tabs: [
+              Tab(text: 'Home'),
               Tab(text: 'Roles'),
               Tab(text: 'My Events'),
             ],
           ),
         ),
-        body: Column(
+        body: TabBarView(
           children: [
-            _Header(
+            _HomeTab(
+              events: _events,
+              userKey: _userKey,
               loading: _loading,
-              error: _error,
-              totalEvents: _events.length,
               onRefresh: _loadEvents,
             ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _RoleList(
-                    summaries: _computeRoleSummaries(),
-                    loading: _loading,
-                  ),
-                  _MyEventsList(
-                    events: _events,
-                    userKey: _userKey,
-                    loading: _loading,
-                  ),
-                ],
-              ),
+            _RoleList(
+              summaries: _computeRoleSummaries(),
+              loading: _loading,
+              onRefresh: _loadEvents,
+            ),
+            _MyEventsList(
+              events: _events,
+              userKey: _userKey,
+              loading: _loading,
             ),
           ],
         ),
@@ -253,6 +251,717 @@ class _RootPageState extends State<RootPage> {
   }
 }
 
+class _HomeTab extends StatefulWidget {
+  final List<Map<String, dynamic>> events;
+  final String? userKey;
+  final bool loading;
+  final Future<void> Function() onRefresh;
+  const _HomeTab({
+    required this.events,
+    required this.userKey,
+    required this.loading,
+    required this.onRefresh,
+  });
+
+  @override
+  State<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<_HomeTab> {
+  Map<String, dynamic>? _upcoming;
+  bool _loading = false;
+  String? _status; // not_started | clocked_in | completed
+
+  @override
+  void initState() {
+    super.initState();
+    _computeUpcoming();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.events != widget.events ||
+        oldWidget.userKey != widget.userKey) {
+      _computeUpcoming();
+    }
+  }
+
+  void _computeUpcoming() async {
+    setState(() {
+      _upcoming = null;
+      _status = null;
+    });
+    if (widget.userKey == null) return;
+    // Filter accepted events for this user
+    final List<Map<String, dynamic>> mine = [];
+    for (final e in widget.events) {
+      final accepted = e['accepted_staff'];
+      if (accepted is List) {
+        for (final a in accepted) {
+          if (a is String && a == widget.userKey) {
+            mine.add(e);
+            break;
+          }
+          if (a is Map && a['userKey'] == widget.userKey) {
+            mine.add(e);
+            break;
+          }
+        }
+      }
+    }
+    if (mine.isEmpty) return;
+    // Choose nearest upcoming (today/future and not already started). If none, show none.
+    final now = DateTime.now();
+    DateTime? bestFuture;
+    Map<String, dynamic>? bestFutureEvent;
+    for (final e in mine) {
+      final dt = _eventDateTime(e);
+      if (dt == null) continue;
+      if (!dt.isBefore(now)) {
+        if (bestFuture == null || dt.isBefore(bestFuture)) {
+          bestFuture = dt;
+          bestFutureEvent = e;
+        }
+      }
+    }
+    if (bestFutureEvent == null) {
+      setState(() {
+        _upcoming = null;
+        _status = null;
+      });
+      return;
+    }
+    final next = bestFutureEvent;
+    _upcoming = next;
+    // Load attendance state
+    final id = resolveEventId(next);
+    if (id == null) return;
+    setState(() {
+      _loading = true;
+    });
+    final resp = await AuthService.getMyAttendanceStatus(eventId: id);
+    setState(() {
+      _loading = false;
+      _status = resp?['status']?.toString();
+    });
+  }
+
+  DateTime? _eventDateTime(Map<String, dynamic> e) {
+    final dateStr = e['date']?.toString().trim();
+    if (dateStr == null || dateStr.isEmpty) return null;
+    final date = _parseDateSafe(dateStr);
+    if (date == null) return null;
+    final timeStr = e['start_time']?.toString().trim();
+    final time = _tryParseTimeOfDay(timeStr);
+    if (time != null) {
+      return DateTime(date.year, date.month, date.day, time.$1, time.$2);
+    }
+    // If time is unknown, assume end of day to keep same-day events as upcoming
+    return DateTime(date.year, date.month, date.day, 23, 59);
+  }
+
+  // Returns (hour, minute) in 24h if parsed, otherwise null
+  (int, int)? _tryParseTimeOfDay(String? raw) {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    final reg = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$');
+    final m = reg.firstMatch(s);
+    if (m == null) return null;
+    int hour = int.tryParse(m.group(1) ?? '') ?? 0;
+    int minute = int.tryParse(m.group(2) ?? '0') ?? 0;
+    final ampm = m.group(3);
+    if (ampm != null) {
+      final upper = ampm.toUpperCase();
+      if (upper == 'AM') {
+        if (hour == 12) hour = 0;
+      } else if (upper == 'PM') {
+        if (hour != 12) hour += 12;
+      }
+    }
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return (hour, minute);
+  }
+
+  // Attempt to parse common date formats used by backend data
+  DateTime? _parseDateSafe(String input) {
+    // 1) ISO 8601 or YYYY-MM-DD or with time
+    try {
+      final iso = DateTime.tryParse(input);
+      if (iso != null) return DateTime(iso.year, iso.month, iso.day);
+    } catch (_) {}
+    // 2) MM/DD/YYYY or M/D/YYYY
+    final us = RegExp(r'^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$').firstMatch(input);
+    if (us != null) {
+      final m = int.tryParse(us.group(1) ?? '');
+      final d = int.tryParse(us.group(2) ?? '');
+      var y = int.tryParse(us.group(3) ?? '');
+      if (m != null && d != null && y != null) {
+        if (y < 100) y += 2000; // naive 2-digit year handling
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    // 3) DD/MM/YYYY (EU style). Only use if clearly not US (month > 12)
+    final eu = RegExp(r'^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$').firstMatch(input);
+    if (eu != null) {
+      final a = int.tryParse(eu.group(1) ?? '');
+      final b = int.tryParse(eu.group(2) ?? '');
+      var y = int.tryParse(eu.group(3) ?? '');
+      if (a != null && b != null && y != null) {
+        // treat as DD/MM/YYYY when the first number cannot be a month
+        if (a > 12 && b >= 1 && b <= 12) {
+          if (y < 100) y += 2000;
+          if (a >= 1 && a <= 31) {
+            return DateTime(y, b, a);
+          }
+        }
+      }
+    }
+    // 4) YYYY/MM/DD or YYYY-M-D
+    final ymd = RegExp(
+      r'^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$',
+    ).firstMatch(input);
+    if (ymd != null) {
+      final y = int.tryParse(ymd.group(1) ?? '');
+      final m = int.tryParse(ymd.group(2) ?? '');
+      final d = int.tryParse(ymd.group(3) ?? '');
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<void> _clockIn() async {
+    if (_upcoming == null) return;
+    final id = resolveEventId(_upcoming!);
+    if (id == null) return;
+    setState(() {
+      _loading = true;
+    });
+    final res = await AuthService.clockIn(eventId: id);
+    setState(() {
+      _loading = false;
+      _status = res?['status']?.toString() ?? _status;
+    });
+  }
+
+  Future<void> _clockOut() async {
+    if (_upcoming == null) return;
+    final id = resolveEventId(_upcoming!);
+    if (id == null) return;
+    setState(() {
+      _loading = true;
+    });
+    final res = await AuthService.clockOut(eventId: id);
+    setState(() {
+      _loading = false;
+      _status = res?['status']?.toString() ?? _status;
+    });
+  }
+
+  Future<void> _launchMap(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch map';
+      }
+    } catch (e) {
+      print('Error launching map: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              height: 200,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF8B5CF6), // Purple
+                    Color(0xFF7C3AED), // Deep purple
+                    Color(0xFF6366F1), // Indigo
+                  ],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // Decorative circles
+                  Positioned(
+                    top: -20,
+                    right: -20,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -30,
+                    left: -30,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
+                      ),
+                    ),
+                  ),
+                  // Content
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 20),
+                          Text(
+                            'Welcome Back!',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _upcoming != null
+                                ? 'Your next shift is ready'
+                                : 'No upcoming shifts today',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                          const Spacer(),
+                          if (widget.loading)
+                            const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  if (_upcoming == null && !widget.loading) ...[
+                    const SizedBox(height: 40),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                              ),
+                              borderRadius: BorderRadius.circular(32),
+                            ),
+                            child: const Icon(
+                              Icons.event_available_outlined,
+                              size: 32,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No upcoming events',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Accept an event from the Roles tab to see it here',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (_upcoming != null) ...[
+                    _buildEventCard(theme),
+                    const SizedBox(height: 24),
+                    _buildClockActions(theme),
+                    if (_status == 'completed') ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF10B981), Color(0xFF059669)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_outline,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Shift completed successfully!',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventCard(ThemeData theme) {
+    final e = _upcoming!;
+    final title = e['event_name']?.toString() ?? 'Upcoming Event';
+    final venue = e['venue_name']?.toString() ?? '';
+    final venueAddress = e['venue_address']?.toString() ?? '';
+    final googleMapsUrl = e['google_maps_url']?.toString() ?? '';
+    final date = e['date']?.toString() ?? '';
+    final start = e['start_time']?.toString() ?? '';
+    final end = e['end_time']?.toString() ?? '';
+
+    // Real data is now available from backend!
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
+        ),
+        border: Border.all(
+          color: const Color(0xFF8B5CF6).withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (venue.isNotEmpty ||
+                venueAddress.isNotEmpty ||
+                googleMapsUrl.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (venue.isNotEmpty)
+                          Text(
+                            venue,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        if (venueAddress.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            venueAddress,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (googleMapsUrl.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF10B981), Color(0xFF059669)],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: () => _launchMap(googleMapsUrl),
+                          child: const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.map_outlined,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+            if (date.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    date,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (start.isNotEmpty || end.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          [
+                            start,
+                            end,
+                          ].where((s) => s.trim().isNotEmpty).join(' - '),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClockActions(ThemeData theme) {
+    return Column(
+      children: [
+        if (_status == 'not_started')
+          Container(
+            width: double.infinity,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF10B981), Color(0xFF059669)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10B981).withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              onPressed: !_loading ? _clockIn : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: _loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+              label: Text(
+                _loading ? 'Clocking in...' : 'Clock In',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        if (_status == 'clocked_in')
+          Container(
+            width: double.infinity,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF4444).withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ElevatedButton.icon(
+              onPressed: !_loading ? _clockOut : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: _loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.stop_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+              label: Text(
+                _loading ? 'Clocking out...' : 'Clock Out',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _MyEventsList extends StatelessWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
@@ -289,138 +998,433 @@ class _MyEventsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mine = _filterMyAccepted();
-    if (mine.isEmpty && !loading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.event_available_outlined,
-              size: 64,
-              color: theme.colorScheme.outline,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No accepted events yet',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Container(
+            height: 160,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF8B5CF6), // Purple
+                  Color(0xFFA855F7), // Light purple
+                  Color(0xFFEC4899), // Pink
+                ],
               ),
             ),
-          ],
-        ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      itemCount: mine.length,
-      itemBuilder: (context, index) {
-        final e = mine[index];
-        final title = e['event_name']?.toString() ?? 'Untitled Event';
-        final venue = e['venue_name']?.toString() ?? '';
-        final address = e['venue_address']?.toString() ?? '';
-        final city = e['city']?.toString() ?? '';
-        final state = e['state']?.toString() ?? '';
-        String? role;
-        final acc = e['accepted_staff'];
-        if (acc is List) {
-          for (final a in acc) {
-            if (a is Map && a['userKey'] == userKey) {
-              role = a['role']?.toString();
-              break;
-            }
-          }
-        }
-        final subtitleParts = <String>[];
-        if (role != null && role.isNotEmpty) subtitleParts.add('Role: $role');
-        final loc = [
-          venue,
-          address,
-          [city, state].where((s) => s.isNotEmpty).join(', '),
-        ].where((s) => s.toString().trim().isNotEmpty).join(' • ');
-        if (loc.isNotEmpty) subtitleParts.add(loc);
-        return Card(
-          child: ListTile(
-            title: Text(title),
-            subtitle: subtitleParts.isEmpty
-                ? null
-                : Text(subtitleParts.join('  •  ')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      RoleEventsPage(roleName: role ?? 'My Role', events: [e]),
+            child: Stack(
+              children: [
+                // Decorative elements
+                Positioned(
+                  top: -15,
+                  right: -15,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.1),
+                    ),
+                  ),
                 ),
-              );
-            },
+                Positioned(
+                  bottom: -20,
+                  left: -20,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                ),
+                // Content
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.event_available_outlined,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'My Events',
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  Text(
+                                    loading
+                                        ? 'Loading events...'
+                                        : mine.isEmpty
+                                        ? 'No accepted events yet'
+                                        : '${mine.length} events accepted',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: Colors.white.withOpacity(0.9),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (loading)
+                          const Expanded(
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+        if (mine.isEmpty && !loading)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: _buildEmptyState(theme),
+            ),
+          ),
+        if (mine.isNotEmpty)
+          SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              if (index >= mine.length) return null;
+
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  index == 0 ? 0 : 8,
+                  20,
+                  index == mine.length - 1 ? 20 : 8,
+                ),
+                child: _buildEventCard(context, theme, mine[index]),
+              );
+            }, childCount: mine.length),
+          ),
+      ],
     );
   }
-}
 
-class _Header extends StatelessWidget {
-  final bool loading;
-  final String? error;
-  final int totalEvents;
-  final Future<void> Function() onRefresh;
-
-  const _Header({
-    required this.loading,
-    required this.error,
-    required this.totalEvents,
-    required this.onRefresh,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
+  Widget _buildEmptyState(ThemeData theme) {
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                  ),
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: const Icon(
+                  Icons.event_available_outlined,
+                  size: 32,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No accepted events',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Accept events from the Roles tab to see them here',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Manage Your Events',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error != null ? error! : 'Found $totalEvents events',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: error != null
-                  ? theme.colorScheme.error
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: loading ? null : onRefresh,
-            icon: loading
-                ? SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.colorScheme.onPrimary,
-                    ),
-                  )
-                : const Icon(Icons.refresh),
-            label: Text(loading ? 'Loading...' : 'Refresh Events'),
+      ],
+    );
+  }
+
+  Widget _buildEventCard(
+    BuildContext context,
+    ThemeData theme,
+    Map<String, dynamic> e,
+  ) {
+    final title = e['event_name']?.toString() ?? 'Untitled Event';
+    final venue = e['venue_name']?.toString() ?? '';
+    final venueAddress = e['venue_address']?.toString() ?? '';
+    final googleMapsUrl = e['google_maps_url']?.toString() ?? '';
+    final date = e['date']?.toString() ?? '';
+
+    // Debug: Check My Events data
+    print('🔥 MY EVENTS DEBUG 🔥 Event: ${e['event_name']}');
+    print('🔥 MY EVENTS DEBUG 🔥 venue_address: "$venueAddress"');
+    print('🔥 MY EVENTS DEBUG 🔥 google_maps_url: "$googleMapsUrl"');
+    print('🔥 MY EVENTS DEBUG 🔥 venue_name: "${e['venue_name']}"');
+    print('🔥 MY EVENTS DEBUG 🔥 All keys: ${e.keys.toList()}');
+
+    String? role;
+    final acc = e['accepted_staff'];
+    if (acc is List) {
+      for (final a in acc) {
+        if (a is Map && a['userKey'] == userKey) {
+          role = a['role']?.toString();
+          break;
+        }
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
+        ),
+        border: Border.all(
+          color: const Color(0xFF8B5CF6).withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    RoleEventsPage(roleName: role ?? 'My Role', events: [e]),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (role != null && role.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.badge_outlined,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Role: $role',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (venue.isNotEmpty ||
+                    venueAddress.isNotEmpty ||
+                    googleMapsUrl.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (venue.isNotEmpty)
+                              Text(
+                                venue,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (venueAddress.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                venueAddress,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (googleMapsUrl.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF10B981), Color(0xFF059669)],
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => _launchMapUrl(googleMapsUrl),
+                              child: const Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.map_outlined,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (date.isNotEmpty)
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        date,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -429,8 +1433,13 @@ class _Header extends StatelessWidget {
 class _RoleList extends StatelessWidget {
   final List<RoleSummary> summaries;
   final bool loading;
+  final Future<void> Function() onRefresh;
 
-  const _RoleList({required this.summaries, required this.loading});
+  const _RoleList({
+    required this.summaries,
+    required this.loading,
+    required this.onRefresh,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -439,57 +1448,227 @@ class _RoleList extends StatelessWidget {
     final display = summaries
         .where((s) => s.remainingTotal == null || (s.remainingTotal ?? 0) > 0)
         .toList();
-    if (display.isEmpty && !loading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.work_outline,
-              size: 64,
-              color: theme.colorScheme.outline,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No roles found',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Container(
+              height: 160,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF6366F1), // Indigo
+                    Color(0xFF8B5CF6), // Purple
+                    Color(0xFFA855F7), // Light purple
+                  ],
+                ),
+              ),
+              child: Stack(
+                children: [
+                  // Decorative elements
+                  Positioned(
+                    top: -15,
+                    right: -15,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -20,
+                    left: -20,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
+                      ),
+                    ),
+                  ),
+                  // Content
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.work_outline,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Available Roles',
+                                      style: theme.textTheme.headlineSmall
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                    Text(
+                                      loading
+                                          ? 'Loading roles...'
+                                          : display.isEmpty
+                                          ? 'No roles available right now'
+                                          : '${display.length} roles need staff',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: Colors.white.withOpacity(
+                                              0.9,
+                                            ),
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (loading)
+                            const Expanded(
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap refresh to load events and roles from the database',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.outline,
+          ),
+          if (display.isEmpty && !loading)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _buildEmptyState(theme),
               ),
-              textAlign: TextAlign.center,
             ),
-          ],
+          if (display.isNotEmpty)
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                if (index >= display.length) return null;
+
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    index == 0 ? 0 : 8,
+                    20,
+                    index == display.length - 1 ? 20 : 8,
+                  ),
+                  child: _buildRoleCard(context, theme, display[index]),
+                );
+              }, childCount: display.length),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme) {
+    return Column(
+      children: [
+        const SizedBox(height: 40),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                  ),
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: const Icon(
+                  Icons.work_outline,
+                  size: 32,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No roles available',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pull to refresh and check for new events',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      itemCount: display.length,
-      itemBuilder: (context, index) {
-        final s = display[index];
-        final neededLabel = s.remainingTotal != null
-            ? '${s.remainingTotal} remaining'
-            : '${s.totalNeeded} needed';
-        return EventCard(
-          title: s.roleName,
-          chips: [
-            InfoChipData(
-              icon: Icons.people_outline,
-              label: neededLabel,
-              colorKey: InfoChipColor.primary,
-            ),
-            InfoChipData(
-              icon: Icons.event,
-              label: '${s.eventCount} events',
-              colorKey: InfoChipColor.secondary,
-            ),
-          ],
+      ],
+    );
+  }
+
+  Widget _buildRoleCard(BuildContext context, ThemeData theme, RoleSummary s) {
+    final neededLabel = s.remainingTotal != null
+        ? '${s.remainingTotal} remaining'
+        : '${s.totalNeeded} needed';
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
+        ),
+        border: Border.all(
+          color: const Color(0xFF6366F1).withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -502,8 +1681,117 @@ class _RoleList extends StatelessWidget {
               ),
             );
           },
-        );
-      },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.work_outline, color: Colors.white),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.roleName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.people_outline,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  neededLabel,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.event_outlined,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${s.eventCount} events',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

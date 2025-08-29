@@ -10,6 +10,17 @@ function mapEvent(doc: any) {
   return { id: String(_id), ...rest };
 }
 
+function mapAttendance(doc: any) {
+  if (!doc) return null;
+  const { _id, eventId, ...rest } = doc;
+  return { id: String(_id), eventId: String(eventId), ...rest } as const;
+}
+
+function getUserKey(req: any): string | null {
+  if (!req.user?.provider || !req.user?.sub) return null;
+  return `${req.user.provider}:${req.user.sub}`;
+}
+
 router.get('/', async (_req, res) => {
   try {
     const client = await getMongoClient();
@@ -136,6 +147,134 @@ router.post('/:id/respond', requireAuth, async (req, res) => {
     return res.json(mapEvent(updated));
   } catch (err) {
     return res.status(500).json({ message: 'Failed to update response' });
+  }
+});
+
+// Get current user's attendance record for an event
+router.get('/:id/attendance/me', requireAuth, async (req, res) => {
+  try {
+    const eventId = req.params.id ?? '';
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: 'Invalid event id' });
+    }
+    const userKey = getUserKey(req);
+    if (!userKey) return res.status(401).json({ message: 'Unauthorized' });
+
+    const client = await getMongoClient();
+    const db = client.db();
+    const attendance = db.collection('attendance');
+    const open = await attendance.findOne({
+      eventId: new ObjectId(eventId),
+      userKey,
+      clockOutAt: { $exists: false },
+    });
+    if (open) {
+      return res.json({ status: 'clocked_in', record: mapAttendance(open) });
+    }
+    const last = await attendance
+      .find({ eventId: new ObjectId(eventId), userKey })
+      .sort({ clockInAt: -1 })
+      .limit(1)
+      .toArray();
+    if (last.length > 0) {
+      return res.json({ status: 'completed', record: mapAttendance(last[0]) });
+    }
+    return res.json({ status: 'not_started' });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to get attendance' });
+  }
+});
+
+// Clock in to an event
+router.post('/:id/clock-in', requireAuth, async (req, res) => {
+  try {
+    const eventId = req.params.id ?? '';
+    const { role } = req.body ?? {};
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: 'Invalid event id' });
+    }
+    const userKey = getUserKey(req);
+    if (!userKey) return res.status(401).json({ message: 'Unauthorized' });
+
+    const client = await getMongoClient();
+    const db = client.db();
+    const events = db.collection('events');
+    const attendance = db.collection('attendance');
+
+    const eventDoc = await events.findOne({ _id: new ObjectId(eventId) });
+    if (!eventDoc) return res.status(404).json({ message: 'Event not found' });
+
+    // Ensure the user accepted the event (string or object entries)
+    const accepted = Array.isArray((eventDoc as any).accepted_staff)
+      ? ((eventDoc as any).accepted_staff as any[])
+      : [];
+    const isAccepted = accepted.some((a: any) => {
+      if (!a) return false;
+      if (typeof a === 'string') return a === userKey;
+      if (typeof a === 'object') return a.userKey === userKey;
+      return false;
+    });
+    if (!isAccepted) {
+      return res.status(403).json({ message: 'User has not accepted this event' });
+    }
+
+    // Prevent duplicate open clock-in
+    const existingOpen = await attendance.findOne({
+      eventId: new ObjectId(eventId),
+      userKey,
+      clockOutAt: { $exists: false },
+    });
+    if (existingOpen) {
+      return res.status(409).json({ message: 'Already clocked in', record: mapAttendance(existingOpen) });
+    }
+
+    const now = new Date();
+    const record = {
+      eventId: new ObjectId(eventId),
+      userKey,
+      provider: req.user!.provider,
+      subject: req.user!.sub,
+      email: req.user!.email,
+      name: req.user!.name,
+      picture: req.user!.picture,
+      role: typeof role === 'string' && role.trim() ? String(role).trim() : undefined,
+      clockInAt: now,
+      createdAt: now,
+    } as const;
+    const result = await attendance.insertOne(record as any);
+    const inserted = await attendance.findOne({ _id: result.insertedId });
+    return res.status(201).json({ status: 'clocked_in', record: mapAttendance(inserted) });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to clock in' });
+  }
+});
+
+// Clock out from an event
+router.post('/:id/clock-out', requireAuth, async (req, res) => {
+  try {
+    const eventId = req.params.id ?? '';
+    if (!ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: 'Invalid event id' });
+    }
+    const userKey = getUserKey(req);
+    if (!userKey) return res.status(401).json({ message: 'Unauthorized' });
+
+    const client = await getMongoClient();
+    const db = client.db();
+    const attendance = db.collection('attendance');
+
+    const now = new Date();
+    const result = await attendance.findOneAndUpdate(
+      { eventId: new ObjectId(eventId), userKey, clockOutAt: { $exists: false } },
+      { $set: { clockOutAt: now, updatedAt: now } },
+      { returnDocument: 'after' },
+    );
+    if (!result.value) {
+      return res.status(400).json({ message: 'No open clock-in found' });
+    }
+    return res.json({ status: 'completed', record: mapAttendance(result.value) });
+  } catch (err) {
+    return res.status(500).json({ message: 'Failed to clock out' });
   }
 });
 

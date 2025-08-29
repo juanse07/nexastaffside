@@ -108,4 +108,56 @@ class AuthService {
     );
     return resp.statusCode == 200;
   }
+
+  static Future<Map<String, dynamic>?> getMyAttendanceStatus({
+    required String eventId,
+  }) async {
+    final token = await getJwt();
+    if (token == null) return null;
+    final resp = await http.get(
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/$eventId/attendance/me'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (resp.statusCode == 200) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> clockIn({
+    required String eventId,
+    String? role,
+  }) async {
+    final token = await getJwt();
+    if (token == null) return null;
+    final resp = await http.post(
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/$eventId/clock-in'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({if (role != null) 'role': role}),
+    );
+    if (resp.statusCode == 200 ||
+        resp.statusCode == 201 ||
+        resp.statusCode == 409) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> clockOut({
+    required String eventId,
+  }) async {
+    final token = await getJwt();
+    if (token == null) return null;
+    final resp = await http.post(
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/$eventId/clock-out'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (resp.statusCode == 200) {
+      return json.decode(resp.body) as Map<String, dynamic>;
+    }
+    return null;
+  }
 }
