@@ -13,11 +13,11 @@ class DataService extends ChangeNotifier {
   static const String _availabilityStorageKey = 'cached_availability';
   static const String _lastAvailabilityFetchKey = 'last_availability_fetch';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
-  
+
   // Cache duration in minutes - adjust based on your needs
   static const int _cacheExpiryMinutes = 5;
   static const int _backgroundRefreshMinutes = 2;
-  
+
   List<Map<String, dynamic>> _events = [];
   List<Map<String, dynamic>> _availability = [];
   bool _isLoading = false;
@@ -26,16 +26,17 @@ class DataService extends ChangeNotifier {
   DateTime? _lastFetch;
   DateTime? _lastAvailabilityFetch;
   Timer? _backgroundRefreshTimer;
-  
+
   // Getters
   List<Map<String, dynamic>> get events => List.unmodifiable(_events);
-  List<Map<String, dynamic>> get availability => List.unmodifiable(_availability);
+  List<Map<String, dynamic>> get availability =>
+      List.unmodifiable(_availability);
   bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
   String? get lastError => _lastError;
   DateTime? get lastFetch => _lastFetch;
   bool get hasData => _events.isNotEmpty;
-  
+
   // Check if data is fresh enough to avoid unnecessary requests
   bool get isDataFresh {
     if (_lastFetch == null) return false;
@@ -43,17 +44,17 @@ class DataService extends ChangeNotifier {
     final diff = now.difference(_lastFetch!);
     return diff.inMinutes < _cacheExpiryMinutes;
   }
-  
+
   bool get isAvailabilityFresh {
     if (_lastAvailabilityFetch == null) return false;
     final now = DateTime.now();
     final diff = now.difference(_lastAvailabilityFetch!);
     return diff.inMinutes < _cacheExpiryMinutes;
   }
-  
+
   static String get _apiBaseUrl =>
       dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
-  
+
   static String get _apiPathPrefix {
     final raw = (dotenv.env['API_PATH_PREFIX'] ?? '').trim();
     if (raw.isEmpty) return '';
@@ -78,26 +79,30 @@ class DataService extends ChangeNotifier {
         final data = json.decode(cachedEvents) as List<dynamic>;
         _events = data.cast<Map<String, dynamic>>();
       }
-      
+
       // Load last fetch timestamp
       final lastFetchStr = await _storage.read(key: _lastFetchKey);
       if (lastFetchStr != null) {
         _lastFetch = DateTime.tryParse(lastFetchStr);
       }
-      
+
       // Load cached availability
-      final cachedAvailability = await _storage.read(key: _availabilityStorageKey);
+      final cachedAvailability = await _storage.read(
+        key: _availabilityStorageKey,
+      );
       if (cachedAvailability != null) {
         final data = json.decode(cachedAvailability) as List<dynamic>;
         _availability = data.cast<Map<String, dynamic>>();
       }
-      
+
       // Load last availability fetch timestamp
-      final lastAvailabilityStr = await _storage.read(key: _lastAvailabilityFetchKey);
+      final lastAvailabilityStr = await _storage.read(
+        key: _lastAvailabilityFetchKey,
+      );
       if (lastAvailabilityStr != null) {
         _lastAvailabilityFetch = DateTime.tryParse(lastAvailabilityStr);
       }
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading cached data: $e');
@@ -107,10 +112,7 @@ class DataService extends ChangeNotifier {
   /// Cache data to secure storage
   Future<void> _cacheEvents(List<Map<String, dynamic>> events) async {
     try {
-      await _storage.write(
-        key: _eventsStorageKey,
-        value: json.encode(events),
-      );
+      await _storage.write(key: _eventsStorageKey, value: json.encode(events));
       await _storage.write(
         key: _lastFetchKey,
         value: DateTime.now().toIso8601String(),
@@ -119,9 +121,11 @@ class DataService extends ChangeNotifier {
       debugPrint('Error caching events: $e');
     }
   }
-  
+
   /// Cache availability data to secure storage
-  Future<void> _cacheAvailability(List<Map<String, dynamic>> availability) async {
+  Future<void> _cacheAvailability(
+    List<Map<String, dynamic>> availability,
+  ) async {
     try {
       await _storage.write(
         key: _availabilityStorageKey,
@@ -146,23 +150,30 @@ class DataService extends ChangeNotifier {
 
     try {
       final url = '$_apiBaseUrl$_apiPathPrefix/events';
-      final response = await http.get(Uri.parse(url));
-      
+      final token = await _storage.read(key: 'auth_jwt');
+      final headers = <String, String>{};
+      if (token != null) headers['Authorization'] = 'Bearer $token';
+      final response = await http.get(Uri.parse(url), headers: headers);
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as List<dynamic>;
-        final newEvents = data.cast<Map<String, dynamic>>();
-        
+        final userKey = _decodeUserKeyFromToken(token);
+        final newEvents = _filterEventsForAudience(
+          data.cast<Map<String, dynamic>>(),
+          userKey,
+        );
+
         // Only update if data has actually changed
         if (!_listsEqual(_events, newEvents)) {
           _events = newEvents;
           _lastFetch = DateTime.now();
           await _cacheEvents(_events);
-          
+
           if (!silent) {
             notifyListeners();
           }
         }
-        
+
         _lastError = null;
       } else {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
@@ -189,17 +200,17 @@ class DataService extends ChangeNotifier {
         Uri.parse(url),
         headers: {'Authorization': 'Bearer $token'},
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as List<dynamic>;
         final newAvailability = data.cast<Map<String, dynamic>>();
-        
+
         // Only update if data has actually changed
         if (!_listsEqual(_availability, newAvailability)) {
           _availability = newAvailability;
           _lastAvailabilityFetch = DateTime.now();
           await _cacheAvailability(_availability);
-          
+
           if (!silent) {
             notifyListeners();
           }
@@ -208,6 +219,64 @@ class DataService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error fetching availability: $e');
     }
+  }
+
+  /// Decode provider:sub from a JWT without verifying signature
+  String? _decodeUserKeyFromToken(String? token) {
+    if (token == null || token.isEmpty) return null;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final payload = utf8.decode(base64Url.decode(_normalizeBase64(parts[1])));
+      final jsonMap = json.decode(payload) as Map<String, dynamic>;
+      final provider = (jsonMap['provider'] ?? 'google').toString();
+      final sub = jsonMap['sub']?.toString();
+      if (sub == null || sub.isEmpty) return null;
+      return '$provider:$sub';
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _normalizeBase64(String input) {
+    final pad = input.length % 4;
+    if (pad == 2)
+      return '$input'
+          '==';
+    if (pad == 3)
+      return '$input'
+          '=';
+    if (pad == 1)
+      return '$input'
+          '==='; // unlikely but safe
+    return input;
+  }
+
+  /// Apply audience visibility rules client-side
+  /// - If event.audience_user_keys is empty or missing: everyone sees all roles
+  /// - If non-empty: show roles only if current userKey is listed, or role.visible_for_all is true
+  List<Map<String, dynamic>> _filterEventsForAudience(
+    List<Map<String, dynamic>> events,
+    String? userKey,
+  ) {
+    return events.map((evt) {
+      final roles = (evt['roles'] as List<dynamic>? ?? [])
+          .cast<Map<String, dynamic>>();
+      final audience = (evt['audience_user_keys'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList();
+      if (audience.isEmpty) {
+        return {...evt, 'roles': roles};
+      }
+      final filteredRoles = roles.where((r) {
+        final visibleAll =
+            (r['visible_for_all'] == true) || (r['visibleForAll'] == true);
+        if (visibleAll) return true;
+        if (userKey == null) return false;
+        return audience.contains(userKey);
+      }).toList();
+      return {...evt, 'roles': filteredRoles};
+    }).toList();
   }
 
   /// Smart refresh - only fetches if data is stale
@@ -224,12 +293,9 @@ class DataService extends ChangeNotifier {
   Future<void> forceRefresh() async {
     _isRefreshing = true;
     notifyListeners();
-    
+
     try {
-      await Future.wait([
-        _fetchEvents(),
-        _fetchAvailability(),
-      ]);
+      await Future.wait([_fetchEvents(), _fetchAvailability()]);
     } finally {
       _isRefreshing = false;
       notifyListeners();
@@ -260,7 +326,7 @@ class DataService extends ChangeNotifier {
     if (_events.isNotEmpty) {
       notifyListeners();
     }
-    
+
     // Then refresh if needed
     await refreshIfNeeded();
   }
@@ -273,7 +339,7 @@ class DataService extends ChangeNotifier {
       _storage.delete(key: _availabilityStorageKey),
       _storage.delete(key: _lastAvailabilityFetchKey),
     ]);
-    
+
     _events.clear();
     _availability.clear();
     _lastFetch = null;
@@ -299,10 +365,10 @@ class DataService extends ChangeNotifier {
   /// Get time since last refresh in a human-readable format
   String getLastRefreshTime() {
     if (_lastFetch == null) return 'Never';
-    
+
     final now = DateTime.now();
     final diff = now.difference(_lastFetch!);
-    
+
     if (diff.inMinutes < 1) {
       return 'Just now';
     } else if (diff.inMinutes < 60) {
