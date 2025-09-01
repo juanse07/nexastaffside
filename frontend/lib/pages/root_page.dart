@@ -1,15 +1,14 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../auth_service.dart';
 import '../login_page.dart';
+import '../services/data_service.dart';
 import '../utils/id.dart';
 import '../utils/jwt.dart';
+import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
 
 Future<void> _launchMapUrl(String url) async {
@@ -159,8 +158,6 @@ class RootPage extends StatefulWidget {
 }
 
 class _RootPageState extends State<RootPage> {
-  bool _loading = false;
-  List<Map<String, dynamic>> _events = [];
   bool _checkingAuth = true;
   String? _userKey;
 
@@ -182,38 +179,21 @@ class _RootPageState extends State<RootPage> {
     if (mounted) {
       setState(() => _checkingAuth = false);
     }
-    await _loadEvents();
-  }
 
-  Future<void> _loadEvents() async {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
-    final rawPrefix = (dotenv.env['API_PATH_PREFIX'] ?? '').trim();
-    final prefix = rawPrefix.isEmpty
-        ? ''
-        : (rawPrefix.startsWith('/') ? rawPrefix : '/$rawPrefix');
-    setState(() {
-      _loading = true;
-    });
-    try {
-      final resp = await http.get(Uri.parse('$baseUrl$prefix/events'));
-      if (resp.statusCode == 200) {
-        final data = json.decode(resp.body) as List<dynamic>;
-        setState(() {
-          _events = data.cast<Map<String, dynamic>>();
-        });
-      }
-    } catch (e) {
-      // Error handling can be added here if needed
-    } finally {
-      setState(() => _loading = false);
+    // Load initial data using DataService
+    if (mounted) {
+      context.read<DataService>().loadInitialData();
     }
   }
 
   Future<void> _signOut() async {
     await AuthService.signOut();
     if (!mounted) return;
+
+    // Clear cached data when signing out
+    context.read<DataService>().clearCache();
+
     setState(() {
-      _events = [];
       _userKey = null;
       _checkingAuth = true;
     });
@@ -229,65 +209,81 @@ class _RootPageState extends State<RootPage> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        backgroundColor: theme.colorScheme.surfaceContainerLowest,
-        appBar: AppBar(
-          title: const Text('Nexa Staff'),
-          actions: [
-            IconButton(
-              onPressed: _signOut,
-              icon: const Icon(Icons.logout_rounded),
-              tooltip: 'Sign out',
+
+    return Consumer<DataService>(
+      builder: (context, dataService, _) {
+        return DefaultTabController(
+          length: 4,
+          child: Scaffold(
+            backgroundColor: theme.colorScheme.surfaceContainerLowest,
+            appBar: AppBar(
+              title: Row(
+                children: [
+                  const Text('Nexa Staff'),
+                  if (dataService.isRefreshing) ...[
+                    const SizedBox(width: 8),
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                const QuickRefreshButton(compact: true),
+                IconButton(
+                  onPressed: _signOut,
+                  icon: const Icon(Icons.logout_rounded),
+                  tooltip: 'Sign out',
+                ),
+              ],
+              bottom: const TabBar(
+                tabs: [
+                  Tab(text: 'Home'),
+                  Tab(text: 'Roles'),
+                  Tab(text: 'My Events'),
+                  Tab(text: 'Calendar'),
+                ],
+              ),
             ),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Home'),
-              Tab(text: 'Roles'),
-              Tab(text: 'My Events'),
-              Tab(text: 'Calendar'),
-            ],
+            body: TabBarView(
+              children: [
+                _HomeTab(
+                  events: dataService.events,
+                  userKey: _userKey,
+                  loading: dataService.isLoading,
+                ),
+                _RoleList(
+                  summaries: _computeRoleSummaries(dataService.events),
+                  loading: dataService.isLoading,
+                  allEvents: dataService.events,
+                  userKey: _userKey,
+                ),
+                _MyEventsList(
+                  events: dataService.events,
+                  userKey: _userKey,
+                  loading: dataService.isLoading,
+                ),
+                _CalendarTab(
+                  events: dataService.events,
+                  userKey: _userKey,
+                  loading: dataService.isLoading,
+                  availability: dataService.availability,
+                ),
+              ],
+            ),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _HomeTab(
-              events: _events,
-              userKey: _userKey,
-              loading: _loading,
-              onRefresh: _loadEvents,
-            ),
-            _RoleList(
-              summaries: _computeRoleSummaries(),
-              loading: _loading,
-              onRefresh: _loadEvents,
-              allEvents: _events,
-              userKey: _userKey,
-            ),
-            _MyEventsList(
-              events: _events,
-              userKey: _userKey,
-              loading: _loading,
-            ),
-            _CalendarTab(
-              events: _events,
-              userKey: _userKey,
-              loading: _loading,
-              onRefresh: _loadEvents,
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 
-  List<RoleSummary> _computeRoleSummaries() {
+  List<RoleSummary> _computeRoleSummaries(List<Map<String, dynamic>> events) {
     final Map<String, List<Map<String, dynamic>>> roleToEvents = {};
     final Map<String, int> roleToNeeded = {};
     // Exclude events the current user already accepted
-    final Iterable<Map<String, dynamic>> sourceEvents = _events.where(
+    final Iterable<Map<String, dynamic>> sourceEvents = events.where(
       (e) => !_isAcceptedByUser(e, _userKey),
     );
     for (final event in sourceEvents) {
@@ -391,12 +387,10 @@ class _HomeTab extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
-  final Future<void> Function() onRefresh;
   const _HomeTab({
     required this.events,
     required this.userKey,
     required this.loading,
-    required this.onRefresh,
   });
 
   @override
@@ -617,10 +611,10 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return RefreshIndicator(
-      onRefresh: widget.onRefresh,
+    return EnhancedRefreshIndicator(
       child: CustomScrollView(
         slivers: [
+          const SliverToBoxAdapter(child: StaleDataBanner()),
           SliverToBoxAdapter(
             child: Container(
               height: 200,
@@ -1561,14 +1555,12 @@ class _MyEventsList extends StatelessWidget {
 class _RoleList extends StatelessWidget {
   final List<RoleSummary> summaries;
   final bool loading;
-  final Future<void> Function() onRefresh;
   final List<Map<String, dynamic>> allEvents;
   final String? userKey;
 
   const _RoleList({
     required this.summaries,
     required this.loading,
-    required this.onRefresh,
     required this.allEvents,
     required this.userKey,
   });
@@ -1611,8 +1603,7 @@ class _RoleList extends StatelessWidget {
       }
     }
 
-    return RefreshIndicator(
-      onRefresh: onRefresh,
+    return EnhancedRefreshIndicator(
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -2074,13 +2065,13 @@ class _CalendarTab extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
-  final Future<void> Function() onRefresh;
+  final List<Map<String, dynamic>> availability;
 
   const _CalendarTab({
     required this.events,
     required this.userKey,
     required this.loading,
-    required this.onRefresh,
+    required this.availability,
   });
 
   @override
@@ -2092,29 +2083,18 @@ class _CalendarTabState extends State<_CalendarTab> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  List<Map<String, dynamic>> _availability = [];
 
   @override
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
-    _loadAvailability();
   }
 
   @override
   void dispose() {
     _selectedEvents.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadAvailability() async {
-    try {
-      final availability = await AuthService.getAvailability();
-      setState(() => _availability = availability);
-    } catch (e) {
-      print('Error loading availability: $e');
-    }
   }
 
   List<Map<String, dynamic>> _getEventsForDay(DateTime day) {
@@ -2130,8 +2110,7 @@ class _CalendarTabState extends State<_CalendarTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return RefreshIndicator(
-      onRefresh: widget.onRefresh,
+    return EnhancedRefreshIndicator(
       child: Column(
         children: [
           // Calendar header with gradient
@@ -2198,103 +2177,113 @@ class _CalendarTabState extends State<_CalendarTab> {
                 ? const Center(child: CircularProgressIndicator())
                 : Column(
                     children: [
-                      Container(
-                        color: theme.colorScheme.surface,
-                        child: TableCalendar<Map<String, dynamic>>(
-                          firstDay: DateTime.utc(2020, 1, 1),
-                          lastDay: DateTime.utc(2030, 12, 31),
-                          focusedDay: _focusedDay,
-                          calendarFormat: _calendarFormat,
-                          eventLoader: _getEventsForDay,
-                          startingDayOfWeek: StartingDayOfWeek.sunday,
-                          calendarBuilders: CalendarBuilders(
-                            markerBuilder: (context, day, events) {
-                              final hasEvents = events.isNotEmpty;
-                              final availability = _getAvailabilityForDay(day);
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.45,
+                        child: Container(
+                          color: theme.colorScheme.surface,
+                          child: TableCalendar<Map<String, dynamic>>(
+                            firstDay: DateTime.utc(2020, 1, 1),
+                            lastDay: DateTime.utc(2030, 12, 31),
+                            focusedDay: _focusedDay,
+                            calendarFormat: _calendarFormat,
+                            eventLoader: _getEventsForDay,
+                            startingDayOfWeek: StartingDayOfWeek.sunday,
+                            calendarBuilders: CalendarBuilders(
+                              markerBuilder: (context, day, events) {
+                                final hasEvents = events.isNotEmpty;
+                                final availability = _getAvailabilityForDay(
+                                  day,
+                                );
 
-                              return Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (hasEvents)
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      margin: const EdgeInsets.only(right: 2),
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF8B5CF6),
-                                        shape: BoxShape.circle,
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    if (hasEvents)
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        margin: const EdgeInsets.only(right: 2),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF8B5CF6),
+                                          shape: BoxShape.circle,
+                                        ),
                                       ),
-                                    ),
-                                  if (availability != null)
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        color:
-                                            availability['status'] ==
-                                                'available'
-                                            ? Colors.green
-                                            : Colors.red,
-                                        shape: BoxShape.circle,
+                                    if (availability != null)
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              availability['status'] ==
+                                                  'available'
+                                              ? Colors.green
+                                              : Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
                                       ),
-                                    ),
-                                ],
-                              );
+                                  ],
+                                );
+                              },
+                            ),
+                            calendarStyle: CalendarStyle(
+                              outsideDaysVisible: false,
+                              weekendTextStyle: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                              ),
+                              holidayTextStyle: TextStyle(
+                                color: theme.colorScheme.primary,
+                              ),
+                              selectedDecoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF8B5CF6),
+                                    Color(0xFFEC4899),
+                                  ],
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              todayDecoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.3,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            headerStyle: HeaderStyle(
+                              formatButtonVisible: true,
+                              titleCentered: true,
+                              formatButtonShowsNext: false,
+                              formatButtonDecoration: BoxDecoration(
+                                color: const Color(0xFF8B5CF6),
+                                borderRadius: BorderRadius.circular(12.0),
+                              ),
+                              formatButtonTextStyle: const TextStyle(
+                                color: Colors.white,
+                              ),
+                              leftChevronIcon: Icon(
+                                Icons.chevron_left,
+                                color: theme.colorScheme.primary,
+                              ),
+                              rightChevronIcon: Icon(
+                                Icons.chevron_right,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            selectedDayPredicate: (day) {
+                              return isSameDay(_selectedDay, day);
+                            },
+                            onDaySelected: _onDaySelected,
+                            onFormatChanged: (format) {
+                              if (_calendarFormat != format) {
+                                setState(() {
+                                  _calendarFormat = format;
+                                });
+                              }
+                            },
+                            onPageChanged: (focusedDay) {
+                              _focusedDay = focusedDay;
                             },
                           ),
-                          calendarStyle: CalendarStyle(
-                            outsideDaysVisible: false,
-                            weekendTextStyle: TextStyle(
-                              color: theme.colorScheme.onSurface,
-                            ),
-                            holidayTextStyle: TextStyle(
-                              color: theme.colorScheme.primary,
-                            ),
-                            selectedDecoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            todayDecoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.3),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          headerStyle: HeaderStyle(
-                            formatButtonVisible: true,
-                            titleCentered: true,
-                            formatButtonShowsNext: false,
-                            formatButtonDecoration: BoxDecoration(
-                              color: const Color(0xFF8B5CF6),
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            formatButtonTextStyle: const TextStyle(
-                              color: Colors.white,
-                            ),
-                            leftChevronIcon: Icon(
-                              Icons.chevron_left,
-                              color: theme.colorScheme.primary,
-                            ),
-                            rightChevronIcon: Icon(
-                              Icons.chevron_right,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          selectedDayPredicate: (day) {
-                            return isSameDay(_selectedDay, day);
-                          },
-                          onDaySelected: _onDaySelected,
-                          onFormatChanged: (format) {
-                            if (_calendarFormat != format) {
-                              setState(() {
-                                _calendarFormat = format;
-                              });
-                            }
-                          },
-                          onPageChanged: (focusedDay) {
-                            _focusedDay = focusedDay;
-                          },
                         ),
                       ),
                       const Divider(height: 1),
@@ -2489,7 +2478,7 @@ class _CalendarTabState extends State<_CalendarTab> {
   Map<String, dynamic>? _getAvailabilityForDay(DateTime day) {
     final dateStr =
         '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-    for (final availability in _availability) {
+    for (final availability in widget.availability) {
       if (availability['date'] == dateStr) {
         return availability;
       }
@@ -2535,7 +2524,8 @@ class _CalendarTabState extends State<_CalendarTab> {
       );
 
       if (success) {
-        await _loadAvailability();
+        // Refresh data through DataService
+        context.read<DataService>().forceRefresh();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Availability updated')));
@@ -2550,7 +2540,8 @@ class _CalendarTabState extends State<_CalendarTab> {
   Future<void> _deleteAvailability(String id) async {
     final success = await AuthService.deleteAvailability(id: id);
     if (success) {
-      await _loadAvailability();
+      // Refresh data through DataService
+      context.read<DataService>().forceRefresh();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Availability deleted')));
@@ -2751,66 +2742,68 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
 
     return AlertDialog(
       title: Text('Set Availability for $dateStr'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Status', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 8),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(
-                value: 'available',
-                label: Text('Available'),
-                icon: Icon(Icons.check_circle, color: Colors.green),
-              ),
-              ButtonSegment(
-                value: 'unavailable',
-                label: Text('Unavailable'),
-                icon: Icon(Icons.cancel, color: Colors.red),
-              ),
-            ],
-            selected: {_status},
-            onSelectionChanged: (selection) {
-              setState(() => _status = selection.first);
-            },
-          ),
-          const SizedBox(height: 16),
-          Text('Time Range', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: _startTime,
-                    );
-                    if (time != null) setState(() => _startTime = time);
-                  },
-                  child: Text(_startTime.format(context)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Status', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: 'available',
+                  label: Text('Available'),
+                  icon: Icon(Icons.check_circle, color: Colors.green),
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('to'),
-              ),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: _endTime,
-                    );
-                    if (time != null) setState(() => _endTime = time);
-                  },
-                  child: Text(_endTime.format(context)),
+                ButtonSegment(
+                  value: 'unavailable',
+                  label: Text('Unavailable'),
+                  icon: Icon(Icons.cancel, color: Colors.red),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+              selected: {_status},
+              onSelectionChanged: (selection) {
+                setState(() => _status = selection.first);
+              },
+            ),
+            const SizedBox(height: 16),
+            Text('Time Range', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: _startTime,
+                      );
+                      if (time != null) setState(() => _startTime = time);
+                    },
+                    child: Text(_startTime.format(context)),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('to'),
+                ),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final time = await showTimePicker(
+                        context: context,
+                        initialTime: _endTime,
+                      );
+                      if (time != null) setState(() => _endTime = time);
+                    },
+                    child: Text(_endTime.format(context)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(

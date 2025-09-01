@@ -163,15 +163,40 @@ class AuthService {
 
   // Availability management
   static Future<List<Map<String, dynamic>>> getAvailability() async {
+    print('🔥 AVAILABILITY DEBUG 🔥 Starting getAvailability()');
+    print('🔥 AVAILABILITY DEBUG 🔥 API Base URL: $_apiBaseUrl');
+    print('🔥 AVAILABILITY DEBUG 🔥 API Path Prefix: $_apiPathPrefix');
+
     final token = await getJwt();
-    if (token == null) return [];
-    final resp = await http.get(
-      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/availability'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    if (resp.statusCode == 200) {
-      final List<dynamic> data = json.decode(resp.body);
-      return data.cast<Map<String, dynamic>>();
+    if (token == null) {
+      print('🔥 AVAILABILITY DEBUG 🔥 No JWT token found');
+      return [];
+    }
+
+    final url = '$_apiBaseUrl$_apiPathPrefix/events/availability';
+    print('🔥 AVAILABILITY DEBUG 🔥 Making GET request to: $url');
+
+    try {
+      final resp = await http.get(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('🔥 AVAILABILITY DEBUG 🔥 Response status: ${resp.statusCode}');
+      print('🔥 AVAILABILITY DEBUG 🔥 Response headers: ${resp.headers}');
+      print('🔥 AVAILABILITY DEBUG 🔥 Response body: ${resp.body}');
+
+      if (resp.statusCode == 200) {
+        final List<dynamic> data = json.decode(resp.body);
+        print('🔥 AVAILABILITY DEBUG 🔥 Parsed data: $data');
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        print(
+          '🔥 AVAILABILITY DEBUG 🔥 Error: Status ${resp.statusCode} - ${resp.body}',
+        );
+      }
+    } catch (e) {
+      print('🔥 AVAILABILITY DEBUG 🔥 Exception: $e');
     }
     return [];
   }
@@ -182,31 +207,76 @@ class AuthService {
     required String endTime,
     required String status,
   }) async {
-    final token = await getJwt();
-    if (token == null) return false;
-    final resp = await http.post(
-      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/availability'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'date': date,
-        'startTime': startTime,
-        'endTime': endTime,
-        'status': status,
-      }),
+    print('🔥 AVAILABILITY DEBUG 🔥 Starting setAvailability()');
+    print(
+      '🔥 AVAILABILITY DEBUG 🔥 Parameters: date=$date, startTime=$startTime, endTime=$endTime, status=$status',
     );
-    return resp.statusCode == 200;
+
+    final token = await getJwt();
+    if (token == null) {
+      print('🔥 AVAILABILITY DEBUG 🔥 No JWT token found');
+      return false;
+    }
+
+    final url = '$_apiBaseUrl$_apiPathPrefix/events/availability';
+    final body = {
+      'date': date,
+      'startTime': startTime,
+      'endTime': endTime,
+      'status': status,
+    };
+
+    print('🔥 AVAILABILITY DEBUG 🔥 Making POST request to: $url');
+    print('🔥 AVAILABILITY DEBUG 🔥 Request body: ${jsonEncode(body)}');
+
+    try {
+      final resp = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+
+      print('🔥 AVAILABILITY DEBUG 🔥 Response status: ${resp.statusCode}');
+      print('🔥 AVAILABILITY DEBUG 🔥 Response headers: ${resp.headers}');
+      print('🔥 AVAILABILITY DEBUG 🔥 Response body: ${resp.body}');
+
+      return resp.statusCode == 200;
+    } catch (e) {
+      print('🔥 AVAILABILITY DEBUG 🔥 Exception: $e');
+      return false;
+    }
   }
 
   static Future<bool> deleteAvailability({required String id}) async {
+    print('🔥 AVAILABILITY DEBUG 🔥 Starting deleteAvailability()');
+    print('🔥 AVAILABILITY DEBUG 🔥 ID: $id');
+
     final token = await getJwt();
-    if (token == null) return false;
-    final resp = await http.delete(
-      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/availability/$id'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    return resp.statusCode == 200;
+    if (token == null) {
+      print('🔥 AVAILABILITY DEBUG 🔥 No JWT token found');
+      return false;
+    }
+
+    final url = '$_apiBaseUrl$_apiPathPrefix/events/availability/$id';
+    print('🔥 AVAILABILITY DEBUG 🔥 Making DELETE request to: $url');
+
+    try {
+      final resp = await http.delete(
+        Uri.parse(url),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      print('🔥 AVAILABILITY DEBUG 🔥 Response status: ${resp.statusCode}');
+      print('🔥 AVAILABILITY DEBUG 🔥 Response headers: ${resp.headers}');
+      print('🔥 AVAILABILITY DEBUG 🔥 Response body: ${resp.body}');
+
+      return resp.statusCode == 200;
+    } catch (e) {
+      print('🔥 AVAILABILITY DEBUG 🔥 Exception: $e');
+      return false;
+    }
   }
 }

@@ -109,8 +109,9 @@ class RoleEventsPage extends StatelessWidget {
           }
           // Compose header: time and company shown prominently when present
           final List<String> headerParts = [];
-          if (timeLabel != null && timeLabel.isNotEmpty)
+          if (timeLabel != null && timeLabel.isNotEmpty) {
             headerParts.add(timeLabel);
+          }
           if (companyName.isNotEmpty) headerParts.add(companyName);
           final String? headerTitle = headerParts.isEmpty
               ? null
