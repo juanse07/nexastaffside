@@ -160,4 +160,53 @@ class AuthService {
     }
     return null;
   }
+
+  // Availability management
+  static Future<List<Map<String, dynamic>>> getAvailability() async {
+    final token = await getJwt();
+    if (token == null) return [];
+    final resp = await http.get(
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/availability'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (resp.statusCode == 200) {
+      final List<dynamic> data = json.decode(resp.body);
+      return data.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  static Future<bool> setAvailability({
+    required String date,
+    required String startTime,
+    required String endTime,
+    required String status,
+  }) async {
+    final token = await getJwt();
+    if (token == null) return false;
+    final resp = await http.post(
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/availability'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'date': date,
+        'startTime': startTime,
+        'endTime': endTime,
+        'status': status,
+      }),
+    );
+    return resp.statusCode == 200;
+  }
+
+  static Future<bool> deleteAvailability({required String id}) async {
+    final token = await getJwt();
+    if (token == null) return false;
+    final resp = await http.delete(
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/availability/$id'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    return resp.statusCode == 200;
+  }
 }
