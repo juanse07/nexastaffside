@@ -45,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
-      appBar: AppBar(title: const Text('Sign in')),
+      appBar: AppBar(title: Image.asset('assets/appbar_logo.png', height: 44)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

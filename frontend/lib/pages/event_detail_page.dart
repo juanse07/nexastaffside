@@ -54,16 +54,7 @@ class EventDetailPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
-      appBar: AppBar(
-        title: Text(
-          'Event Details',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        backgroundColor: theme.colorScheme.surface,
-        surfaceTintColor: theme.colorScheme.surfaceTint,
-      ),
+      appBar: AppBar(title: Image.asset('assets/appbar_logo.png', height: 44)),
       body: Column(
         children: [
           Expanded(
@@ -143,13 +134,13 @@ class EventDetailPage extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.badge_outlined,
+                                  Icons.work_outline,
                                   size: 16,
                                   color: theme.colorScheme.onSecondaryContainer,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Role: $roleName',
+                                  roleName ?? 'Role',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color:
                                         theme.colorScheme.onSecondaryContainer,

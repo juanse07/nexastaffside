@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import { ObjectId } from 'mongodb';
 import { getMongoClient } from '../../db/mongoClient.js';
 import { requireAuth } from '../auth/middleware.js';
@@ -21,11 +22,82 @@ function getUserKey(req: any): string | null {
   return `${req.user.provider}:${req.user.sub}`;
 }
 
-router.get('/', async (_req, res) => {
+function extractUserFromAuthHeader(authHeader: string | undefined): { sub: string; provider?: string } | null {
+  if (!authHeader) return null;
+  const [scheme, token] = authHeader.split(' ');
+  if (!token || (scheme ?? '').toLowerCase() !== 'bearer') return null;
+  const secret = process.env.BACKEND_JWT_SECRET ?? '';
+  if (!secret) return null;
   try {
+    const payload = jwt.verify(token, secret) as any;
+    const sub = typeof payload?.sub === 'string' ? payload.sub : null;
+    if (!sub) return null;
+    return { sub, provider: typeof payload?.provider === 'string' ? payload.provider : undefined };
+  } catch {
+    return null;
+  }
+}
+
+function roleIsVisibleToUser(role: any, userSub: string | null): boolean {
+  const visibleForAll = Boolean(
+    role?.visible_for_all ?? role?.visibleForAll ?? role?.visible_for_everyone ?? role?.visibleForEveryone,
+  );
+  if (visibleForAll) return true;
+  if (!userSub) return false;
+
+  const allowLists = [
+    role?.visible_to,
+    role?.visibleTo,
+    role?.allowed_google_ids,
+    role?.allowedGoogleIds,
+    role?.google_ids,
+    role?.googleIds,
+  ].filter(Boolean);
+
+  for (const list of allowLists) {
+    const arr = Array.isArray(list) ? list : [];
+    if (arr.some((v) => String(v) === userSub)) return true;
+  }
+  return false;
+}
+
+router.get('/', async (req, res) => {
+  try {
+    const user = extractUserFromAuthHeader(req.headers?.authorization);
     const client = await getMongoClient();
     const items = await client.db().collection('events').find({}).toArray();
-    res.json(items.map(mapEvent));
+    const mapped = items.map(mapEvent).map((evt: any) => {
+      const roles = Array.isArray(evt?.roles) ? evt.roles : [];
+
+      // Event-level audience: e.g., audience_user_keys: ['google:SUB', ...]
+      const audienceKeys: string[] = Array.isArray(evt?.audience_user_keys)
+        ? (evt.audience_user_keys as any[]).map((v) => String(v))
+        : Array.isArray(evt?.audienceUserKeys)
+          ? (evt.audienceUserKeys as any[]).map((v) => String(v))
+          : [];
+
+      const userKey = user?.sub && user?.provider ? `${user.provider}:${user.sub}` : null;
+
+      const filtered = roles.filter((r: any) => {
+        // Always allow roles explicitly visible for all
+        const visibleAll = Boolean(
+          r?.visible_for_all ?? r?.visibleForAll ?? r?.visible_for_everyone ?? r?.visibleForEveryone,
+        );
+        if (visibleAll) return true;
+
+        // If event defines audience keys, require membership
+        if (audienceKeys.length > 0) {
+          if (!userKey) return false;
+          return audienceKeys.includes(userKey);
+        }
+
+        // Otherwise fall back to role-level allow lists by sub
+        return roleIsVisibleToUser(r, user?.sub ?? null);
+      });
+
+      return { ...evt, roles: filtered };
+    });
+    res.json(mapped);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch events' });
   }

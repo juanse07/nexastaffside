@@ -219,13 +219,16 @@ class _RootPageState extends State<RootPage> {
             appBar: AppBar(
               title: Row(
                 children: [
-                  const Text('Nexa Staff'),
+                  Image.asset('assets/appbar_logo.png', height: 44),
                   if (dataService.isRefreshing) ...[
                     const SizedBox(width: 8),
                     const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ],
@@ -1299,7 +1302,8 @@ class _MyEventsList extends StatelessWidget {
     Map<String, dynamic> e, {
     String? roleNameOverride,
   }) {
-    final title = e['event_name']?.toString() ?? 'Untitled Event';
+    final eventName = e['event_name']?.toString() ?? 'Untitled Event';
+    final clientName = e['client_name']?.toString() ?? '';
     final venue = e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
     final googleMapsUrl = e['google_maps_url']?.toString() ?? '';
@@ -1330,10 +1334,13 @@ class _MyEventsList extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
+          colors: [
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
+          ],
         ),
         border: Border.all(
           color: const Color(0xFF8B5CF6).withOpacity(0.2),
@@ -1383,7 +1390,7 @@ class _MyEventsList extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        title,
+                        clientName.isNotEmpty ? clientName : eventName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -1405,7 +1412,17 @@ class _MyEventsList extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                if (clientName.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    eventName,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 if (role != null && role.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -1422,13 +1439,13 @@ class _MyEventsList extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.badge_outlined,
+                          Icons.work_outline,
                           size: 14,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Role: $role',
+                          role,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -1807,7 +1824,8 @@ class _RoleList extends StatelessWidget {
     Map<String, dynamic> e, {
     String? roleNameOverride,
   }) {
-    final title = e['event_name']?.toString() ?? 'Untitled Event';
+    final eventName = e['event_name']?.toString() ?? 'Untitled Event';
+    final clientName = e['client_name']?.toString() ?? '';
     final venue = e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
     final googleMapsUrl = e['google_maps_url']?.toString() ?? '';
@@ -1834,10 +1852,13 @@ class _RoleList extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
+          colors: [
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
+          ],
         ),
         border: Border.all(
           color: const Color(0xFF8B5CF6).withOpacity(0.2),
@@ -1886,7 +1907,7 @@ class _RoleList extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        title,
+                        clientName.isNotEmpty ? clientName : eventName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -1908,7 +1929,17 @@ class _RoleList extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                if (clientName.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    eventName,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 if (role != null && role.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -1925,13 +1956,13 @@ class _RoleList extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.badge_outlined,
+                          Icons.work_outline,
                           size: 14,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Role: $role',
+                          role,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -2557,7 +2588,8 @@ class _CalendarTabState extends State<_CalendarTab> {
     ThemeData theme,
     Map<String, dynamic> event,
   ) {
-    final title = event['event_name']?.toString() ?? 'Untitled Event';
+    final eventName = event['event_name']?.toString() ?? 'Untitled Event';
+    final clientName = event['client_name']?.toString() ?? '';
     final venue = event['venue_name']?.toString() ?? '';
     final start = event['start_time']?.toString();
     final end = event['end_time']?.toString();
@@ -2576,19 +2608,22 @@ class _CalendarTabState extends State<_CalendarTab> {
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
+          colors: [
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceContainerHighest.withOpacity(0.06),
+          ],
         ),
         border: Border.all(
-          color: const Color(0xFF8B5CF6).withOpacity(0.2),
+          color: theme.colorScheme.outlineVariant.withOpacity(0.35),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.08),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
@@ -2631,7 +2666,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        title,
+                        clientName.isNotEmpty ? clientName : eventName,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -2639,6 +2674,15 @@ class _CalendarTabState extends State<_CalendarTab> {
                     ),
                   ],
                 ),
+                if (clientName.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    eventName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
                 if (venue.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
