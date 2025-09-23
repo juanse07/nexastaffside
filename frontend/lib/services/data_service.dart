@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -52,8 +53,18 @@ class DataService extends ChangeNotifier {
     return diff.inMinutes < _cacheExpiryMinutes;
   }
 
-  static String get _apiBaseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
+  static String get _apiBaseUrl {
+    final raw = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
+    if (!kIsWeb && Platform.isAndroid) {
+      if (raw.contains('127.0.0.1')) {
+        return raw.replaceAll('127.0.0.1', '10.0.2.2');
+      }
+      if (raw.contains('localhost')) {
+        return raw.replaceAll('localhost', '10.0.2.2');
+      }
+    }
+    return raw;
+  }
 
   static String get _apiPathPrefix {
     final raw = (dotenv.env['API_PATH_PREFIX'] ?? '').trim();
@@ -240,15 +251,18 @@ class DataService extends ChangeNotifier {
 
   String _normalizeBase64(String input) {
     final pad = input.length % 4;
-    if (pad == 2)
+    if (pad == 2) {
       return '$input'
           '==';
-    if (pad == 3)
+    }
+    if (pad == 3) {
       return '$input'
           '=';
-    if (pad == 1)
+    }
+    if (pad == 1) {
       return '$input'
           '==='; // unlikely but safe
+    }
     return input;
   }
 

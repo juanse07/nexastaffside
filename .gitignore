@@ -18,6 +18,7 @@ backend/yarn-error.log*
 frontend/.dart_tool/
 frontend/.packages
 frontend/build/
+frontend/android/build/
 frontend/ios/Flutter/flutter_export_environment.sh
 frontend/ios/Flutter/Generated.xcconfig
 frontend/ios/Flutter/ephemeral/

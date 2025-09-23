@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,8 +12,20 @@ class AuthService {
   static const _jwtStorageKey = 'auth_jwt';
   static const _storage = FlutterSecureStorage();
 
-  static String get _apiBaseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
+  static String get _apiBaseUrl {
+    final raw = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
+    if (!kIsWeb && Platform.isAndroid) {
+      // Android emulator maps host loopback to 10.0.2.2
+      if (raw.contains('127.0.0.1')) {
+        return raw.replaceAll('127.0.0.1', '10.0.2.2');
+      }
+      if (raw.contains('localhost')) {
+        return raw.replaceAll('localhost', '10.0.2.2');
+      }
+    }
+    return raw;
+  }
+
   static String get _apiPathPrefix {
     final raw = (dotenv.env['API_PATH_PREFIX'] ?? '').trim();
     if (raw.isEmpty) return '';
@@ -24,7 +38,7 @@ class AuthService {
   static Future<void> signOut() async {
     await _storage.delete(key: _jwtStorageKey);
     try {
-      await GoogleSignIn(scopes: ['email', 'profile']).signOut();
+      await _googleSignIn().signOut();
     } catch (_) {}
   }
 
@@ -34,7 +48,7 @@ class AuthService {
       _storage.write(key: _jwtStorageKey, value: token);
 
   static Future<bool> signInWithGoogle() async {
-    final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+    final googleSignIn = _googleSignIn();
     final account = await googleSignIn.signIn();
     if (account == null) return false;
     final auth = await account.authentication;
@@ -55,6 +69,23 @@ class AuthService {
       }
     }
     return false;
+  }
+
+  static GoogleSignIn _googleSignIn() {
+    final serverClientId =
+        dotenv.env['GOOGLE_CLIENT_ID_ANDROID'] ??
+        dotenv.env['GOOGLE_SERVER_CLIENT_ID_ANDROID'] ??
+        dotenv.env['GOOGLE_SERVER_CLIENT_ID'];
+    if (!kIsWeb &&
+        Platform.isAndroid &&
+        serverClientId != null &&
+        serverClientId.isNotEmpty) {
+      return GoogleSignIn(
+        scopes: const ['email', 'profile'],
+        serverClientId: serverClientId,
+      );
+    }
+    return GoogleSignIn(scopes: const ['email', 'profile']);
   }
 
   static Future<bool> signInWithApple() async {
