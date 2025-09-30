@@ -19,11 +19,17 @@ frontend/.dart_tool/
 frontend/.packages
 frontend/build/
 frontend/android/build/
+frontend/android/app/build/
+frontend/android/**/build/
 frontend/ios/Flutter/flutter_export_environment.sh
 frontend/ios/Flutter/Generated.xcconfig
 frontend/ios/Flutter/ephemeral/
 frontend/ios/.symlinks/
 frontend/ios/Pods/
+
+# Frontend logs and temp
+frontend/signin_logs.txt
+frontend/*.log
 
 # IDE/editor
 **/.idea/

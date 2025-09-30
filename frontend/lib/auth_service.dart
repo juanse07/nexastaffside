@@ -72,10 +72,12 @@ class AuthService {
   }
 
   static GoogleSignIn _googleSignIn() {
+    // Google Sign-In on Android requires the Web client ID as serverClientId
+    // to obtain an ID token. Prefer the web/server client ID from env.
     final serverClientId =
-        dotenv.env['GOOGLE_CLIENT_ID_ANDROID'] ??
-        dotenv.env['GOOGLE_SERVER_CLIENT_ID_ANDROID'] ??
-        dotenv.env['GOOGLE_SERVER_CLIENT_ID'];
+        dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ??
+        dotenv.env['GOOGLE_WEB_CLIENT_ID'] ??
+        dotenv.env['GOOGLE_SERVER_CLIENT_ID_ANDROID'];
     if (!kIsWeb &&
         Platform.isAndroid &&
         serverClientId != null &&
