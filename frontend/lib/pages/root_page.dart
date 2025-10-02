@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:io' show Platform;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,14 +12,106 @@ import '../utils/jwt.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
 
+List<Uri> _mapUriCandidates(String raw) {
+  final trimmed = raw.trim();
+  final List<Uri> candidates = [];
+
+  void addUri(String value) {
+    try {
+      final u = Uri.parse(value);
+      if (!candidates.any((e) => e.toString() == u.toString())) {
+        candidates.add(u);
+      }
+    } catch (_) {}
+  }
+
+  if (trimmed.isEmpty) return candidates;
+
+  // 1) If already a full URI
+  try {
+    final direct = Uri.parse(trimmed);
+    if (direct.hasScheme) {
+      candidates.add(direct);
+    }
+  } catch (_) {}
+
+  // 2) Prepend https:// for common host-only inputs
+  final looksLikeHost =
+      trimmed.startsWith('www.') ||
+      trimmed.startsWith('maps.google.') ||
+      trimmed.startsWith('google.') ||
+      trimmed.startsWith('goo.gl/');
+  if (!trimmed.contains('://') && looksLikeHost) {
+    addUri('https://$trimmed');
+  }
+
+  // 3) Lat/Lng pair
+  final latLng = RegExp(r'^\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\s*$')
+      .firstMatch(trimmed);
+  if (latLng != null) {
+    final lat = latLng.group(1);
+    final lng = latLng.group(2);
+    if (lat != null && lng != null) {
+      // Android geo: scheme
+      addUri('geo:$lat,$lng?q=$lat,$lng');
+      // Google navigation intent
+      addUri('google.navigation:q=$lat,$lng');
+      // Google Maps app scheme (if installed)
+      addUri('comgooglemaps://?q=$lat,$lng');
+      addUri('comgooglemaps://?daddr=$lat,$lng');
+      // Web/http fallback
+      addUri('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+      // Directions deep link
+      addUri('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+    }
+  } else {
+    // 4) Treat as search query (address/place name)
+    final q = Uri.encodeComponent(trimmed);
+    // Android geo: query
+    addUri('geo:0,0?q=$q');
+    // Google navigation intent
+    addUri('google.navigation:q=$q');
+    // Google Maps app scheme (if installed)
+    addUri('comgooglemaps://?q=$q');
+    // Web/http fallback
+    addUri('https://www.google.com/maps/search/?api=1&query=$q');
+    // Directions deep link
+    addUri('https://www.google.com/maps/dir/?api=1&destination=$q');
+  }
+
+  return candidates;
+}
+
 Future<void> _launchMapUrl(String url) async {
   try {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      throw 'Could not launch map';
+    print('Attempting to launch map for: "$url"');
+    final candidates = _mapUriCandidates(url);
+    // On Android, some resolve checks may fail due to package visibility.
+    // Try launching directly and fall back on errors.
+    for (final uri in candidates) {
+      print('Trying URI: ${uri.toString()}');
+      try {
+        // Prefer direct launch on Android.
+        if (Platform.isAndroid) {
+          final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (ok) {
+            print('Launched: ${uri.toString()}');
+            return;
+          }
+        } else {
+          if (await canLaunchUrl(uri)) {
+            final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+            if (ok) {
+              print('Launched: ${uri.toString()}');
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        print('Launch failed for ${uri.toString()}: $e');
+      }
     }
+    throw 'Could not launch map';
   } catch (e) {
     print('Error launching map: $e');
   }
@@ -791,9 +884,12 @@ class _HomeTabState extends State<_HomeTab> {
   Widget _buildEventCard(ThemeData theme) {
     final e = _upcoming!;
     final title = e['event_name']?.toString() ?? 'Upcoming Event';
-    final venue = e['venue_name']?.toString() ?? '';
+    final venue = e['event_name']?.toString() ?? e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
-    final googleMapsUrl = e['google_maps_url']?.toString() ?? '';
+    final rawMaps = e['google_maps_url']?.toString() ?? '';
+    final googleMapsUrl = rawMaps.isNotEmpty
+        ? rawMaps
+        : (venueAddress.isNotEmpty ? venueAddress : venue);
     final date = e['date']?.toString() ?? '';
     final start = e['start_time']?.toString() ?? '';
     final end = e['end_time']?.toString() ?? '';
@@ -897,9 +993,7 @@ class _HomeTabState extends State<_HomeTab> {
                     const SizedBox(width: 8),
                     Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF10B981), Color(0xFF059669)],
-                        ),
+                        color: Theme.of(context).colorScheme.secondaryContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Material(
@@ -907,12 +1001,12 @@ class _HomeTabState extends State<_HomeTab> {
                         child: InkWell(
                           borderRadius: BorderRadius.circular(8),
                           onTap: () => _launchMap(googleMapsUrl),
-                          child: const Padding(
-                            padding: EdgeInsets.all(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
                             child: Icon(
                               Icons.map_outlined,
                               size: 16,
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.onSecondaryContainer,
                             ),
                           ),
                         ),
@@ -1301,9 +1395,12 @@ class _MyEventsList extends StatelessWidget {
   }) {
     final eventName = e['event_name']?.toString() ?? 'Untitled Event';
     final clientName = e['client_name']?.toString() ?? '';
-    final venue = e['venue_name']?.toString() ?? '';
+    final venue = e['event_name']?.toString() ?? e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
-    final googleMapsUrl = e['google_maps_url']?.toString() ?? '';
+    final rawMaps = e['google_maps_url']?.toString() ?? '';
+    final googleMapsUrl = rawMaps.isNotEmpty
+        ? rawMaps
+        : (venueAddress.isNotEmpty ? venueAddress : venue);
     final date = e['date']?.toString() ?? '';
 
     // Debug: Check My Events data
@@ -1502,7 +1599,7 @@ class _MyEventsList extends StatelessWidget {
                         Container(
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF10B981), Color(0xFF059669)],
+                              colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
                             ),
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -1511,12 +1608,12 @@ class _MyEventsList extends StatelessWidget {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(8),
                               onTap: () => _launchMapUrl(googleMapsUrl),
-                              child: const Padding(
-                                padding: EdgeInsets.all(8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
                                 child: Icon(
                                   Icons.map_outlined,
                                   size: 16,
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
                                 ),
                               ),
                             ),
@@ -1545,14 +1642,18 @@ class _MyEventsList extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _formatEventDateTimeLabel(
-                          dateStr: date,
-                          startTimeStr: e['start_time']?.toString(),
-                          endTimeStr: e['end_time']?.toString(),
-                        ),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          _formatEventDateTimeLabel(
+                            dateStr: date,
+                            startTimeStr: e['start_time']?.toString(),
+                            endTimeStr: e['end_time']?.toString(),
+                          ),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -1823,9 +1924,12 @@ class _RoleList extends StatelessWidget {
   }) {
     final eventName = e['event_name']?.toString() ?? 'Untitled Event';
     final clientName = e['client_name']?.toString() ?? '';
-    final venue = e['venue_name']?.toString() ?? '';
+    final venue = e['event_name']?.toString() ?? e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
-    final googleMapsUrl = e['google_maps_url']?.toString() ?? '';
+    final rawMaps = e['google_maps_url']?.toString() ?? '';
+    final googleMapsUrl = rawMaps.isNotEmpty
+        ? rawMaps
+        : (venueAddress.isNotEmpty ? venueAddress : venue);
     final date = e['date']?.toString() ?? '';
 
     final userKey =
@@ -2001,35 +2105,45 @@ class _RoleList extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            if (venueAddress.isNotEmpty)
+                            if (venueAddress.isNotEmpty) ...[
+                              const SizedBox(height: 2),
                               Text(
                                 venueAddress,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
+                            ],
                           ],
                         ),
                       ),
-                      if (googleMapsUrl.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
+                      if (googleMapsUrl.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(8),
                               onTap: () => _launchMapUrl(googleMapsUrl),
-                              child: const Padding(
-                                padding: EdgeInsets.all(8),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
                                 child: Icon(
                                   Icons.map_outlined,
                                   size: 16,
-                                  color: Colors.white,
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
                                 ),
                               ),
                             ),
                           ),
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -2052,14 +2166,18 @@ class _RoleList extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _formatEventDateTimeLabel(
-                          dateStr: date,
-                          startTimeStr: e['start_time']?.toString(),
-                          endTimeStr: e['end_time']?.toString(),
-                        ),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          _formatEventDateTimeLabel(
+                            dateStr: date,
+                            startTimeStr: e['start_time']?.toString(),
+                            endTimeStr: e['end_time']?.toString(),
+                          ),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
