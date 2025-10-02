@@ -170,9 +170,8 @@ class _RootPageState extends State<RootPage> {
   Future<void> _ensureSignedIn() async {
     final token = await AuthService.getJwt();
     if (token == null && mounted) {
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
+      Navigator.of(context).pushReplacementNamed('/login');
+      return;
     }
     final newToken = await AuthService.getJwt();
     _userKey = newToken == null ? null : decodeUserKeyFromJwt(newToken);
@@ -193,11 +192,9 @@ class _RootPageState extends State<RootPage> {
     // Clear cached data when signing out
     context.read<DataService>().clearCache();
 
-    setState(() {
-      _userKey = null;
-      _checkingAuth = true;
-    });
-    await _ensureSignedIn();
+    _userKey = null;
+    _checkingAuth = true;
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
   @override

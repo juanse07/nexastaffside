@@ -19,12 +19,15 @@ class _LoginPageState extends State<LoginPage> {
       _loadingGoogle = true;
       _error = null;
     });
-    final ok = await AuthService.signInWithGoogle();
+    String? err;
+    final ok = await AuthService.signInWithGoogle(onError: (m) => err = m);
     setState(() {
       _loadingGoogle = false;
-      if (!ok) _error = 'Google sign-in failed';
+      if (!ok) _error = err ?? 'Google sign-in failed';
     });
-    if (ok && mounted) Navigator.of(context).pop(true);
+    if (ok && mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
   }
 
   Future<void> _handleApple() async {
@@ -37,15 +40,22 @@ class _LoginPageState extends State<LoginPage> {
       _loadingApple = false;
       if (!ok) _error = 'Apple sign-in failed';
     });
-    if (ok && mounted) Navigator.of(context).pop(true);
+    if (ok && mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: () async => false,
+      child: Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
-      appBar: AppBar(title: Image.asset('assets/appbar_logo.png', height: 44)),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Image.asset('assets/appbar_logo.png', height: 44),
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -90,6 +100,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
+    ),
     );
   }
 }

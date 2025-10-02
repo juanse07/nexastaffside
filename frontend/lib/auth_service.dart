@@ -107,13 +107,14 @@ class AuthService {
 
   /// Signs in a user with Google OAuth
   /// Returns true if successful, false otherwise
-  static Future<bool> signInWithGoogle() async {
+  static Future<bool> signInWithGoogle({void Function(String message)? onError}) async {
     try {
       _log('Starting Google sign in');
       final googleSignIn = _googleSignIn();
       final account = await googleSignIn.signIn();
       if (account == null) {
         _log('Google sign in cancelled by user');
+        onError?.call('Sign-in cancelled');
         return false;
       }
 
@@ -121,7 +122,23 @@ class AuthService {
       final idToken = auth.idToken;
       if (idToken == null) {
         _log('Failed to get Google ID token', isError: true);
+        onError?.call('No ID token returned by Google. Check iOS client/URL scheme');
         return false;
+      }
+
+      // Debug: Log token audience/issuer to verify configuration (masked)
+      try {
+        final parts = idToken.split('.');
+        if (parts.length == 3) {
+          final payloadStr = utf8.decode(base64Url.decode(_normalizeBase64(parts[1])));
+          final payload = json.decode(payloadStr) as Map<String, dynamic>;
+          final aud = (payload['aud']?.toString() ?? '').replaceAll(RegExp(r'(^.{6}|.{6}$)'), '***');
+          final iss = payload['iss']?.toString();
+          final azp = payload['azp']?.toString();
+          _log('Google idToken aud(masked)=${aud}, iss=$iss, azp=$azp');
+        }
+      } catch (e) {
+        _log('Failed to decode idToken payload: $e', isError: true);
       }
 
       final resp = await _makeRequest(
@@ -142,14 +159,26 @@ class AuthService {
           return true;
         }
         _log('Invalid token received from server', isError: true);
+        onError?.call('API returned invalid token payload');
       } else {
         _log('Google sign in failed with status ${resp.statusCode}', isError: true);
+        final body = resp.body;
+        onError?.call('API ${resp.statusCode}${body.isNotEmpty ? ': '+(body.length>120?body.substring(0,120)+'...':body) : ''}');
       }
       return false;
     } catch (e) {
       _log('Google sign in error: $e', isError: true);
+      onError?.call('Exception: $e');
       return false;
     }
+  }
+
+  static String _normalizeBase64(String input) {
+    final pad = input.length % 4;
+    if (pad == 2) return '${input}==';
+    if (pad == 3) return '${input}=';
+    if (pad == 1) return '${input}===';
+    return input;
   }
 
   static GoogleSignIn _googleSignIn() {
@@ -169,6 +198,17 @@ class AuthService {
         serverClientId: serverClientId,
       );
     }
+
+    // On iOS, provide the WEB client ID as serverClientId so Google returns
+    // an idToken whose aud matches the backend's expected client ID.
+    final iosWebClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID'];
+    if (!kIsWeb && Platform.isIOS && iosWebClientId != null && iosWebClientId.isNotEmpty) {
+      return GoogleSignIn(
+        scopes: const ['email', 'profile'],
+        serverClientId: iosWebClientId,
+      );
+    }
+
     return GoogleSignIn(scopes: const ['email', 'profile']);
   }
 

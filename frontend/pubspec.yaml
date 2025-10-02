@@ -72,6 +72,9 @@ flutter:
     - .env
     - assets/
 
+  config:
+    enable-lldb-debugging: false
+
 # App icon configuration
 flutter_launcher_icons:
   android: true

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'pages/root_page.dart';
+import 'login_page.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -60,7 +61,11 @@ class MyApp extends StatelessWidget {
           indicatorColor: Colors.white,
         ),
       ),
-      home: const RootPage(),
+      routes: {
+        '/': (_) => const RootPage(),
+        '/login': (_) => const LoginPage(),
+      },
+      initialRoute: '/',
     );
   }
 }
