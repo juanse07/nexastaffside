@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 
 import 'auth_service.dart';
 
@@ -49,6 +50,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
+    final bool showApple = Platform.isIOS;
 
     return WillPopScope(
       onWillPop: () async => false,
@@ -206,76 +208,78 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             const SizedBox(height: 16),
 
-                            // Divider
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Divider(
-                                    color: theme.colorScheme.outlineVariant,
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text(
-                                    'OR',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.5),
-                                      fontWeight: FontWeight.w500,
+                            if (showApple) ...[
+                              // Divider
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Divider(
+                                      color: theme.colorScheme.outlineVariant,
                                     ),
                                   ),
-                                ),
-                                Expanded(
-                                  child: Divider(
-                                    color: theme.colorScheme.outlineVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Apple Sign In Button
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: OutlinedButton(
-                                onPressed: _loadingApple ? null : _handleApple,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: theme.colorScheme.onSurface,
-                                  side: BorderSide(
-                                    color: theme.colorScheme.outline.withOpacity(0.5),
-                                    width: 1.5,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: _loadingApple
-                                    ? SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: theme.colorScheme.primary,
-                                        ),
-                                      )
-                                    : Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.apple,
-                                            size: 22,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            'Continue with Apple',
-                                            style: theme.textTheme.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(
+                                      'OR',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                        fontWeight: FontWeight.w500,
                                       ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Divider(
+                                      color: theme.colorScheme.outlineVariant,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                              const SizedBox(height: 16),
+                            ],
+
+                            if (showApple)
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: OutlinedButton(
+                                  onPressed: _loadingApple ? null : _handleApple,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: theme.colorScheme.onSurface,
+                                    side: BorderSide(
+                                      color: theme.colorScheme.outline.withOpacity(0.5),
+                                      width: 1.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: _loadingApple
+                                      ? SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.apple,
+                                              size: 22,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              'Continue with Apple',
+                                              style: theme.textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ),
                           ],
                         ),
                       ),

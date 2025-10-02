@@ -182,30 +182,16 @@ class AuthService {
   }
 
   static GoogleSignIn _googleSignIn() {
-    // Google Sign-In on Android requires the Web client ID as serverClientId
-    // to obtain an ID token. Prefer the web/server client ID from env.
-    final serverClientId =
-        dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ??
-        dotenv.env['GOOGLE_WEB_CLIENT_ID'] ??
-        dotenv.env['GOOGLE_SERVER_CLIENT_ID_ANDROID'];
+    // Prefer the Server (web) client ID from GCP as serverClientId on all platforms
+    // so Google returns an ID token suitable for backend verification.
+    final serverClientId = dotenv.env['GOOGLE_SERVER_CLIENT_ID'] ??
+        dotenv.env['GOOGLE_SERVER_CLIENT_ID_ANDROID'] ??
+        dotenv.env['GOOGLE_WEB_CLIENT_ID'];
 
-    if (!kIsWeb &&
-        Platform.isAndroid &&
-        serverClientId != null &&
-        serverClientId.isNotEmpty) {
+    if (serverClientId != null && serverClientId.isNotEmpty) {
       return GoogleSignIn(
         scopes: const ['email', 'profile'],
         serverClientId: serverClientId,
-      );
-    }
-
-    // On iOS, provide the WEB client ID as serverClientId so Google returns
-    // an idToken whose aud matches the backend's expected client ID.
-    final iosWebClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID'];
-    if (!kIsWeb && Platform.isIOS && iosWebClientId != null && iosWebClientId.isNotEmpty) {
-      return GoogleSignIn(
-        scopes: const ['email', 'profile'],
-        serverClientId: iosWebClientId,
       );
     }
 
