@@ -151,7 +151,7 @@ class DataService extends ChangeNotifier {
     }
   }
 
-  /// Fetch events from server
+  /// Fetch events from server with delta sync support
   Future<void> _fetchEvents({bool silent = false}) async {
     if (!silent) {
       _isLoading = true;
@@ -160,29 +160,66 @@ class DataService extends ChangeNotifier {
     }
 
     try {
-      final url = '$_apiBaseUrl$_apiPathPrefix/events';
+      // Build URL with delta sync support
+      final lastSyncTimestamp = await _storage.read(key: 'last_sync_events');
+      final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/events');
+      final uriWithParams = lastSyncTimestamp != null
+          ? uri.replace(queryParameters: {'lastSync': lastSyncTimestamp})
+          : uri;
+
       final token = await _storage.read(key: 'auth_jwt');
       final headers = <String, String>{};
       if (token != null) headers['Authorization'] = 'Bearer $token';
-      final response = await http.get(Uri.parse(url), headers: headers);
+
+      final response = await http.get(uriWithParams, headers: headers);
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List<dynamic>;
+        final responseData = json.decode(response.body);
+
+        // Handle both legacy (List) and new delta sync (Map) response formats
+        List<dynamic> eventsData;
+        String? serverTimestamp;
+        bool isDeltaSync = false;
+
+        if (responseData is List) {
+          // Legacy format: direct array
+          eventsData = responseData;
+          serverTimestamp = DateTime.now().toIso8601String();
+        } else if (responseData is Map<String, dynamic>) {
+          // New delta sync format
+          eventsData = (responseData['events'] ?? []) as List<dynamic>;
+          serverTimestamp = responseData['serverTimestamp'] as String?;
+          isDeltaSync = responseData['deltaSync'] == true;
+        } else {
+          throw Exception('Unexpected response format');
+        }
+
         final userKey = _decodeUserKeyFromToken(token);
         final newEvents = _filterEventsForAudience(
-          data.cast<Map<String, dynamic>>(),
+          eventsData.cast<Map<String, dynamic>>(),
           userKey,
         );
 
-        // Only update if data has actually changed
-        if (!_listsEqual(_events, newEvents)) {
+        // Delta sync: merge changes with existing events
+        if (isDeltaSync && lastSyncTimestamp != null) {
+          debugPrint('Delta sync: ${newEvents.length} changes received');
+          _events = _mergeEvents(_events, newEvents);
+        } else {
+          // Full sync: replace all events
+          debugPrint('Full sync: ${newEvents.length} events received');
           _events = newEvents;
-          _lastFetch = DateTime.now();
-          await _cacheEvents(_events);
+        }
 
-          if (!silent) {
-            notifyListeners();
-          }
+        _lastFetch = DateTime.now();
+        await _cacheEvents(_events);
+
+        // Save server timestamp for next delta sync
+        if (serverTimestamp != null) {
+          await _storage.write(key: 'last_sync_events', value: serverTimestamp);
+        }
+
+        if (!silent) {
+          notifyListeners();
         }
 
         _lastError = null;
@@ -198,6 +235,31 @@ class DataService extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  /// Merge changed events with existing events (for delta sync)
+  List<Map<String, dynamic>> _mergeEvents(
+    List<Map<String, dynamic>> existing,
+    List<Map<String, dynamic>> changes,
+  ) {
+    // Create a map of existing events by ID
+    final Map<String, Map<String, dynamic>> eventMap = {};
+    for (final event in existing) {
+      final id = event['_id'] ?? event['id'];
+      if (id != null) {
+        eventMap[id.toString()] = event;
+      }
+    }
+
+    // Apply changes (updates and new inserts)
+    for (final change in changes) {
+      final id = change['_id'] ?? change['id'];
+      if (id != null) {
+        eventMap[id.toString()] = change;
+      }
+    }
+
+    return eventMap.values.toList();
   }
 
   /// Fetch availability from server with JWT token
@@ -352,6 +414,7 @@ class DataService extends ChangeNotifier {
       _storage.delete(key: _lastFetchKey),
       _storage.delete(key: _availabilityStorageKey),
       _storage.delete(key: _lastAvailabilityFetchKey),
+      _storage.delete(key: 'last_sync_events'),
     ]);
 
     _events.clear();
@@ -359,6 +422,13 @@ class DataService extends ChangeNotifier {
     _lastFetch = null;
     _lastAvailabilityFetch = null;
     notifyListeners();
+  }
+
+  /// Force full sync on next fetch (clears delta sync timestamp)
+  /// Call this after creating, updating, or deleting events
+  Future<void> invalidateEventsCache() async {
+    await _storage.delete(key: 'last_sync_events');
+    debugPrint('Events cache invalidated - next fetch will be full sync');
   }
 
   /// Utility method to compare two lists for equality
