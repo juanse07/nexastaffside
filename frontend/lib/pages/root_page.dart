@@ -15,7 +15,7 @@ import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
 import 'user_profile_page.dart';
 
-enum _AccountMenuAction { settings, logout }
+enum _AccountMenuAction { profile, settings, logout }
 
 List<Uri> _mapUriCandidates(String raw) {
   final trimmed = raw.trim();
@@ -364,6 +364,14 @@ class _RootPageState extends State<RootPage> {
                           tooltip: 'Account',
                           onSelected: (value) async {
                             switch (value) {
+                              case _AccountMenuAction.profile:
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const UserProfilePage(),
+                                  ),
+                                );
+                                await _loadUserProfile();
+                                break;
                               case _AccountMenuAction.settings:
                                 await Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -379,23 +387,34 @@ class _RootPageState extends State<RootPage> {
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem<_AccountMenuAction>(
-                              value: _AccountMenuAction.settings,
+                            PopupMenuItem<_AccountMenuAction>(
+                              value: _AccountMenuAction.profile,
                               child: Row(
                                 children: [
-                                  Icon(Icons.settings),
-                                  SizedBox(width: 12),
-                                  Text('Settings'),
+                                  Icon(Icons.person, color: Theme.of(context).colorScheme.onSurface),
+                                  const SizedBox(width: 12),
+                                  const Text('My Profile'),
                                 ],
                               ),
                             ),
-                            const PopupMenuItem<_AccountMenuAction>(
+                            PopupMenuItem<_AccountMenuAction>(
+                              value: _AccountMenuAction.settings,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.settings, color: Theme.of(context).colorScheme.onSurface),
+                                  const SizedBox(width: 12),
+                                  const Text('Settings'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuDivider(),
+                            PopupMenuItem<_AccountMenuAction>(
                               value: _AccountMenuAction.logout,
                               child: Row(
                                 children: [
-                                  Icon(Icons.logout_rounded),
-                                  SizedBox(width: 12),
-                                  Text('Sign out'),
+                                  Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.onSurface),
+                                  const SizedBox(width: 12),
+                                  const Text('Logout'),
                                 ],
                               ),
                             ),
