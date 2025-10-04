@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,11 +8,14 @@ import 'package:url_launcher/url_launcher.dart';
 import '../auth_service.dart';
 import '../login_page.dart';
 import '../services/data_service.dart';
+import '../services/user_service.dart';
 import '../utils/id.dart';
 import '../utils/jwt.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
 import 'user_profile_page.dart';
+
+enum _AccountMenuAction { settings, logout }
 
 List<Uri> _mapUriCandidates(String raw) {
   final trimmed = raw.trim();
@@ -254,6 +258,7 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> {
   bool _checkingAuth = true;
   String? _userKey;
+  String? _userPictureUrl;
 
   @override
   void initState() {
@@ -276,6 +281,21 @@ class _RootPageState extends State<RootPage> {
     // Load initial data using DataService
     if (mounted) {
       context.read<DataService>().loadInitialData();
+    }
+
+    // Load user profile (for avatar)
+    unawaited(_loadUserProfile());
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final me = await UserService.getMe();
+      if (!mounted) return;
+      setState(() {
+        _userPictureUrl = (me.picture ?? '').trim().isEmpty ? null : me.picture!.trim();
+      });
+    } catch (_) {
+      // Ignore errors loading profile for avatar
     }
   }
 
@@ -340,21 +360,56 @@ class _RootPageState extends State<RootPage> {
                       ),
                       actions: [
                         const QuickRefreshButton(compact: true),
-                        IconButton(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const UserProfilePage(),
-                              ),
-                            );
+                        PopupMenuButton<_AccountMenuAction>(
+                          tooltip: 'Account',
+                          onSelected: (value) async {
+                            switch (value) {
+                              case _AccountMenuAction.settings:
+                                await Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const UserProfilePage(),
+                                  ),
+                                );
+                                // Refresh avatar after returning from settings
+                                await _loadUserProfile();
+                                break;
+                              case _AccountMenuAction.logout:
+                                _signOut();
+                                break;
+                            }
                           },
-                          icon: const Icon(Icons.person),
-                          tooltip: 'My Profile',
-                        ),
-                        IconButton(
-                          onPressed: _signOut,
-                          icon: const Icon(Icons.logout_rounded),
-                          tooltip: 'Sign out',
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<_AccountMenuAction>(
+                              value: _AccountMenuAction.settings,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.settings),
+                                  SizedBox(width: 12),
+                                  Text('Settings'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem<_AccountMenuAction>(
+                              value: _AccountMenuAction.logout,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout_rounded),
+                                  SizedBox(width: 12),
+                                  Text('Sign out'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: _userPictureUrl != null
+                                ? CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: Colors.white24,
+                                    backgroundImage: NetworkImage(_userPictureUrl!),
+                                  )
+                                : const Icon(Icons.account_circle, size: 28),
+                          ),
                         ),
                       ],
                       bottom: const TabBar(
