@@ -147,54 +147,28 @@ class RoleEventsPage extends StatelessWidget {
                       vertical: 8,
                     ),
                     title: Text(
-                      clientName.isNotEmpty
-                          ? clientName
-                          : (headerTitle ?? eventName),
+                      roleName,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    subtitle: clientName.isNotEmpty
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                eventName,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                (remainingLabel?.isNotEmpty == true)
-                                    ? remainingLabel!
-                                    : (headerTitle ?? venueName),
-                              ),
-                            ],
-                          )
-                        : (headerTitle == null
-                              ? Text(
-                                  (remainingLabel?.isNotEmpty == true)
-                                      ? remainingLabel!
-                                      : venueName,
-                                )
-                              : Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      eventName,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      (remainingLabel?.isNotEmpty == true)
-                                          ? remainingLabel!
-                                          : venueName,
-                                    ),
-                                  ],
-                                )),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (clientName.isNotEmpty)
+                          Text(
+                            clientName,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        if (clientName.isNotEmpty) const SizedBox(height: 4),
+                        Text(
+                          (remainingLabel?.isNotEmpty == true)
+                              ? remainingLabel!
+                              : (headerTitle ?? venueName),
+                        ),
+                      ],
+                    ),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(

@@ -809,6 +809,7 @@ class _HomeTabState extends State<_HomeTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return EnhancedRefreshIndicator(
+      showLastRefreshTime: false,
       child: CustomScrollView(
         slivers: [
           SliverOverlapInjector(
@@ -1644,7 +1645,9 @@ class _MyEventsList extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        clientName.isNotEmpty ? clientName : eventName,
+                        (role != null && role.isNotEmpty)
+                            ? role
+                            : (clientName.isNotEmpty ? clientName : eventName),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -1667,17 +1670,6 @@ class _MyEventsList extends StatelessWidget {
                   ],
                 ),
                 if (clientName.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    eventName,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (role != null && role.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -1693,13 +1685,13 @@ class _MyEventsList extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.work_outline,
+                          Icons.business,
                           size: 14,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          role,
+                          clientName,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -1709,6 +1701,14 @@ class _MyEventsList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  Text(
+                    eventName,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                 ],
                 if (venue.isNotEmpty ||
                     venueAddress.isNotEmpty ||
@@ -1879,6 +1879,7 @@ class _RoleList extends StatelessWidget {
     }
 
     return EnhancedRefreshIndicator(
+      showLastRefreshTime: false,
       child: CustomScrollView(
         slivers: [
           SliverOverlapInjector(
@@ -1992,6 +1993,38 @@ class _RoleList extends StatelessWidget {
                                   ),
                           ),
                         ],
+                      ),
+                    ),
+                    // Bottom-right compact updated label
+                    Positioned(
+                      right: 12,
+                      bottom: 12,
+                      child: Builder(
+                        builder: (context) {
+                          final ds = context.watch<DataService>();
+                          if (!ds.hasData) return const SizedBox.shrink();
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.access_time, size: 12, color: Colors.white),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Updated ${ds.getLastRefreshTime()}',
+                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -2176,7 +2209,9 @@ class _RoleList extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        clientName.isNotEmpty ? clientName : eventName,
+                        (role != null && role.isNotEmpty)
+                            ? role
+                            : (clientName.isNotEmpty ? clientName : eventName),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -2199,17 +2234,6 @@ class _RoleList extends StatelessWidget {
                   ],
                 ),
                 if (clientName.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    eventName,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (role != null && role.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -2225,13 +2249,13 @@ class _RoleList extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
-                          Icons.work_outline,
+                          Icons.business,
                           size: 14,
                           color: Colors.white,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          role,
+                          clientName,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -2241,6 +2265,12 @@ class _RoleList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  Text(
+                    eventName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
                 if (venue.isNotEmpty ||
                     venueAddress.isNotEmpty ||
@@ -2426,8 +2456,9 @@ class _CalendarTabState extends State<_CalendarTab> {
 
     return Builder(
       builder: (context) {
-        return EnhancedRefreshIndicator(
-          child: CustomScrollView(
+    return EnhancedRefreshIndicator(
+      showLastRefreshTime: false,
+      child: CustomScrollView(
             slivers: [
               SliverOverlapInjector(
                 handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),

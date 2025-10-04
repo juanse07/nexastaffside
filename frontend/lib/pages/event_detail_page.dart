@@ -452,7 +452,7 @@ class EventDetailPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                   ],
-                  if (roleName != null && roleName!.isNotEmpty) ...[
+                  if (clientName.isNotEmpty) ...[
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
@@ -471,13 +471,13 @@ class EventDetailPage extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.work_outline,
+                                  Icons.business,
                                   size: 16,
                                   color: theme.colorScheme.onSecondaryContainer,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  roleName ?? 'Role',
+                                  clientName,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color:
                                         theme.colorScheme.onSecondaryContainer,
@@ -493,8 +493,13 @@ class EventDetailPage extends StatelessWidget {
                   ],
                   Card(
                     child: ListTile(
-                      title: Text(eventName, style: theme.textTheme.titleLarge),
-                      subtitle: clientName.isEmpty ? null : Text(clientName),
+                      title: Text(
+                        (roleName != null && roleName!.isNotEmpty) 
+                            ? roleName! 
+                            : eventName, 
+                        style: theme.textTheme.titleLarge
+                      ),
+                      subtitle: Text(eventName),
                       trailing: Text('Guests: $headcount'),
                     ),
                   ),
