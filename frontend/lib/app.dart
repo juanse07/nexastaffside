@@ -10,16 +10,25 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Nexa Staff',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme:
-            ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6366F1), // Modern indigo
-              brightness: Brightness.light,
-            ).copyWith(
-              surface: const Color(0xFFFAFAFC),
-              surfaceContainerLowest: const Color(0xFFFFFFFF),
-            ),
+        colorScheme: ColorScheme.light(
+          primary: const Color(0xFF6366F1), // Primary indigo
+          onPrimary: Colors.white,
+          primaryContainer: const Color(0xFF430172), // Deep purple
+          onPrimaryContainer: Colors.white,
+          secondary: const Color(0xFF8B5CF6), // Secondary purple
+          onSecondary: Colors.white,
+          secondaryContainer: const Color(0xFF8B5CF6),
+          onSecondaryContainer: Colors.white,
+          surface: const Color(0xFFFAFAFC),
+          onSurface: const Color(0xFF0F172A),
+          surfaceContainerLowest: const Color(0xFFFFFFFF),
+          onSurfaceVariant: const Color(0xFF475569),
+          outline: const Color(0xFFE2E8F0),
+          outlineVariant: const Color(0xFFF1F5F9),
+        ),
         cardTheme: const CardThemeData(
           elevation: 0,
           margin: EdgeInsets.symmetric(horizontal: 20, vertical: 6),

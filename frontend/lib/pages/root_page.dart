@@ -11,6 +11,7 @@ import '../utils/id.dart';
 import '../utils/jwt.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
+import 'user_profile_page.dart';
 
 List<Uri> _mapUriCandidates(String raw) {
   final trimmed = raw.trim();
@@ -306,65 +307,94 @@ class _RootPageState extends State<RootPage> {
           length: 4,
           child: Scaffold(
             backgroundColor: theme.colorScheme.surfaceContainerLowest,
-            appBar: AppBar(
-              title: Row(
-                children: [
-                  Image.asset('assets/appbar_logo.png', height: 44),
-                  if (dataService.isRefreshing) ...[
-                    const SizedBox(width: 8),
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
+            body: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverOverlapAbsorber(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                    sliver: SliverAppBar(
+                      floating: true,
+                      pinned: false,
+                      snap: true,
+                      expandedHeight: 100,
+                      forceElevated: innerBoxIsScrolled,
+                      flexibleSpace: FlexibleSpaceBar(
+                        titlePadding: const EdgeInsets.only(left: 16, bottom: 48),
+                        title: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Image.asset('assets/appbar_logo.png', height: 44),
+                            if (dataService.isRefreshing) ...[
+                              const SizedBox(width: 8),
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        const QuickRefreshButton(compact: true),
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const UserProfilePage(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.person),
+                          tooltip: 'My Profile',
+                        ),
+                        IconButton(
+                          onPressed: _signOut,
+                          icon: const Icon(Icons.logout_rounded),
+                          tooltip: 'Sign out',
+                        ),
+                      ],
+                      bottom: const TabBar(
+                        tabs: [
+                          Tab(text: 'Home'),
+                          Tab(text: 'Roles'),
+                          Tab(text: 'My Events'),
+                          Tab(text: 'Calendar'),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                ];
+              },
+              body: TabBarView(
+                children: [
+                  _HomeTab(
+                    events: dataService.events,
+                    userKey: _userKey,
+                    loading: dataService.isLoading,
+                  ),
+                  _RoleList(
+                    summaries: _computeRoleSummaries(dataService.events),
+                    loading: dataService.isLoading,
+                    allEvents: dataService.events,
+                    userKey: _userKey,
+                  ),
+                  _MyEventsList(
+                    events: dataService.events,
+                    userKey: _userKey,
+                    loading: dataService.isLoading,
+                  ),
+                  _CalendarTab(
+                    events: dataService.events,
+                    userKey: _userKey,
+                    loading: dataService.isLoading,
+                    availability: dataService.availability,
+                  ),
                 ],
               ),
-              actions: [
-                const QuickRefreshButton(compact: true),
-                IconButton(
-                  onPressed: _signOut,
-                  icon: const Icon(Icons.logout_rounded),
-                  tooltip: 'Sign out',
-                ),
-              ],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(text: 'Home'),
-                  Tab(text: 'Roles'),
-                  Tab(text: 'My Events'),
-                  Tab(text: 'Calendar'),
-                ],
-              ),
-            ),
-            body: TabBarView(
-              children: [
-                _HomeTab(
-                  events: dataService.events,
-                  userKey: _userKey,
-                  loading: dataService.isLoading,
-                ),
-                _RoleList(
-                  summaries: _computeRoleSummaries(dataService.events),
-                  loading: dataService.isLoading,
-                  allEvents: dataService.events,
-                  userKey: _userKey,
-                ),
-                _MyEventsList(
-                  events: dataService.events,
-                  userKey: _userKey,
-                  loading: dataService.isLoading,
-                ),
-                _CalendarTab(
-                  events: dataService.events,
-                  userKey: _userKey,
-                  loading: dataService.isLoading,
-                  availability: dataService.availability,
-                ),
-              ],
             ),
           ),
         );
@@ -707,12 +737,15 @@ class _HomeTabState extends State<_HomeTab> {
     return EnhancedRefreshIndicator(
       child: CustomScrollView(
         slivers: [
-          const SliverToBoxAdapter(child: StaleDataBanner()),
+          SliverOverlapInjector(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          ),
           SliverToBoxAdapter(
             child: Container(
-              height: 200,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
@@ -721,70 +754,112 @@ class _HomeTabState extends State<_HomeTab> {
                     Color(0xFF6366F1), // Indigo
                   ],
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              child: Stack(
-                children: [
-                  // Decorative circles
-                  Positioned(
-                    top: -20,
-                    right: -20,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  children: [
+                    // Decorative circles
+                    Positioned(
+                      top: -30,
+                      right: -30,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.1),
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: -30,
-                    left: -30,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.08),
+                    Positioned(
+                      bottom: -40,
+                      left: -40,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.06),
+                        ),
                       ),
                     ),
-                  ),
-                  // Content
-                  SafeArea(
-                    child: Padding(
+                    // Content
+                    Padding(
                       padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          const SizedBox(height: 20),
-                          Text(
-                            'Welcome Back!',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Welcome Back!',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.5,
+                                    fontSize: 22,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  _upcoming != null
+                                      ? 'Your next shift is ready'
+                                      : 'No upcoming shifts',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _upcoming != null
-                                ? 'Your next shift is ready'
-                                : 'No upcoming shifts today',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                          const Spacer(),
+                          const SizedBox(width: 12),
                           if (widget.loading)
-                            const Center(
-                              child: CircularProgressIndicator(
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _upcoming != null
+                                    ? Icons.event_available_rounded
+                                    : Icons.calendar_today_rounded,
                                 color: Colors.white,
+                                size: 24,
                               ),
                             ),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1204,11 +1279,15 @@ class _MyEventsList extends StatelessWidget {
 
     return CustomScrollView(
       slivers: [
+        SliverOverlapInjector(
+          handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+        ),
         SliverToBoxAdapter(
           child: Container(
-            height: 160,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
@@ -1217,97 +1296,104 @@ class _MyEventsList extends StatelessWidget {
                   Color(0xFFEC4899), // Pink
                 ],
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-            child: Stack(
-              children: [
-                // Decorative elements
-                Positioned(
-                  top: -15,
-                  right: -15,
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.1),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Stack(
+                children: [
+                  // Decorative elements
+                  Positioned(
+                    top: -30,
+                    right: -30,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.1),
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  bottom: -20,
-                  left: -20,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.08),
+                  Positioned(
+                    bottom: -40,
+                    left: -40,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.06),
+                      ),
                     ),
                   ),
-                ),
-                // Content
-                SafeArea(
-                  child: Padding(
+                  // Content
+                  Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'My Events',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.5,
+                                  fontSize: 22,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.event_available_outlined,
-                                color: Colors.white,
-                                size: 24,
+                              const SizedBox(height: 6),
+                              Text(
+                                loading
+                                    ? 'Loading events...'
+                                    : mine.isEmpty
+                                    ? 'No accepted events'
+                                    : '${mine.length} ${mine.length == 1 ? 'event' : 'events'} accepted',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'My Events',
-                                    style: theme.textTheme.headlineSmall
-                                        ?.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                  Text(
-                                    loading
-                                        ? 'Loading events...'
-                                        : mine.isEmpty
-                                        ? 'No accepted events yet'
-                                        : '${mine.length} events accepted',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: Colors.white.withOpacity(0.9),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (loading)
-                          const Expanded(
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
+                            ],
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: loading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.event_available_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1721,11 +1807,15 @@ class _RoleList extends StatelessWidget {
     return EnhancedRefreshIndicator(
       child: CustomScrollView(
         slivers: [
+          SliverOverlapInjector(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          ),
           SliverToBoxAdapter(
             child: Container(
-              height: 160,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
@@ -1734,100 +1824,104 @@ class _RoleList extends StatelessWidget {
                     Color(0xFFA855F7), // Light purple
                   ],
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              child: Stack(
-                children: [
-                  // Decorative elements
-                  Positioned(
-                    top: -15,
-                    right: -15,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  children: [
+                    // Decorative elements
+                    Positioned(
+                      top: -30,
+                      right: -30,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.1),
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: -20,
-                    left: -20,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.08),
+                    Positioned(
+                      bottom: -40,
+                      left: -40,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.06),
+                        ),
                       ),
                     ),
-                  ),
-                  // Content
-                  SafeArea(
-                    child: Padding(
+                    // Content
+                    Padding(
                       padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Available Roles',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.5,
+                                    fontSize: 22,
+                                  ),
                                 ),
-                                child: const Icon(
-                                  Icons.work_outline,
-                                  color: Colors.white,
-                                  size: 24,
+                                const SizedBox(height: 6),
+                                Text(
+                                  loading
+                                      ? 'Loading roles...'
+                                      : display.isEmpty
+                                      ? 'No roles available'
+                                      : '${display.length} ${display.length == 1 ? 'role needs' : 'roles need'} staff',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 14,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Available Roles',
-                                      style: theme.textTheme.headlineSmall
-                                          ?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                    Text(
-                                      loading
-                                          ? 'Loading roles...'
-                                          : display.isEmpty
-                                          ? 'No roles available right now'
-                                          : '${display.length} roles need staff',
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: Colors.white.withOpacity(
-                                              0.9,
-                                            ),
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (loading)
-                            const Expanded(
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              ),
+                              ],
                             ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: loading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.work_outline_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -2256,358 +2350,411 @@ class _CalendarTabState extends State<_CalendarTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return EnhancedRefreshIndicator(
-      child: Column(
-        children: [
-          // Calendar header with gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF8B5CF6), // Purple
-                  Color(0xFFA855F7), // Light purple
-                  Color(0xFFEC4899), // Pink
-                ],
+    return Builder(
+      builder: (context) {
+        return EnhancedRefreshIndicator(
+          child: CustomScrollView(
+            slivers: [
+              SliverOverlapInjector(
+                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_month,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF8B5CF6), // Purple
+                        Color(0xFFA855F7), // Light purple
+                        Color(0xFFEC4899), // Pink
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Calendar',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'View your accepted events',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFEC4899).withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Calendar widget
-          Expanded(
-            child: widget.loading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    children: [
-                      SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.45,
-                        child: Container(
-                          color: theme.colorScheme.surface,
-                          child: TableCalendar<Map<String, dynamic>>(
-                            firstDay: DateTime.utc(2020, 1, 1),
-                            lastDay: DateTime.utc(2030, 12, 31),
-                            focusedDay: _focusedDay,
-                            calendarFormat: _calendarFormat,
-                            eventLoader: _getEventsForDay,
-                            startingDayOfWeek: StartingDayOfWeek.sunday,
-                            calendarBuilders: CalendarBuilders(
-                              markerBuilder: (context, day, events) {
-                                final hasEvents = events.isNotEmpty;
-                                final availability = _getAvailabilityForDay(
-                                  day,
-                                );
-
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    if (hasEvents)
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        margin: const EdgeInsets.only(right: 2),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF8B5CF6),
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                    if (availability != null)
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: BoxDecoration(
-                                          color:
-                                              availability['status'] ==
-                                                  'available'
-                                              ? Colors.green
-                                              : Colors.red,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                  ],
-                                );
-                              },
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      children: [
+                        // Decorative elements
+                        Positioned(
+                          top: -30,
+                          right: -30,
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(0.1),
                             ),
-                            calendarStyle: CalendarStyle(
-                              outsideDaysVisible: false,
-                              weekendTextStyle: TextStyle(
-                                color: theme.colorScheme.onSurface,
-                              ),
-                              holidayTextStyle: TextStyle(
-                                color: theme.colorScheme.primary,
-                              ),
-                              selectedDecoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF8B5CF6),
-                                    Color(0xFFEC4899),
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              todayDecoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withOpacity(
-                                  0.3,
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            headerStyle: HeaderStyle(
-                              formatButtonVisible: true,
-                              titleCentered: true,
-                              formatButtonShowsNext: false,
-                              formatButtonDecoration: BoxDecoration(
-                                color: const Color(0xFF8B5CF6),
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              formatButtonTextStyle: const TextStyle(
-                                color: Colors.white,
-                              ),
-                              leftChevronIcon: Icon(
-                                Icons.chevron_left,
-                                color: theme.colorScheme.primary,
-                              ),
-                              rightChevronIcon: Icon(
-                                Icons.chevron_right,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                            selectedDayPredicate: (day) {
-                              return isSameDay(_selectedDay, day);
-                            },
-                            onDaySelected: _onDaySelected,
-                            onFormatChanged: (format) {
-                              if (_calendarFormat != format) {
-                                setState(() {
-                                  _calendarFormat = format;
-                                });
-                              }
-                            },
-                            onPageChanged: (focusedDay) {
-                              _focusedDay = focusedDay;
-                            },
                           ),
                         ),
-                      ),
-                      const Divider(height: 1),
-                      // Events and availability for selected day
-                      Expanded(
-                        child: Column(
-                          children: [
-                            // Availability controls
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              color: theme.colorScheme.surfaceContainer,
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Availability for ${_formatSelectedDate()}',
-                                      style: theme.textTheme.titleSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        _showAvailabilityDialog(context),
-                                    icon: const Icon(Icons.access_time),
-                                    tooltip: 'Set availability',
-                                  ),
-                                ],
-                              ),
+                        Positioned(
+                          bottom: -40,
+                          left: -40,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withOpacity(0.06),
                             ),
-                            // Events list
-                            Expanded(
-                              child: ValueListenableBuilder<List<Map<String, dynamic>>>(
-                                valueListenable: _selectedEvents,
-                                builder: (context, value, _) {
-                                  final availability = _getAvailabilityForDay(
-                                    _selectedDay!,
-                                  );
+                          ),
+                        ),
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Calendar',
+                                      style: theme.textTheme.titleLarge?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: -0.5,
+                                        fontSize: 22,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'View your events',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.calendar_month_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Calendar widget
+              widget.loading
+                  ? const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : SliverToBoxAdapter(
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.45,
+                            child: Container(
+                              color: theme.colorScheme.surface,
+                              child: TableCalendar<Map<String, dynamic>>(
+                                firstDay: DateTime.utc(2020, 1, 1),
+                                lastDay: DateTime.utc(2030, 12, 31),
+                                focusedDay: _focusedDay,
+                                calendarFormat: _calendarFormat,
+                                eventLoader: _getEventsForDay,
+                                startingDayOfWeek: StartingDayOfWeek.sunday,
+                                calendarBuilders: CalendarBuilders(
+                                  markerBuilder: (context, day, events) {
+                                    final hasEvents = events.isNotEmpty;
+                                    final availability =
+                                        _getAvailabilityForDay(day);
 
-                                  return ListView(
-                                    padding: const EdgeInsets.all(8),
-                                    children: [
-                                      // Show availability status
-                                      if (availability != null)
-                                        Container(
-                                          margin: const EdgeInsets.only(
-                                            bottom: 8,
-                                          ),
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                availability['status'] ==
-                                                    'available'
-                                                ? Colors.green.withOpacity(0.1)
-                                                : Colors.red.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
+                                    return Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        if (hasEvents)
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            margin:
+                                                const EdgeInsets.only(right: 2),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF8B5CF6),
+                                              shape: BoxShape.circle,
                                             ),
-                                            border: Border.all(
-                                              color:
-                                                  availability['status'] ==
+                                          ),
+                                        if (availability != null)
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: BoxDecoration(
+                                              color: availability['status'] ==
                                                       'available'
                                                   ? Colors.green
                                                   : Colors.red,
-                                              width: 1,
+                                              shape: BoxShape.circle,
                                             ),
                                           ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                availability['status'] ==
-                                                        'available'
-                                                    ? Icons.check_circle
-                                                    : Icons.cancel,
-                                                color:
-                                                    availability['status'] ==
+                                      ],
+                                    );
+                                  },
+                                ),
+                                calendarStyle: CalendarStyle(
+                                  outsideDaysVisible: false,
+                                  weekendTextStyle: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                  holidayTextStyle: TextStyle(
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  selectedDecoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF8B5CF6),
+                                        Color(0xFFEC4899),
+                                      ],
+                                    ),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  todayDecoration: BoxDecoration(
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.3),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                headerStyle: HeaderStyle(
+                                  formatButtonVisible: true,
+                                  titleCentered: true,
+                                  formatButtonShowsNext: false,
+                                  formatButtonDecoration: BoxDecoration(
+                                    color: const Color(0xFF8B5CF6),
+                                    borderRadius: BorderRadius.circular(12.0),
+                                  ),
+                                  formatButtonTextStyle: const TextStyle(
+                                    color: Colors.white,
+                                  ),
+                                  leftChevronIcon: Icon(
+                                    Icons.chevron_left,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  rightChevronIcon: Icon(
+                                    Icons.chevron_right,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                selectedDayPredicate: (day) {
+                                  return isSameDay(_selectedDay, day);
+                                },
+                                onDaySelected: _onDaySelected,
+                                onFormatChanged: (format) {
+                                  if (_calendarFormat != format) {
+                                    setState(() {
+                                      _calendarFormat = format;
+                                    });
+                                  }
+                                },
+                                onPageChanged: (focusedDay) {
+                                  _focusedDay = focusedDay;
+                                },
+                              ),
+                            ),
+                          ),
+                          const Divider(height: 1),
+                        ],
+                      ),
+                    ),
+              // Availability controls
+              SliverToBoxAdapter(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
+                  child: Container(
+                  padding: const EdgeInsets.all(16),
+                  color: theme.colorScheme.surfaceContainer,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Availability for ${_formatSelectedDate()}',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => _showAvailabilityDialog(context),
+                        icon: const Icon(Icons.access_time),
+                        tooltip: 'Set availability',
+                      ),
+                    ],
+                  ),
+                  ),
+                ),
+              ),
+              // Events list
+              ValueListenableBuilder<List<Map<String, dynamic>>>(
+                valueListenable: _selectedEvents,
+                builder: (context, value, _) {
+                  final availability = _getAvailabilityForDay(_selectedDay!);
+
+                  final children = <Widget>[
+                                          // Show availability status
+                                          if (availability != null)
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                bottom: 8,
+                                              ),
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: availability['status'] ==
                                                         'available'
                                                     ? Colors.green
-                                                    : Colors.red,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  '${availability['status'] == 'available' ? 'Available' : 'Unavailable'}: ${availability['startTime']} - ${availability['endTime']}',
-                                                  style:
-                                                      theme.textTheme.bodySmall,
+                                                        .withOpacity(0.1)
+                                                    : Colors.red
+                                                        .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color:
+                                                      availability['status'] ==
+                                                              'available'
+                                                          ? Colors.green
+                                                          : Colors.red,
+                                                  width: 1,
                                                 ),
                                               ),
-                                              IconButton(
-                                                onPressed: () =>
-                                                    _deleteAvailability(
-                                                      availability['id'],
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    availability['status'] ==
+                                                            'available'
+                                                        ? Icons.check_circle
+                                                        : Icons.cancel,
+                                                    color:
+                                                        availability['status'] ==
+                                                                'available'
+                                                            ? Colors.green
+                                                            : Colors.red,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      '${availability['status'] == 'available' ? 'Available' : 'Unavailable'}: ${availability['startTime']} - ${availability['endTime']}',
+                                                      style:
+                                                          theme.textTheme.bodySmall,
                                                     ),
-                                                icon: const Icon(Icons.delete),
-                                                iconSize: 16,
+                                                  ),
+                                                  IconButton(
+                                                    onPressed: () =>
+                                                        _deleteAvailability(
+                                                          availability['id'],
+                                                        ),
+                                                    icon:
+                                                        const Icon(Icons.delete),
+                                                    iconSize: 16,
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        ),
-                                      // Events
-                                      if (value.isEmpty && availability == null)
-                                        Center(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(32),
-                                            child: Column(
-                                              children: [
-                                                Container(
-                                                  width: 64,
-                                                  height: 64,
-                                                  decoration: BoxDecoration(
-                                                    gradient:
-                                                        const LinearGradient(
+                                            ),
+                                          // Empty state
+                                          if (value.isEmpty &&
+                                              availability == null)
+                                            Center(
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.all(32),
+                                                child: Column(
+                                                  children: [
+                                                    Container(
+                                                      width: 64,
+                                                      height: 64,
+                                                      decoration: BoxDecoration(
+                                                        gradient:
+                                                            const LinearGradient(
                                                           colors: [
                                                             Color(0xFF8B5CF6),
                                                             Color(0xFFEC4899),
                                                           ],
                                                         ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
                                                           32,
                                                         ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.event_busy,
-                                                    color: Colors.white,
-                                                    size: 32,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 16),
-                                                Text(
-                                                  'No events or availability',
-                                                  style: theme
-                                                      .textTheme
-                                                      .titleMedium
-                                                      ?.copyWith(
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.event_busy,
+                                                        color: Colors.white,
+                                                        size: 32,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      'No events or availability',
+                                                      style: theme
+                                                          .textTheme
+                                                          .titleMedium
+                                                          ?.copyWith(
                                                         fontWeight:
                                                             FontWeight.w600,
                                                       ),
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Text(
-                                                  'Tap the clock icon to set your availability',
-                                                  style: theme
-                                                      .textTheme
-                                                      .bodyMedium
-                                                      ?.copyWith(
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Text(
+                                                      'Tap the clock icon to set your availability',
+                                                      style: theme
+                                                          .textTheme
+                                                          .bodyMedium
+                                                          ?.copyWith(
                                                         color: theme
                                                             .colorScheme
                                                             .onSurfaceVariant,
                                                       ),
-                                                  textAlign: TextAlign.center,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
+                                              ),
+                                            ),
+                                          // Events
+                                          ...value.map(
+                                            (event) => _buildEventCard(
+                                              context,
+                                              theme,
+                                              event,
                                             ),
                                           ),
-                                        ),
-                                      ...value.map(
-                                        (event) => _buildEventCard(
-                                          context,
-                                          theme,
-                                          event,
-                                        ),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  ];
+
+                  return SliverPadding(
+                    padding: const EdgeInsets.all(8),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate(children),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

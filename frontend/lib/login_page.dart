@@ -55,19 +55,134 @@ class _LoginPageState extends State<LoginPage> {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.primaryContainer.withOpacity(0.3),
-                theme.colorScheme.surfaceContainerLowest,
-                theme.colorScheme.secondaryContainer.withOpacity(0.2),
-              ],
+        body: Stack(
+          children: [
+            // Base background
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.colorScheme.primaryContainer,
+                    theme.colorScheme.primary,
+                    theme.colorScheme.secondary,
+                  ],
+                ),
+              ),
             ),
-          ),
-          child: SafeArea(
+            // Large bold circles
+            Positioned(
+              top: -150,
+              right: -150,
+              child: Container(
+                width: 500,
+                height: 500,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.25),
+                      Colors.white.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -200,
+              left: -150,
+              child: Container(
+                width: 450,
+                height: 450,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      theme.colorScheme.primaryContainer.withOpacity(0.6),
+                      theme.colorScheme.primaryContainer.withOpacity(0.0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Bold geometric shapes
+            Positioned(
+              top: size.height * 0.2,
+              left: -60,
+              child: Transform.rotate(
+                angle: 0.5,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(40),
+                    color: Colors.white.withOpacity(0.15),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: size.height * 0.35,
+              right: -40,
+              child: Transform.rotate(
+                angle: -0.3,
+                child: Container(
+                  width: 150,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(35),
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.secondary.withOpacity(0.4),
+                        theme.colorScheme.secondary.withOpacity(0.1),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Additional accent circles
+            Positioned(
+              top: size.height * 0.45,
+              right: 30,
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.2),
+                ),
+              ),
+            ),
+            Positioned(
+              top: size.height * 0.65,
+              left: 40,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                ),
+              ),
+            ),
+            // Overlay for better content readability
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.05),
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.05),
+                  ],
+                ),
+              ),
+            ),
+            // Main content
+            SafeArea(
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -299,6 +414,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
+          ],
         ),
       ),
     );

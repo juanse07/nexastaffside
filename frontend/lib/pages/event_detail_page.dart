@@ -118,6 +118,9 @@ class EventDetailPage extends StatelessWidget {
             pitchGesturesEnabled: false,
             scrollGesturesEnabled: false,
             zoomGesturesEnabled: false,
+            myLocationEnabled: false,
+            myLocationButtonEnabled: false,
+            trafficEnabled: false,
             annotations: {
               apple_maps.Annotation(
                 annotationId: apple_maps.AnnotationId('venue'),
