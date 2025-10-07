@@ -259,6 +259,7 @@ class _RootPageState extends State<RootPage> {
   bool _checkingAuth = true;
   String? _userKey;
   String? _userPictureUrl;
+  int _selectedBottomIndex = 0;
 
   @override
   void initState() {
@@ -323,156 +324,206 @@ class _RootPageState extends State<RootPage> {
 
     return Consumer<DataService>(
       builder: (context, dataService, _) {
-        return DefaultTabController(
-          length: 4,
-          child: Scaffold(
-            backgroundColor: theme.colorScheme.surfaceContainerLowest,
-            body: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  SliverOverlapAbsorber(
-                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                    sliver: SliverAppBar(
-                      floating: true,
-                      pinned: false,
-                      snap: true,
-                      expandedHeight: 100,
-                      forceElevated: innerBoxIsScrolled,
-                      flexibleSpace: FlexibleSpaceBar(
-                        titlePadding: const EdgeInsets.only(left: 16, bottom: 48),
-                        title: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset('assets/appbar_logo.png', height: 44),
-                            if (dataService.isRefreshing) ...[
-                              const SizedBox(width: 8),
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      actions: [
-                        const QuickRefreshButton(compact: true),
-                        PopupMenuButton<_AccountMenuAction>(
-                          tooltip: 'Account',
-                          onSelected: (value) async {
-                            switch (value) {
-                              case _AccountMenuAction.profile:
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => const UserProfilePage(),
-                                  ),
-                                );
-                                await _loadUserProfile();
-                                break;
-                              case _AccountMenuAction.settings:
-                                await Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => const UserProfilePage(),
-                                  ),
-                                );
-                                // Refresh avatar after returning from settings
-                                await _loadUserProfile();
-                                break;
-                              case _AccountMenuAction.logout:
-                                _signOut();
-                                break;
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem<_AccountMenuAction>(
-                              value: _AccountMenuAction.profile,
-                              child: Row(
-                                children: [
-                                  Icon(Icons.person, color: Theme.of(context).colorScheme.onSurface),
-                                  const SizedBox(width: 12),
-                                  const Text('My Profile'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem<_AccountMenuAction>(
-                              value: _AccountMenuAction.settings,
-                              child: Row(
-                                children: [
-                                  Icon(Icons.settings, color: Theme.of(context).colorScheme.onSurface),
-                                  const SizedBox(width: 12),
-                                  const Text('Settings'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuDivider(),
-                            PopupMenuItem<_AccountMenuAction>(
-                              value: _AccountMenuAction.logout,
-                              child: Row(
-                                children: [
-                                  Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.onSurface),
-                                  const SizedBox(width: 12),
-                                  const Text('Logout'),
-                                ],
-                              ),
-                            ),
-                          ],
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: _userPictureUrl != null
-                                ? CircleAvatar(
-                                    radius: 16,
-                                    backgroundColor: Colors.white24,
-                                    backgroundImage: NetworkImage(_userPictureUrl!),
-                                  )
-                                : const Icon(Icons.account_circle, size: 28),
-                          ),
-                        ),
-                      ],
-                      bottom: const TabBar(
-                        tabs: [
-                          Tab(text: 'Home'),
-                          Tab(text: 'Roles'),
-                          Tab(text: 'My Events'),
-                          Tab(text: 'Calendar'),
-                        ],
-                      ),
+        return Scaffold(
+          backgroundColor: theme.colorScheme.surfaceContainerLowest,
+          appBar: AppBar(
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/appbar_logo.png', height: 44),
+                if (dataService.isRefreshing) ...[
+                  const SizedBox(width: 8),
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
                     ),
                   ),
-                ];
-              },
-              body: TabBarView(
-                children: [
-                  _HomeTab(
-                    events: dataService.events,
-                    userKey: _userKey,
-                    loading: dataService.isLoading,
+                ],
+              ],
+            ),
+            actions: [
+              PopupMenuButton<_AccountMenuAction>(
+                tooltip: 'Account',
+                onSelected: (value) async {
+                  switch (value) {
+                    case _AccountMenuAction.profile:
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const UserProfilePage(),
+                        ),
+                      );
+                      await _loadUserProfile();
+                      break;
+                    case _AccountMenuAction.settings:
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const UserProfilePage(),
+                        ),
+                      );
+                      await _loadUserProfile();
+                      break;
+                    case _AccountMenuAction.logout:
+                      _signOut();
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem<_AccountMenuAction>(
+                    value: _AccountMenuAction.profile,
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, color: Theme.of(context).colorScheme.onSurface),
+                        const SizedBox(width: 12),
+                        const Text('My Profile'),
+                      ],
+                    ),
                   ),
-                  _RoleList(
-                    summaries: _computeRoleSummaries(dataService.events),
-                    loading: dataService.isLoading,
-                    allEvents: dataService.events,
-                    userKey: _userKey,
+                  PopupMenuItem<_AccountMenuAction>(
+                    value: _AccountMenuAction.settings,
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings, color: Theme.of(context).colorScheme.onSurface),
+                        const SizedBox(width: 12),
+                        const Text('Settings'),
+                      ],
+                    ),
                   ),
-                  _MyEventsList(
-                    events: dataService.events,
-                    userKey: _userKey,
-                    loading: dataService.isLoading,
-                  ),
-                  _CalendarTab(
-                    events: dataService.events,
-                    userKey: _userKey,
-                    loading: dataService.isLoading,
-                    availability: dataService.availability,
+                  const PopupMenuDivider(),
+                  PopupMenuItem<_AccountMenuAction>(
+                    value: _AccountMenuAction.logout,
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.onSurface),
+                        const SizedBox(width: 12),
+                        const Text('Logout'),
+                      ],
+                    ),
                   ),
                 ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: _userPictureUrl != null
+                      ? CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.white24,
+                          backgroundImage: NetworkImage(_userPictureUrl!),
+                        )
+                      : const Icon(Icons.account_circle, size: 28),
+                ),
+              ),
+            ],
+          ),
+          body: IndexedStack(
+            index: _selectedBottomIndex,
+            children: [
+              _HomeTab(
+                events: dataService.events,
+                userKey: _userKey,
+                loading: dataService.isLoading,
+              ),
+              _RolesSection(
+                events: dataService.events,
+                userKey: _userKey,
+                loading: dataService.isLoading,
+                availability: dataService.availability,
+              ),
+              _EarningsTab(),
+            ],
+          ),
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF8B5CF6),
+                  Color(0xFFA855F7),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(
+                      icon: Icons.home_outlined,
+                      selectedIcon: Icons.home,
+                      label: 'Home',
+                      index: 0,
+                    ),
+                    _buildNavItem(
+                      icon: Icons.work_outline_rounded,
+                      selectedIcon: Icons.work_rounded,
+                      label: 'Roles',
+                      index: 1,
+                    ),
+                    _buildNavItem(
+                      icon: Icons.account_balance_wallet_outlined,
+                      selectedIcon: Icons.account_balance_wallet,
+                      label: 'Earnings',
+                      index: 2,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+    required int index,
+  }) {
+    final isSelected = _selectedBottomIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedBottomIndex = index;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? selectedIcon : icon,
+                size: 28,
+                color: Colors.white,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -812,9 +863,6 @@ class _HomeTabState extends State<_HomeTab> {
       showLastRefreshTime: false,
       child: CustomScrollView(
         slivers: [
-          SliverOverlapInjector(
-            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-          ),
           SliverToBoxAdapter(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -1315,6 +1363,177 @@ class _HomeTabState extends State<_HomeTab> {
   }
 }
 
+// Roles section with nested tabs
+class _RolesSection extends StatelessWidget {
+  final List<Map<String, dynamic>> events;
+  final String? userKey;
+  final bool loading;
+  final List<Map<String, dynamic>> availability;
+
+  const _RolesSection({
+    required this.events,
+    required this.userKey,
+    required this.loading,
+    required this.availability,
+  });
+
+  List<RoleSummary> _computeRoleSummaries() {
+    final Map<String, List<Map<String, dynamic>>> roleToEvents = {};
+    final Map<String, int> roleToNeeded = {};
+    final Map<String, int?> roleToRemaining = {};
+    for (final e in events) {
+      final stats = e['role_stats'];
+      if (stats is List && stats.isNotEmpty) {
+        for (final stat in stats) {
+          if (stat is Map) {
+            final role = stat['role']?.toString() ?? '';
+            final remaining = int.tryParse(stat['remaining']?.toString() ?? '');
+            if (role.isNotEmpty) {
+              roleToEvents.putIfAbsent(role, () => []).add(e);
+              roleToRemaining[role] = (roleToRemaining[role] ?? 0)! + (remaining ?? 0);
+            }
+          }
+        }
+      } else {
+        final roles = e['roles'];
+        if (roles is List) {
+          for (final r in roles) {
+            if (r is Map) {
+              final role = r['role']?.toString() ?? '';
+              final count = int.tryParse(r['count']?.toString() ?? '');
+              if (role.isNotEmpty && count != null) {
+                roleToEvents.putIfAbsent(role, () => []).add(e);
+                roleToNeeded[role] = (roleToNeeded[role] ?? 0) + count;
+              }
+            }
+          }
+        }
+      }
+    }
+    return roleToEvents.entries.map((e) {
+      return RoleSummary(
+        roleName: e.key,
+        totalNeeded: roleToNeeded[e.key] ?? 0,
+        eventCount: e.value.length,
+        events: e.value,
+        remainingTotal: roleToRemaining[e.key],
+      );
+    }).toList()
+      ..sort((a, b) => b.eventCount.compareTo(a.eventCount));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TabBar(
+              labelColor: const Color(0xFF8B5CF6),
+              unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              indicatorColor: const Color(0xFF8B5CF6),
+              indicatorWeight: 3,
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.work_outline_rounded, size: 22),
+                  text: 'Available',
+                ),
+                Tab(
+                  icon: Icon(Icons.event_available_rounded, size: 22),
+                  text: 'My Events',
+                ),
+                Tab(
+                  icon: Icon(Icons.calendar_month_outlined, size: 22),
+                  text: 'Calendar',
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _RoleList(
+                  summaries: _computeRoleSummaries(),
+                  loading: loading,
+                  allEvents: events,
+                  userKey: userKey,
+                ),
+                _MyEventsList(
+                  events: events,
+                  userKey: userKey,
+                  loading: loading,
+                ),
+                _CalendarTab(
+                  events: events,
+                  userKey: userKey,
+                  loading: loading,
+                  availability: availability,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Earnings tab placeholder
+class _EarningsTab extends StatelessWidget {
+  const _EarningsTab();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.account_balance_wallet_rounded,
+            size: 64,
+            color: theme.colorScheme.primary.withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Earnings',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Coming soon',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MyEventsList extends StatelessWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
@@ -1352,11 +1571,10 @@ class _MyEventsList extends StatelessWidget {
     final theme = Theme.of(context);
     final mine = _filterMyAccepted();
 
-    return CustomScrollView(
+    return EnhancedRefreshIndicator(
+      showLastRefreshTime: false,
+      child: CustomScrollView(
       slivers: [
-        SliverOverlapInjector(
-          handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-        ),
         SliverToBoxAdapter(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -1496,6 +1714,7 @@ class _MyEventsList extends StatelessWidget {
             }, childCount: mine.length),
           ),
       ],
+      ),
     );
   }
 
@@ -1572,6 +1791,7 @@ class _MyEventsList extends StatelessWidget {
     print('🔥 MY EVENTS DEBUG 🔥 All keys: ${e.keys.toList()}');
 
     String? role;
+    bool isConfirmed = false;
     if (roleNameOverride != null && roleNameOverride.trim().isNotEmpty) {
       role = roleNameOverride.trim();
     } else {
@@ -1580,66 +1800,81 @@ class _MyEventsList extends StatelessWidget {
         for (final a in acc) {
           if (a is Map && a['userKey'] == userKey) {
             role = a['role']?.toString();
+            final response = a['response']?.toString();
+            isConfirmed = response == 'accept';
             break;
           }
         }
       }
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surface,
-            theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
-          ],
-        ),
-        border: Border.all(
-          color: const Color(0xFF8B5CF6).withOpacity(0.2),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => EventDetailPage(
-                  event: e,
-                  roleName: role,
-                  showRespondActions: false,
-                  acceptedEvents: _filterMyAccepted(),
-                ),
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.surface,
+                theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
+              ],
+            ),
+            border: Border.all(
+              color: const Color(0xFF8B5CF6).withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => EventDetailPage(
+                      event: e,
+                      roleName: role,
+                      showRespondActions: false,
+                      acceptedEvents: _filterMyAccepted(),
+                    ),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Row(
                   children: [
                     Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                          colors: isConfirmed
+                              ? [Colors.green.shade400, Colors.green.shade600]
+                              : [const Color(0xFF8B5CF6), const Color(0xFFEC4899)],
                         ),
                         shape: BoxShape.circle,
+                        boxShadow: isConfirmed
+                            ? [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                )
+                              ]
+                            : null,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1823,6 +2058,38 @@ class _MyEventsList extends StatelessWidget {
           ),
         ),
       ),
+    ),
+        if (isConfirmed)
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: 4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.green.shade400,
+                    Colors.green.shade600,
+                  ],
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.4),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -1882,9 +2149,6 @@ class _RoleList extends StatelessWidget {
       showLastRefreshTime: false,
       child: CustomScrollView(
         slivers: [
-          SliverOverlapInjector(
-            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-          ),
           SliverToBoxAdapter(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -2137,6 +2401,7 @@ class _RoleList extends StatelessWidget {
         (context.findAncestorStateOfType<_RootPageState>())?._userKey;
 
     String? role;
+    bool isUserAccepted = false;
     if (roleNameOverride != null && roleNameOverride.trim().isNotEmpty) {
       role = roleNameOverride.trim();
     } else {
@@ -2145,94 +2410,111 @@ class _RoleList extends StatelessWidget {
         for (final a in acc) {
           if (a is Map && a['userKey'] == userKey) {
             role = a['role']?.toString();
+            isUserAccepted = true;
             break;
           }
         }
       }
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.surface,
-            theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
-          ],
-        ),
-        border: Border.all(
-          color: const Color(0xFF8B5CF6).withOpacity(0.2),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => EventDetailPage(
-                  event: e,
-                  roleName: role,
-                  acceptedEvents: _acceptedEventsForUser(allEvents, userKey),
-                ),
+    // Show blue indicator for unconfirmed roles (when user hasn't accepted yet)
+    final showBlueIndicator = !isUserAccepted;
+
+    return Stack(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.surface,
+                theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
+              ],
+            ),
+            border: Border.all(
+              color: const Color(0xFF8B5CF6).withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => EventDetailPage(
+                      event: e,
+                      roleName: role,
+                      acceptedEvents: _acceptedEventsForUser(allEvents, userKey),
+                    ),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: showBlueIndicator
+                                  ? [Colors.blue.shade400, Colors.blue.shade600]
+                                  : [const Color(0xFF8B5CF6), const Color(0xFFEC4899)],
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: showBlueIndicator
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.blue.withOpacity(0.5),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    )
+                                  ]
+                                : null,
+                          ),
                         ),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        (role != null && role.isNotEmpty)
-                            ? role
-                            : (clientName.isNotEmpty ? clientName : eventName),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            (role != null && role.isNotEmpty)
+                                ? role
+                                : (clientName.isNotEmpty ? clientName : eventName),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 12,
+                            color: Colors.white,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 12,
-                        color: Colors.white,
-                      ),
+                      ],
                     ),
-                  ],
-                ),
                 if (clientName.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -2385,6 +2667,38 @@ class _RoleList extends StatelessWidget {
           ),
         ),
       ),
+    ),
+        if (showBlueIndicator)
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              width: 4,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.blue.shade400,
+                    Colors.blue.shade600,
+                  ],
+                ),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.4),
+                    blurRadius: 8,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -2460,9 +2774,6 @@ class _CalendarTabState extends State<_CalendarTab> {
       showLastRefreshTime: false,
       child: CustomScrollView(
             slivers: [
-              SliverOverlapInjector(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-              ),
               SliverToBoxAdapter(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

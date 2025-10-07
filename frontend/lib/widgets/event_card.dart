@@ -17,17 +17,28 @@ class EventCard extends StatelessWidget {
   final String title;
   final List<InfoChipData> chips;
   final VoidCallback onTap;
+  final bool isConfirmed;
   const EventCard({
     super.key,
     required this.title,
     required this.chips,
     required this.onTap,
+    this.isConfirmed = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cardColor = isConfirmed
+        ? Color.lerp(
+            theme.colorScheme.surface,
+            Colors.green.shade100,
+            0.15,
+          )
+        : theme.colorScheme.surface;
+
     return Card(
+      color: cardColor,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,

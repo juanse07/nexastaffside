@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Allow cleartext (HTTP) for development when hitting local backend. Restrict to debug by default. -->
     <application
-        android:label="frontend"
+        android:label="Nexa Staff"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
