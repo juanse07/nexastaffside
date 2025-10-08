@@ -506,32 +506,114 @@ class EventDetailPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   // Pay tariff section (if available)
                   Builder(builder: (context) {
-                    final payInfo = event['pay_rate_info'];
-                    if (payInfo == null) return const SizedBox.shrink();
+                    // First check if there's tariff data in the role
+                    Map<String, dynamic>? tariffData;
+                    bool hasTariff = false;
 
-                    String? payLabel;
-                    if (payInfo is Map) {
-                      // Try common patterns
-                      final rate = payInfo['rate'] ?? payInfo['amount'] ?? payInfo['hourly'];
-                      final currency = payInfo['currency'] ?? '\$';
-                      final type = (payInfo['type'] ?? payInfo['basis'] ?? 'hour').toString();
-                      if (rate != null) {
-                        payLabel = '$currency$rate/${type.toLowerCase()}';
+                    if (roleName != null && roleName!.isNotEmpty) {
+                      final roles = event['roles'];
+                      if (roles is List) {
+                        for (final r in roles) {
+                          if (r is Map && (r['role']?.toString() ?? '') == roleName) {
+                            final tariff = r['tariff'];
+                            if (tariff is Map) {
+                              tariffData = Map<String, dynamic>.from(tariff);
+                              hasTariff = true;
+                            }
+                            break;
+                          }
+                        }
                       }
-                    } else if (payInfo is String && payInfo.trim().isNotEmpty) {
-                      payLabel = payInfo.trim();
                     }
 
-                    if (payLabel == null) return const SizedBox.shrink();
+                    // Fall back to legacy pay_rate_info if no tariff found
+                    if (!hasTariff) {
+                      final payInfo = event['pay_rate_info'];
+                      if (payInfo != null) {
+                        String? payLabel;
+                        if (payInfo is Map) {
+                          final rate = payInfo['rate'] ?? payInfo['amount'] ?? payInfo['hourly'];
+                          final currency = payInfo['currency'] ?? '\$';
+                          final type = (payInfo['type'] ?? payInfo['basis'] ?? 'hour').toString();
+                          if (rate != null) {
+                            payLabel = '$currency$rate/${type.toLowerCase()}';
+                          }
+                        } else if (payInfo is String && payInfo.trim().isNotEmpty) {
+                          payLabel = payInfo.trim();
+                        }
+
+                        if (payLabel != null) {
+                          // Show legacy format as before
+                          return Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              leading: const Icon(Icons.attach_money),
+                              title: const Text('Shift Pay'),
+                              subtitle: Text(payLabel),
+                            ),
+                          );
+                        }
+                      }
+                    }
+
+                    if (!hasTariff) return const SizedBox.shrink();
 
                     return Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ListTile(
-                        leading: const Icon(Icons.attach_money),
-                        title: const Text('Shift Pay'),
-                        subtitle: Text(payLabel),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          _showTariffDetails(context, theme, tariffData!, roleName ?? '');
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.monetization_on_rounded,
+                                  color: Colors.deepPurple,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Shift Pay',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Tap to view rate details',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.deepPurple.withOpacity(0.8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.deepPurple,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     );
                   }),
@@ -638,6 +720,88 @@ class EventDetailPage extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  void _showTariffDetails(
+    BuildContext context,
+    ThemeData theme,
+    Map<String, dynamic> tariff,
+    String role,
+  ) {
+    final rate = tariff['rate']?.toString() ?? 'N/A';
+    final currency = tariff['currency']?.toString() ?? 'USD';
+    final rateDisplay = tariff['rateDisplay']?.toString() ?? '$currency $rate/hr';
+
+    // Calculate estimated pay based on event duration
+    final startMins = _parseTimeMinutes(event['start_time']?.toString());
+    final endMins = _parseTimeMinutes(event['end_time']?.toString());
+    String? estimatedPay;
+
+    if (startMins != null && endMins != null && endMins > startMins) {
+      final hours = (endMins - startMins) / 60.0;
+      final rateValue = double.tryParse(rate);
+      if (rateValue != null) {
+        final total = hours * rateValue;
+        estimatedPay = '$currency ${total.toStringAsFixed(2)}';
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Shift Pay - $role'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.attach_money, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  rateDisplay,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            if (estimatedPay != null) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                'Estimated Total',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                estimatedPay,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Based on scheduled shift duration',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('CLOSE'),
+          ),
         ],
       ),
     );
