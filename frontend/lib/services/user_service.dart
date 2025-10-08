@@ -41,6 +41,7 @@ class UserProfile {
 
 class UserService {
   static const _jwtStorageKey = 'auth_jwt';
+  static const _preferredRolesKey = 'preferred_roles';
   static const _storage = FlutterSecureStorage();
   static const _requestTimeout = Duration(seconds: 30);
 
@@ -168,6 +169,73 @@ class UserService {
       } catch (_) {
         throw Exception('Failed to update profile: ${resp.statusCode}');
       }
+    }
+  }
+
+  /// Gets the user's preferred roles from local storage
+  static Future<Set<String>> getPreferredRoles() async {
+    try {
+      final rolesJson = await _storage.read(key: _preferredRolesKey);
+      if (rolesJson == null || rolesJson.isEmpty) {
+        return {}; // Empty set means show all roles
+      }
+      final rolesList = json.decode(rolesJson) as List<dynamic>;
+      return rolesList.map((r) => r.toString()).toSet();
+    } catch (e) {
+      _log('Failed to read preferred roles: $e', isError: true);
+      return {}; // Return empty set on error (show all)
+    }
+  }
+
+  /// Saves the user's preferred roles to local storage
+  static Future<void> setPreferredRoles(Set<String> roles) async {
+    try {
+      final rolesJson = json.encode(roles.toList());
+      await _storage.write(key: _preferredRolesKey, value: rolesJson);
+      _log('Preferred roles saved: ${roles.length} roles');
+    } catch (e) {
+      _log('Failed to save preferred roles: $e', isError: true);
+      rethrow;
+    }
+  }
+
+  /// Clears the user's preferred roles (will show all roles)
+  static Future<void> clearPreferredRoles() async {
+    try {
+      await _storage.delete(key: _preferredRolesKey);
+      _log('Preferred roles cleared');
+    } catch (e) {
+      _log('Failed to clear preferred roles: $e', isError: true);
+      rethrow;
+    }
+  }
+
+  /// Fetches all available roles from the API
+  static Future<List<String>> getAllRoles() async {
+    try {
+      final token = await _getJwt();
+      final headers = <String, String>{};
+      if (token != null) headers['Authorization'] = 'Bearer $token';
+
+      final url = '$_apiBaseUrl$_apiPathPrefix/roles';
+      final response = await http.get(Uri.parse(url), headers: headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as List<dynamic>;
+        final roles = data
+            .map((r) => (r as Map<String, dynamic>)['name']?.toString())
+            .where((name) => name != null && name.isNotEmpty)
+            .cast<String>()
+            .toList();
+        _log('Fetched ${roles.length} roles from API');
+        return roles;
+      } else {
+        _log('Failed to fetch roles: ${response.statusCode}', isError: true);
+        return [];
+      }
+    } catch (e) {
+      _log('Failed to fetch roles: $e', isError: true);
+      return [];
     }
   }
 }

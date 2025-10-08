@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,8 +6,10 @@ import 'package:apple_maps_flutter/apple_maps_flutter.dart' as apple_maps;
 import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io' show Platform;
+import 'package:provider/provider.dart';
 
 import '../auth_service.dart';
+import '../services/data_service.dart';
 import '../utils/id.dart';
 
 class EventDetailPage extends StatelessWidget {
@@ -830,6 +833,17 @@ class EventDetailPage extends StatelessWidget {
       response: response,
       role: roleName?.trim().isEmpty == true ? null : roleName,
     );
+
+    // Invalidate cache and force refresh to sync the event changes immediately
+    if (ok) {
+      final dataService = context.read<DataService>();
+      debugPrint('🎯 Event $response successful, invalidating cache and refreshing...');
+      await dataService.invalidateEventsCache();
+      // Force refresh to fetch updated events immediately
+      await dataService.forceRefresh();
+      debugPrint('🎯 Refresh complete after event $response');
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(ok ? 'Event $response' : 'Failed to $response event'),

@@ -77,8 +77,16 @@ class DataService extends ChangeNotifier {
 
   /// Initialize the service and load cached data
   Future<void> initialize() async {
+    debugPrint('📱 DataService initializing...');
     await _loadCachedData();
+    debugPrint('📦 Loaded ${_events.length} events from cache');
     _startBackgroundRefresh();
+    // Always fetch fresh data on startup to ensure sync with server
+    // This prevents showing stale cached data when events were deleted
+    debugPrint('🌐 Fetching fresh data from server...');
+    await Future.wait([_fetchEvents(silent: true), _fetchAvailability(silent: true)]);
+    notifyListeners();
+    debugPrint('✅ DataService initialized with ${_events.length} events');
   }
 
   /// Load cached data from secure storage
@@ -202,11 +210,11 @@ class DataService extends ChangeNotifier {
 
         // Delta sync: merge changes with existing events
         if (isDeltaSync && lastSyncTimestamp != null) {
-          debugPrint('Delta sync: ${newEvents.length} changes received');
+          debugPrint('🔄 Delta sync: ${newEvents.length} changes received');
           _events = _mergeEvents(_events, newEvents);
         } else {
           // Full sync: replace all events
-          debugPrint('Full sync: ${newEvents.length} events received');
+          debugPrint('🔄 Full sync: ${newEvents.length} events received (replacing ${_events.length} cached)');
           _events = newEvents;
         }
 
@@ -219,6 +227,9 @@ class DataService extends ChangeNotifier {
         }
 
         if (!silent) {
+          notifyListeners();
+        } else {
+          // Even in silent mode, notify if data changed
           notifyListeners();
         }
 
@@ -428,7 +439,7 @@ class DataService extends ChangeNotifier {
   /// Call this after creating, updating, or deleting events
   Future<void> invalidateEventsCache() async {
     await _storage.delete(key: 'last_sync_events');
-    debugPrint('Events cache invalidated - next fetch will be full sync');
+    debugPrint('🗑️  Events cache invalidated - next fetch will be full sync');
   }
 
   /// Utility method to compare two lists for equality

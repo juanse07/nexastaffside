@@ -169,13 +169,17 @@ class RoleEventsPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                    onTap: () {
-                      Navigator.of(context).push(
+                    onTap: () async {
+                      final accepted = await Navigator.of(context).push<bool>(
                         MaterialPageRoute(
                           builder: (_) =>
                               EventDetailPage(event: event, roleName: roleName),
                         ),
                       );
+                      // If event was accepted/declined, pop back to root to show updated data
+                      if (accepted == true && context.mounted) {
+                        Navigator.of(context).pop();
+                      }
                     },
                     trailing: Container(
                       padding: const EdgeInsets.all(8),

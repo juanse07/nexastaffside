@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
@@ -13,6 +14,7 @@ import '../utils/id.dart';
 import '../utils/jwt.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
+import 'settings_page.dart';
 import 'user_profile_page.dart';
 
 enum _AccountMenuAction { profile, settings, logout }
@@ -360,10 +362,11 @@ class _RootPageState extends State<RootPage> {
                     case _AccountMenuAction.settings:
                       await Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const UserProfilePage(),
+                          builder: (context) => const SettingsPage(),
                         ),
                       );
-                      await _loadUserProfile();
+                      // Refresh to apply any filter changes
+                      setState(() {});
                       break;
                     case _AccountMenuAction.logout:
                       _signOut();
@@ -430,7 +433,11 @@ class _RootPageState extends State<RootPage> {
                 loading: dataService.isLoading,
                 availability: dataService.availability,
               ),
-              _EarningsTab(),
+              _EarningsTab(
+                events: dataService.events,
+                userKey: _userKey,
+                loading: dataService.isLoading,
+              ),
             ],
           ),
           bottomNavigationBar: Container(
@@ -1364,7 +1371,7 @@ class _HomeTabState extends State<_HomeTab> {
 }
 
 // Roles section with nested tabs
-class _RolesSection extends StatelessWidget {
+class _RolesSection extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
@@ -1377,11 +1384,55 @@ class _RolesSection extends StatelessWidget {
     required this.availability,
   });
 
+  @override
+  State<_RolesSection> createState() => _RolesSectionState();
+}
+
+class _RolesSectionState extends State<_RolesSection> {
+  Set<String> _preferredRoles = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferredRoles();
+  }
+
+  @override
+  void didUpdateWidget(_RolesSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reload preferences when widget is updated (e.g., after returning from settings)
+    _loadPreferredRoles();
+  }
+
+  Future<void> _loadPreferredRoles() async {
+    final roles = await UserService.getPreferredRoles();
+    if (mounted) {
+      setState(() {
+        _preferredRoles = roles;
+      });
+    }
+  }
+
+  bool _isAcceptedByUser(Map<String, dynamic> event, String? userKey) {
+    if (userKey == null) return false;
+    final accepted = event['accepted_staff'];
+    if (accepted is List) {
+      for (final a in accepted) {
+        if (a is String && a == userKey) return true;
+        if (a is Map && a['userKey'] == userKey) return true;
+      }
+    }
+    return false;
+  }
+
   List<RoleSummary> _computeRoleSummaries() {
     final Map<String, List<Map<String, dynamic>>> roleToEvents = {};
     final Map<String, int> roleToNeeded = {};
     final Map<String, int?> roleToRemaining = {};
-    for (final e in events) {
+    // Exclude events the current user already accepted
+    final sourceEvents = widget.events.where((e) => !_isAcceptedByUser(e, widget.userKey));
+    debugPrint('📋 Computing role summaries: ${widget.events.length} total events, ${sourceEvents.length} available (filtered out accepted)');
+    for (final e in sourceEvents) {
       final stats = e['role_stats'];
       if (stats is List && stats.isNotEmpty) {
         for (final stat in stats) {
@@ -1410,7 +1461,7 @@ class _RolesSection extends StatelessWidget {
         }
       }
     }
-    return roleToEvents.entries.map((e) {
+    final allSummaries = roleToEvents.entries.map((e) {
       return RoleSummary(
         roleName: e.key,
         totalNeeded: roleToNeeded[e.key] ?? 0,
@@ -1420,6 +1471,16 @@ class _RolesSection extends StatelessWidget {
       );
     }).toList()
       ..sort((a, b) => b.eventCount.compareTo(a.eventCount));
+
+    // Filter by preferred roles if any are selected
+    if (_preferredRoles.isEmpty) {
+      debugPrint('🔍 No role preferences set, showing all ${allSummaries.length} roles');
+      return allSummaries;
+    } else {
+      final filtered = allSummaries.where((s) => _preferredRoles.contains(s.roleName)).toList();
+      debugPrint('🔍 Filtered to ${filtered.length} preferred roles (from ${allSummaries.length} total)');
+      return filtered;
+    }
   }
 
   @override
@@ -1474,20 +1535,20 @@ class _RolesSection extends StatelessWidget {
               children: [
                 _RoleList(
                   summaries: _computeRoleSummaries(),
-                  loading: loading,
-                  allEvents: events,
-                  userKey: userKey,
+                  loading: widget.loading,
+                  allEvents: widget.events,
+                  userKey: widget.userKey,
                 ),
                 _MyEventsList(
-                  events: events,
-                  userKey: userKey,
-                  loading: loading,
+                  events: widget.events,
+                  userKey: widget.userKey,
+                  loading: widget.loading,
                 ),
                 _CalendarTab(
-                  events: events,
-                  userKey: userKey,
-                  loading: loading,
-                  availability: availability,
+                  events: widget.events,
+                  userKey: widget.userKey,
+                  loading: widget.loading,
+                  availability: widget.availability,
                 ),
               ],
             ),
@@ -1498,38 +1559,794 @@ class _RolesSection extends StatelessWidget {
   }
 }
 
-// Earnings tab placeholder
+// Earnings tab with approved hours breakdown
 class _EarningsTab extends StatelessWidget {
-  const _EarningsTab();
+  final List<Map<String, dynamic>> events;
+  final String? userKey;
+  final bool loading;
+
+  const _EarningsTab({
+    required this.events,
+    required this.userKey,
+    required this.loading,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.account_balance_wallet_rounded,
-            size: 64,
-            color: theme.colorScheme.primary.withOpacity(0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Earnings',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+
+    if (userKey == null) {
+      return Center(
+        child: Text(
+          'Please log in to view earnings',
+          style: theme.textTheme.bodyLarge,
+        ),
+      );
+    }
+
+    if (loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _calculateEarnings(events, userKey!),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading earnings',
+              style: theme.textTheme.bodyLarge,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Coming soon',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          );
+        }
+
+        final data = snapshot.data;
+        if (data == null || data['yearTotal'] == 0.0) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 80,
+                  color: theme.colorScheme.primary.withOpacity(0.3),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'No Earnings Yet',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Complete events to see your earnings here',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
+          );
+        }
+
+        final yearTotal = data['yearTotal'] as double;
+        final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
+        final currentYear = DateTime.now().year;
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Year Total Card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF6B46C1), // Purple
+                    Color(0xFF9333EA), // Lighter purple
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF6B46C1).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.calendar_today,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        '$currentYear Total',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    '\$${yearTotal.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Total approved earnings',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Monthly Breakdown Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.trending_up,
+                    size: 20,
+                    color: Color(0xFF6B46C1),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Monthly Breakdown',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Monthly Cards
+            ...monthlyData.map((month) {
+              final monthName = month['month'] as String;
+              final monthNum = month['monthNum'] as int;
+              final totalEarnings = month['totalEarnings'] as double;
+              final totalHours = month['totalHours'] as double;
+              final eventCount = month['eventCount'] as int;
+              final avgRate = totalHours > 0 ? totalEarnings / totalHours : 0.0;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 2,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => _MonthlyEarningsDetailPage(
+                          monthName: monthName,
+                          monthNum: monthNum,
+                          year: currentYear,
+                          events: events,
+                          userKey: userKey!,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 4,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF9333EA),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  monthName,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  '\$${totalEarnings.toStringAsFixed(2)}',
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF6B46C1),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  color: Color(0xFF6B46C1),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _StatItem(
+                                icon: Icons.access_time,
+                                label: 'Hours',
+                                value: totalHours.toStringAsFixed(1),
+                              ),
+                            ),
+                            Expanded(
+                              child: _StatItem(
+                                icon: Icons.event,
+                                label: 'Events',
+                                value: '$eventCount',
+                              ),
+                            ),
+                            Expanded(
+                              child: _StatItem(
+                                icon: Icons.trending_up,
+                                label: 'Avg Rate',
+                                value: '\$${avgRate.toStringAsFixed(0)}/hr',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> _calculateEarnings(
+    List<Map<String, dynamic>> events,
+    String userKey,
+  ) async {
+    double yearTotal = 0.0;
+    final Map<int, Map<String, dynamic>> monthlyMap = {};
+    final currentYear = DateTime.now().year;
+
+    for (final event in events) {
+      final eventDate = _parseEventDate(event['date']);
+      if (eventDate == null || eventDate.year != currentYear) continue;
+
+      final acceptedStaff = event['accepted_staff'] as List?;
+      if (acceptedStaff == null) continue;
+
+      // Find this user's attendance
+      for (final staff in acceptedStaff) {
+        if (staff['userKey'] != userKey) continue;
+
+        final attendance = staff['attendance'] as List?;
+        if (attendance == null || attendance.isEmpty) continue;
+
+        final staffRole = staff['role']?.toString() ?? '';
+
+        // Find tariff rate for this role
+        double hourlyRate = 0.0;
+        final roles = event['roles'] as List?;
+        if (roles != null) {
+          for (final role in roles) {
+            if (role['role']?.toString() == staffRole) {
+              final tariff = role['tariff'];
+              if (tariff != null && tariff['rate'] != null) {
+                hourlyRate = (tariff['rate'] as num).toDouble();
+              }
+              break;
+            }
+          }
+        }
+
+        // Calculate earnings from approved hours
+        for (final session in attendance) {
+          final approvedHours = session['approvedHours'];
+          final status = session['status']?.toString();
+
+          if (approvedHours != null && status == 'approved') {
+            final hours = (approvedHours as num).toDouble();
+            final earnings = hours * hourlyRate;
+
+            yearTotal += earnings;
+
+            final month = eventDate.month;
+            if (!monthlyMap.containsKey(month)) {
+              monthlyMap[month] = {
+                'month': _getMonthName(month),
+                'totalEarnings': 0.0,
+                'totalHours': 0.0,
+                'eventCount': 0,
+                'eventIds': <String>{},
+              };
+            }
+
+            monthlyMap[month]!['totalEarnings'] =
+                (monthlyMap[month]!['totalEarnings'] as double) + earnings;
+            monthlyMap[month]!['totalHours'] =
+                (monthlyMap[month]!['totalHours'] as double) + hours;
+
+            final eventId = event['_id']?.toString() ?? event['id']?.toString() ?? '';
+            if (eventId.isNotEmpty) {
+              (monthlyMap[month]!['eventIds'] as Set<String>).add(eventId);
+              monthlyMap[month]!['eventCount'] =
+                  (monthlyMap[month]!['eventIds'] as Set<String>).length;
+            }
+          }
+        }
+      }
+    }
+
+    // Convert to sorted list
+    final monthlyData = monthlyMap.entries
+        .map((e) => {
+              'monthNum': e.key,
+              'month': e.value['month'],
+              'totalEarnings': e.value['totalEarnings'],
+              'totalHours': e.value['totalHours'],
+              'eventCount': e.value['eventCount'],
+            })
+        .toList();
+
+    monthlyData.sort((a, b) => (b['monthNum'] as int).compareTo(a['monthNum'] as int));
+
+    return {
+      'yearTotal': yearTotal,
+      'monthlyData': monthlyData,
+    };
+  }
+
+  DateTime? _parseEventDate(dynamic date) {
+    if (date == null) return null;
+    try {
+      if (date is DateTime) return date;
+      return DateTime.parse(date.toString());
+    } catch (e) {
+      return null;
+    }
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
+  }
+}
+
+class _StatItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _StatItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: theme.colorScheme.primary.withOpacity(0.7),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
           ),
-        ],
+        ),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontSize: 11,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MonthlyEarningsDetailPage extends StatelessWidget {
+  final String monthName;
+  final int monthNum;
+  final int year;
+  final List<Map<String, dynamic>> events;
+  final String userKey;
+
+  const _MonthlyEarningsDetailPage({
+    required this.monthName,
+    required this.monthNum,
+    required this.year,
+    required this.events,
+    required this.userKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final monthlyEvents = _getMonthlyEvents();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: Text('$monthName $year'),
+        backgroundColor: const Color(0xFF6B46C1),
+        foregroundColor: Colors.white,
       ),
+      body: monthlyEvents.isEmpty
+          ? Center(
+              child: Text(
+                'No events found for this month',
+                style: theme.textTheme.bodyLarge,
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: monthlyEvents.length,
+              itemBuilder: (context, index) {
+                final eventData = monthlyEvents[index];
+                return _buildEventCard(context, eventData);
+              },
+            ),
+    );
+  }
+
+  List<Map<String, dynamic>> _getMonthlyEvents() {
+    final List<Map<String, dynamic>> monthlyEvents = [];
+
+    for (final event in events) {
+      final eventDate = _parseEventDate(event['date']);
+      if (eventDate == null ||
+          eventDate.year != year ||
+          eventDate.month != monthNum) continue;
+
+      final acceptedStaff = event['accepted_staff'] as List?;
+      if (acceptedStaff == null) continue;
+
+      for (final staff in acceptedStaff) {
+        if (staff['userKey'] != userKey) continue;
+
+        final attendance = staff['attendance'] as List?;
+        if (attendance == null || attendance.isEmpty) continue;
+
+        final staffRole = staff['role']?.toString() ?? '';
+
+        // Find tariff rate for this role
+        double hourlyRate = 0.0;
+        final roles = event['roles'] as List?;
+        if (roles != null) {
+          for (final role in roles) {
+            if (role['role']?.toString() == staffRole) {
+              final tariff = role['tariff'];
+              if (tariff != null && tariff['rate'] != null) {
+                hourlyRate = (tariff['rate'] as num).toDouble();
+              }
+              break;
+            }
+          }
+        }
+
+        double totalHours = 0.0;
+        for (final session in attendance) {
+          final approvedHours = session['approvedHours'];
+          final status = session['status']?.toString();
+
+          if (approvedHours != null && status == 'approved') {
+            totalHours += (approvedHours as num).toDouble();
+          }
+        }
+
+        if (totalHours > 0) {
+          monthlyEvents.add({
+            'event': event,
+            'role': staffRole,
+            'hours': totalHours,
+            'rate': hourlyRate,
+            'earnings': totalHours * hourlyRate,
+            'date': eventDate,
+          });
+        }
+      }
+    }
+
+    monthlyEvents.sort((a, b) =>
+      (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+
+    return monthlyEvents;
+  }
+
+  Widget _buildEventCard(BuildContext context, Map<String, dynamic> eventData) {
+    final theme = Theme.of(context);
+    final event = eventData['event'] as Map<String, dynamic>;
+    final role = eventData['role'] as String;
+    final hours = eventData['hours'] as double;
+    final rate = eventData['rate'] as double;
+    final earnings = eventData['earnings'] as double;
+    final date = eventData['date'] as DateTime;
+
+    final eventName = event['event_name']?.toString() ?? 'Untitled Event';
+    final clientName = event['client_name']?.toString() ?? 'Unknown Client';
+    final venueName = event['venue_name']?.toString() ?? 'No venue';
+    final venueAddress = event['venue_address']?.toString();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Event Name & Earnings
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        eventName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${date.month}/${date.day}/${date.year}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6B46C1).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '\$${earnings.toStringAsFixed(2)}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF6B46C1),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Client
+            _DetailRow(
+              icon: Icons.business,
+              label: 'Client',
+              value: clientName,
+            ),
+
+            const SizedBox(height: 8),
+
+            // Venue
+            _DetailRow(
+              icon: Icons.location_on,
+              label: 'Venue',
+              value: venueAddress != null && venueAddress.isNotEmpty
+                  ? '$venueName\n$venueAddress'
+                  : venueName,
+            ),
+
+            const SizedBox(height: 8),
+
+            // Role
+            _DetailRow(
+              icon: Icons.badge,
+              label: 'Role',
+              value: role,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Stats Row
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _EventStat(
+                    label: 'Hours',
+                    value: hours.toStringAsFixed(1),
+                    icon: Icons.access_time,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: theme.colorScheme.outline.withOpacity(0.2),
+                  ),
+                  _EventStat(
+                    label: 'Rate',
+                    value: '\$${rate.toStringAsFixed(2)}/hr',
+                    icon: Icons.attach_money,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  DateTime? _parseEventDate(dynamic date) {
+    if (date == null) return null;
+    try {
+      if (date is DateTime) return date;
+      return DateTime.parse(date.toString());
+    } catch (e) {
+      return null;
+    }
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: const Color(0xFF6B46C1).withOpacity(0.7),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EventStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _EventStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 24,
+          color: const Color(0xFF6B46C1),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontSize: 11,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1850,7 +2667,7 @@ class _MyEventsList extends StatelessWidget {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1888,88 +2705,78 @@ class _MyEventsList extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                    if (isConfirmed)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 12,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                if (clientName.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.business,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          clientName,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.green.shade200,
+                            width: 1,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    eventName,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (venue.isNotEmpty ||
-                    venueAddress.isNotEmpty ||
-                    googleMapsUrl.isNotEmpty) ...[
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 14,
+                              color: Colors.green.shade700,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Confirmed',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_ios,
+                          size: 10,
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                      ),
+                  ],
+                ),
+                if (venueAddress.isNotEmpty || googleMapsUrl.isNotEmpty ||
+                    (venue.isNotEmpty && venue.toLowerCase() != eventName.toLowerCase())) ...[
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                          ),
+                          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.location_on_outlined,
-                          size: 14,
-                          color: Colors.white,
+                          size: 12,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (venue.isNotEmpty)
+                            if (venue.isNotEmpty && venue.toLowerCase() != eventName.toLowerCase())
                               Text(
                                 venue,
                                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -1977,6 +2784,8 @@ class _MyEventsList extends StatelessWidget {
                                 ),
                               ),
                             if (venueAddress.isNotEmpty) ...[
+                              if (venue.isNotEmpty && venue.toLowerCase() != eventName.toLowerCase())
+                                const SizedBox(height: 2),
                               const SizedBox(height: 2),
                               Text(
                                 venueAddress,
@@ -1990,12 +2799,10 @@ class _MyEventsList extends StatelessWidget {
                         ),
                       ),
                       if (googleMapsUrl.isNotEmpty) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Container(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                            ),
+                            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Material(
@@ -2007,8 +2814,8 @@ class _MyEventsList extends StatelessWidget {
                                 padding: const EdgeInsets.all(8),
                                 child: Icon(
                                   Icons.map_outlined,
-                                  size: 16,
-                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
                                 ),
                               ),
                             ),
@@ -2017,26 +2824,24 @@ class _MyEventsList extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 8),
                 ],
-                if (date.isNotEmpty)
+                if (date.isNotEmpty) ...[
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                          ),
+                          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.calendar_today_outlined,
-                          size: 14,
-                          color: Colors.white,
+                          size: 12,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           _formatEventDateTimeLabel(
@@ -2044,7 +2849,7 @@ class _MyEventsList extends StatelessWidget {
                             startTimeStr: e['start_time']?.toString(),
                             endTimeStr: e['end_time']?.toString(),
                           ),
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
@@ -2053,45 +2858,70 @@ class _MyEventsList extends StatelessWidget {
                       ),
                     ],
                   ),
+                ],
+                if (clientName.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Event for: $clientName',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
     ),
-        if (isConfirmed)
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 4,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.green.shade400,
-                    Colors.green.shade600,
-                  ],
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withOpacity(0.4),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
+        // Decorative triangle in bottom right corner
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomRight: Radius.circular(16),
+            ),
+            child: CustomPaint(
+              size: const Size(40, 40),
+              painter: _TrianglePainter(
+                color: isConfirmed
+                    ? Colors.green.shade100.withOpacity(0.6)
+                    : Colors.grey.shade100.withOpacity(0.6),
               ),
             ),
           ),
+        ),
       ],
     );
   }
+}
+
+// Custom painter for the triangle decoration
+class _TrianglePainter extends CustomPainter {
+  final Color color;
+
+  _TrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    path.moveTo(size.width, 0); // Top right
+    path.lineTo(size.width, size.height); // Bottom right
+    path.lineTo(0, size.height); // Bottom left
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_TrianglePainter oldDelegate) => oldDelegate.color != color;
 }
 
 class _RoleList extends StatelessWidget {
@@ -2143,6 +2973,48 @@ class _RoleList extends StatelessWidget {
       for (final e in summary.events) {
         roleEventPairs.add({'event': e, 'roleName': roleName});
       }
+    }
+
+    if (roleEventPairs.isEmpty && !loading) {
+      return EnhancedRefreshIndicator(
+        showLastRefreshTime: false,
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.work_off_outlined,
+                      size: 80,
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'No Available Roles',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'No roles match your preferences. Tap Settings to adjust your role preferences.',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return EnhancedRefreshIndicator(
@@ -2449,8 +3321,8 @@ class _RoleList extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                Navigator.of(context).push(
+              onTap: () async {
+                await Navigator.of(context).push<bool>(
                   MaterialPageRoute(
                     builder: (_) => EventDetailPage(
                       event: e,
@@ -2459,6 +3331,8 @@ class _RoleList extends StatelessWidget {
                     ),
                   ),
                 );
+                // Data refresh is handled by EventDetailPage calling forceRefresh()
+                // which triggers Consumer<DataService> to rebuild automatically
               },
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -2500,85 +3374,63 @@ class _RoleList extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.all(6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.blue.shade200,
+                              width: 1,
                             ),
-                            borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                if (clientName.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.business,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          clientName,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                size: 14,
+                                color: Colors.blue.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Available',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.blue.shade700,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    eventName,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-                if (venue.isNotEmpty ||
-                    venueAddress.isNotEmpty ||
-                    googleMapsUrl.isNotEmpty) ...[
+                if (venueAddress.isNotEmpty || googleMapsUrl.isNotEmpty ||
+                    (venue.isNotEmpty && venue.toLowerCase() != eventName.toLowerCase())) ...[
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                          ),
+                          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.location_on_outlined,
-                          size: 14,
-                          color: Colors.white,
+                          size: 12,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (venue.isNotEmpty)
+                            if (venue.isNotEmpty && venue.toLowerCase() != eventName.toLowerCase())
                               Text(
                                 venue,
                                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -2586,6 +3438,8 @@ class _RoleList extends StatelessWidget {
                                 ),
                               ),
                             if (venueAddress.isNotEmpty) ...[
+                              if (venue.isNotEmpty && venue.toLowerCase() != eventName.toLowerCase())
+                                const SizedBox(height: 2),
                               const SizedBox(height: 2),
                               Text(
                                 venueAddress,
@@ -2599,12 +3453,10 @@ class _RoleList extends StatelessWidget {
                         ),
                       ),
                       if (googleMapsUrl.isNotEmpty) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Container(
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                            ),
+                            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Material(
@@ -2616,8 +3468,8 @@ class _RoleList extends StatelessWidget {
                                 padding: const EdgeInsets.all(8),
                                 child: Icon(
                                   Icons.map_outlined,
-                                  size: 16,
-                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
                                 ),
                               ),
                             ),
@@ -2626,26 +3478,24 @@ class _RoleList extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 8),
                 ],
-                if (date.isNotEmpty)
+                if (date.isNotEmpty) ...[
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                          ),
+                          color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.calendar_today_outlined,
-                          size: 14,
-                          color: Colors.white,
+                          size: 12,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           _formatEventDateTimeLabel(
@@ -2653,7 +3503,7 @@ class _RoleList extends StatelessWidget {
                             startTimeStr: e['start_time']?.toString(),
                             endTimeStr: e['end_time']?.toString(),
                           ),
-                          style: theme.textTheme.bodyMedium?.copyWith(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
@@ -2662,42 +3512,40 @@ class _RoleList extends StatelessWidget {
                       ),
                     ],
                   ),
+                ],
+                if (clientName.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Event for: $clientName',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         ),
       ),
     ),
-        if (showBlueIndicator)
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 4,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.blue.shade400,
-                    Colors.blue.shade600,
-                  ],
-                ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  bottomLeft: Radius.circular(16),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.4),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
+        // Decorative triangle in bottom right corner
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomRight: Radius.circular(16),
+            ),
+            child: CustomPaint(
+              size: const Size(40, 40),
+              painter: _TrianglePainter(
+                color: Colors.blue.shade100.withOpacity(0.6),
               ),
             ),
           ),
+        ),
       ],
     );
   }
