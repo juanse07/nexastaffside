@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:ui' show ImageFilter;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,6 +15,7 @@ import '../utils/id.dart';
 import '../utils/jwt.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
+import 'past_events_page.dart';
 import 'settings_page.dart';
 import 'user_profile_page.dart';
 
@@ -262,6 +264,7 @@ class _RootPageState extends State<RootPage> {
   String? _userKey;
   String? _userPictureUrl;
   int _selectedBottomIndex = 0;
+  Map<String, dynamic>? _upcoming;
 
   @override
   void initState() {
@@ -314,6 +317,199 @@ class _RootPageState extends State<RootPage> {
     Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
   }
 
+  void _computeUpcoming(List<Map<String, dynamic>> events) {
+    if (_userKey == null) {
+      _upcoming = null;
+      return;
+    }
+    // Filter accepted events for this user
+    final List<Map<String, dynamic>> mine = [];
+    for (final e in events) {
+      final accepted = e['accepted_staff'];
+      if (accepted is List) {
+        for (final a in accepted) {
+          if (a is String && a == _userKey) {
+            mine.add(e);
+            break;
+          }
+          if (a is Map && a['userKey'] == _userKey) {
+            mine.add(e);
+            break;
+          }
+        }
+      }
+    }
+    if (mine.isEmpty) {
+      _upcoming = null;
+      return;
+    }
+    // Choose nearest upcoming (today/future and not already started)
+    final now = DateTime.now();
+    DateTime? bestFuture;
+    Map<String, dynamic>? bestFutureEvent;
+    for (final e in mine) {
+      final dt = _eventDateTime(e);
+      if (dt == null) continue;
+      if (!dt.isBefore(now)) {
+        if (bestFuture == null || dt.isBefore(bestFuture)) {
+          bestFuture = dt;
+          bestFutureEvent = e;
+        }
+      }
+    }
+    _upcoming = bestFutureEvent;
+  }
+
+  DateTime? _eventDateTime(Map<String, dynamic> e) {
+    final dateStr = e['date']?.toString().trim();
+    if (dateStr == null || dateStr.isEmpty) return null;
+    final date = _parseDateSafe(dateStr);
+    if (date == null) return null;
+    final timeStr = e['start_time']?.toString().trim();
+    final time = _tryParseTimeOfDay(timeStr);
+    if (time != null) {
+      return DateTime(date.year, date.month, date.day, time.$1, time.$2);
+    }
+    // If time is unknown, assume end of day to keep same-day events as upcoming
+    return DateTime(date.year, date.month, date.day, 23, 59);
+  }
+
+  // Returns (hour, minute) in 24h if parsed, otherwise null
+  (int, int)? _tryParseTimeOfDay(String? raw) {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    final reg = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$');
+    final m = reg.firstMatch(s);
+    if (m == null) return null;
+    int hour = int.tryParse(m.group(1) ?? '') ?? 0;
+    int minute = int.tryParse(m.group(2) ?? '0') ?? 0;
+    final ampm = m.group(3);
+    if (ampm != null) {
+      final upper = ampm.toUpperCase();
+      if (upper == 'AM') {
+        if (hour == 12) hour = 0;
+      } else if (upper == 'PM') {
+        if (hour != 12) hour += 12;
+      }
+    }
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return (hour, minute);
+  }
+
+  // Attempt to parse common date formats used by backend data
+  DateTime? _parseDateSafe(String input) {
+    // 1) ISO 8601 or YYYY-MM-DD or with time
+    try {
+      final iso = DateTime.tryParse(input);
+      if (iso != null) return DateTime(iso.year, iso.month, iso.day);
+    } catch (_) {}
+    // 2) MM/DD/YYYY or M/D/YYYY
+    final us = RegExp(r'^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$').firstMatch(input);
+    if (us != null) {
+      final m = int.tryParse(us.group(1) ?? '');
+      final d = int.tryParse(us.group(2) ?? '');
+      var y = int.tryParse(us.group(3) ?? '');
+      if (m != null && d != null && y != null) {
+        if (y < 100) y += 2000; // naive 2-digit year handling
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    // 3) DD/MM/YYYY (EU style). Only use if clearly not US (month > 12)
+    final eu = RegExp(r'^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$').firstMatch(input);
+    if (eu != null) {
+      final a = int.tryParse(eu.group(1) ?? '');
+      final b = int.tryParse(eu.group(2) ?? '');
+      var y = int.tryParse(eu.group(3) ?? '');
+      if (a != null && b != null && y != null) {
+        // treat as DD/MM/YYYY when the first number cannot be a month
+        if (a > 12 && b >= 1 && b <= 12) {
+          if (y < 100) y += 2000;
+          if (a >= 1 && a <= 31) {
+            return DateTime(y, b, a);
+          }
+        }
+      }
+    }
+    // 4) YYYY/MM/DD or YYYY-M-D
+    final ymd = RegExp(
+      r'^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$',
+    ).firstMatch(input);
+    if (ymd != null) {
+      final y = int.tryParse(ymd.group(1) ?? '');
+      final m = int.tryParse(ymd.group(2) ?? '');
+      final d = int.tryParse(ymd.group(3) ?? '');
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    return null;
+  }
+
+  String _getSmartCountdownText() {
+    if (_upcoming == null) return 'No upcoming shifts';
+
+    final eventDt = _eventDateTime(_upcoming!);
+    if (eventDt == null) return 'Your next shift is ready';
+
+    final now = DateTime.now();
+    final diff = eventDt.difference(now);
+
+    // If event is in the past or happening now
+    if (diff.inMinutes <= 0) return 'Shift starting now!';
+
+    // Same day - show hours/minutes countdown
+    if (diff.inHours < 24 && eventDt.day == now.day) {
+      if (diff.inHours > 0) {
+        final hours = diff.inHours;
+        final mins = diff.inMinutes % 60;
+        if (mins > 0) {
+          return 'Starts in $hours hr ${mins} min';
+        }
+        return 'Starts in $hours ${hours == 1 ? 'hour' : 'hours'}';
+      } else {
+        return 'Starts in ${diff.inMinutes} ${diff.inMinutes == 1 ? 'minute' : 'minutes'}';
+      }
+    }
+
+    // Tomorrow
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    if (eventDt.year == tomorrow.year &&
+        eventDt.month == tomorrow.month &&
+        eventDt.day == tomorrow.day) {
+      final time = _tryParseTimeOfDay(_upcoming!['start_time']?.toString());
+      if (time != null) {
+        final isPm = time.$1 >= 12;
+        int h12 = time.$1 % 12;
+        if (h12 == 0) h12 = 12;
+        final mm = time.$2.toString().padLeft(2, '0');
+        return 'Tomorrow at $h12:$mm ${isPm ? 'PM' : 'AM'}';
+      }
+      return 'Tomorrow';
+    }
+
+    // Future date - show day and time
+    final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final weekday = weekdays[(eventDt.weekday - 1).clamp(0, 6)];
+    final month = months[(eventDt.month - 1).clamp(0, 11)];
+
+    final time = _tryParseTimeOfDay(_upcoming!['start_time']?.toString());
+    if (time != null) {
+      final isPm = time.$1 >= 12;
+      int h12 = time.$1 % 12;
+      if (h12 == 0) h12 = 12;
+      final mm = time.$2.toString().padLeft(2, '0');
+      return '$weekday, $month ${eventDt.day} at $h12:$mm ${isPm ? 'PM' : 'AM'}';
+    }
+
+    return '$weekday, $month ${eventDt.day}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -326,99 +522,11 @@ class _RootPageState extends State<RootPage> {
 
     return Consumer<DataService>(
       builder: (context, dataService, _) {
+        // Compute upcoming event for countdown
+        _computeUpcoming(dataService.events);
+
         return Scaffold(
           backgroundColor: theme.colorScheme.surfaceContainerLowest,
-          appBar: AppBar(
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/appbar_logo.png', height: 44),
-                if (dataService.isRefreshing) ...[
-                  const SizedBox(width: 8),
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              PopupMenuButton<_AccountMenuAction>(
-                tooltip: 'Account',
-                onSelected: (value) async {
-                  switch (value) {
-                    case _AccountMenuAction.profile:
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const UserProfilePage(),
-                        ),
-                      );
-                      await _loadUserProfile();
-                      break;
-                    case _AccountMenuAction.settings:
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsPage(),
-                        ),
-                      );
-                      // Refresh to apply any filter changes
-                      setState(() {});
-                      break;
-                    case _AccountMenuAction.logout:
-                      _signOut();
-                      break;
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem<_AccountMenuAction>(
-                    value: _AccountMenuAction.profile,
-                    child: Row(
-                      children: [
-                        Icon(Icons.person, color: Theme.of(context).colorScheme.onSurface),
-                        const SizedBox(width: 12),
-                        const Text('My Profile'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem<_AccountMenuAction>(
-                    value: _AccountMenuAction.settings,
-                    child: Row(
-                      children: [
-                        Icon(Icons.settings, color: Theme.of(context).colorScheme.onSurface),
-                        const SizedBox(width: 12),
-                        const Text('Settings'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem<_AccountMenuAction>(
-                    value: _AccountMenuAction.logout,
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.onSurface),
-                        const SizedBox(width: 12),
-                        const Text('Logout'),
-                      ],
-                    ),
-                  ),
-                ],
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: _userPictureUrl != null
-                      ? CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.white24,
-                          backgroundImage: NetworkImage(_userPictureUrl!),
-                        )
-                      : const Icon(Icons.account_circle, size: 28),
-                ),
-              ),
-            ],
-          ),
           body: IndexedStack(
             index: _selectedBottomIndex,
             children: [
@@ -426,6 +534,9 @@ class _RootPageState extends State<RootPage> {
                 events: dataService.events,
                 userKey: _userKey,
                 loading: dataService.isLoading,
+                profileMenu: _buildProfileMenu(context),
+                isRefreshing: dataService.isRefreshing,
+                countdownText: _getSmartCountdownText(),
               ),
               _RolesSection(
                 events: dataService.events,
@@ -636,16 +747,140 @@ class _RootPageState extends State<RootPage> {
     }
     return false;
   }
+
+  Widget _buildProfileMenu(BuildContext context) {
+    return PopupMenuButton<_AccountMenuAction>(
+      tooltip: 'Account',
+      onSelected: (value) async {
+        switch (value) {
+          case _AccountMenuAction.profile:
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const UserProfilePage(),
+              ),
+            );
+            await _loadUserProfile();
+            break;
+          case _AccountMenuAction.settings:
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const SettingsPage(),
+              ),
+            );
+            setState(() {});
+            break;
+          case _AccountMenuAction.logout:
+            _signOut();
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<_AccountMenuAction>(
+          value: _AccountMenuAction.profile,
+          child: Row(
+            children: [
+              Icon(Icons.person, color: Theme.of(context).colorScheme.onSurface),
+              const SizedBox(width: 12),
+              const Text('My Profile'),
+            ],
+          ),
+        ),
+        PopupMenuItem<_AccountMenuAction>(
+          value: _AccountMenuAction.settings,
+          child: Row(
+            children: [
+              Icon(Icons.settings, color: Theme.of(context).colorScheme.onSurface),
+              const SizedBox(width: 12),
+              const Text('Settings'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<_AccountMenuAction>(
+          value: _AccountMenuAction.logout,
+          child: Row(
+            children: [
+              Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.onSurface),
+              const SizedBox(width: 12),
+              const Text('Logout'),
+            ],
+          ),
+        ),
+      ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: _userPictureUrl != null
+            ? Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF6B46C1),
+                    width: 2,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.white24,
+                  backgroundImage: NetworkImage(_userPictureUrl!),
+                ),
+              )
+            : const Icon(Icons.account_circle, size: 28, color: Colors.white),
+      ),
+    );
+  }
+}
+
+// Custom clipper for beautiful curved appbar shape with smooth elliptical bottom-right corner
+class AppBarClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    final width = size.width;
+    final height = size.height;
+
+    // Start from top-left corner
+    path.moveTo(0, 0);
+
+    // Top edge - straight across
+    path.lineTo(width, 0);
+
+    // Right edge - go down but stop before the corner for the curve
+    path.lineTo(width, height - 60);
+
+    // Beautiful elliptical rounded bottom-right corner
+    // Using cubicTo for ultra-smooth curve
+    path.cubicTo(
+      width, height - 30,           // First control point - ease out from vertical
+      width - 30, height,            // Second control point - ease into horizontal
+      width - 60, height,            // End point - curved inward
+    );
+
+    // Bottom edge - straight across to left
+    path.lineTo(0, height);
+
+    // Close the path back to top-left
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class _HomeTab extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
+  final Widget profileMenu;
+  final bool isRefreshing;
+  final String countdownText;
   const _HomeTab({
     required this.events,
     required this.userKey,
     required this.loading,
+    required this.profileMenu,
+    required this.isRefreshing,
+    required this.countdownText,
   });
 
   @override
@@ -656,6 +891,7 @@ class _HomeTabState extends State<_HomeTab> {
   Map<String, dynamic>? _upcoming;
   bool _loading = false;
   String? _status; // not_started | clocked_in | completed
+  String? _acceptedRole; // The role name the user accepted for this event
 
   @override
   void initState() {
@@ -676,20 +912,24 @@ class _HomeTabState extends State<_HomeTab> {
     setState(() {
       _upcoming = null;
       _status = null;
+      _acceptedRole = null;
     });
     if (widget.userKey == null) return;
-    // Filter accepted events for this user
+    // Filter accepted events for this user and extract the role
     final List<Map<String, dynamic>> mine = [];
+    final Map<Map<String, dynamic>, String?> eventRoles = {};
     for (final e in widget.events) {
       final accepted = e['accepted_staff'];
       if (accepted is List) {
         for (final a in accepted) {
           if (a is String && a == widget.userKey) {
             mine.add(e);
+            eventRoles[e] = null; // Legacy format without role
             break;
           }
           if (a is Map && a['userKey'] == widget.userKey) {
             mine.add(e);
+            eventRoles[e] = a['role']?.toString(); // Extract role from Map
             break;
           }
         }
@@ -714,11 +954,13 @@ class _HomeTabState extends State<_HomeTab> {
       setState(() {
         _upcoming = null;
         _status = null;
+        _acceptedRole = null;
       });
       return;
     }
     final next = bestFutureEvent;
     _upcoming = next;
+    _acceptedRole = eventRoles[next];
     // Load attendance state
     final id = resolveEventId(next);
     if (id == null) return;
@@ -822,6 +1064,87 @@ class _HomeTabState extends State<_HomeTab> {
     return null;
   }
 
+  int? _parseTimeMinutes(String? raw) {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    final m = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$').firstMatch(s);
+    if (m == null) return null;
+    int hour = int.tryParse(m.group(1) ?? '0') ?? 0;
+    final minute = int.tryParse(m.group(2) ?? '0') ?? 0;
+    final ampm = m.group(3);
+    if (ampm != null) {
+      final u = ampm.toUpperCase();
+      if (u == 'AM') {
+        if (hour == 12) hour = 0;
+      } else if (u == 'PM') {
+        if (hour != 12) hour += 12;
+      }
+    }
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return hour * 60 + minute;
+  }
+
+  String _getSmartCountdownText() {
+    if (_upcoming == null) return 'No upcoming shifts';
+
+    final eventDt = _eventDateTime(_upcoming!);
+    if (eventDt == null) return 'Your next shift is ready';
+
+    final now = DateTime.now();
+    final diff = eventDt.difference(now);
+
+    // If event is in the past or happening now
+    if (diff.inMinutes <= 0) return 'Shift starting now!';
+
+    // Same day - show hours/minutes countdown
+    if (diff.inHours < 24 && eventDt.day == now.day) {
+      if (diff.inHours > 0) {
+        final hours = diff.inHours;
+        final mins = diff.inMinutes % 60;
+        if (mins > 0) {
+          return 'Starts in $hours hr ${mins} min';
+        }
+        return 'Starts in $hours ${hours == 1 ? 'hour' : 'hours'}';
+      } else {
+        return 'Starts in ${diff.inMinutes} ${diff.inMinutes == 1 ? 'minute' : 'minutes'}';
+      }
+    }
+
+    // Tomorrow
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    if (eventDt.year == tomorrow.year &&
+        eventDt.month == tomorrow.month &&
+        eventDt.day == tomorrow.day) {
+      final time = _tryParseTimeOfDay(_upcoming!['start_time']?.toString());
+      if (time != null) {
+        final isPm = time.$1 >= 12;
+        int h12 = time.$1 % 12;
+        if (h12 == 0) h12 = 12;
+        final mm = time.$2.toString().padLeft(2, '0');
+        return 'Tomorrow at $h12:$mm ${isPm ? 'PM' : 'AM'}';
+      }
+      return 'Tomorrow';
+    }
+
+    // Future date - show day and time
+    final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final weekday = weekdays[(eventDt.weekday - 1).clamp(0, 6)];
+    final month = months[(eventDt.month - 1).clamp(0, 11)];
+
+    final time = _tryParseTimeOfDay(_upcoming!['start_time']?.toString());
+    if (time != null) {
+      final isPm = time.$1 >= 12;
+      int h12 = time.$1 % 12;
+      if (h12 == 0) h12 = 12;
+      final mm = time.$2.toString().padLeft(2, '0');
+      return '$weekday, $month ${eventDt.day} at $h12:$mm ${isPm ? 'PM' : 'AM'}';
+    }
+
+    return '$weekday, $month ${eventDt.day}';
+  }
+
   Future<void> _clockIn() async {
     if (_upcoming == null) return;
     final id = resolveEventId(_upcoming!);
@@ -866,131 +1189,181 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    const double expandedHeight = 170.0;
+
     return EnhancedRefreshIndicator(
       showLastRefreshTime: false,
       child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF8B5CF6), // Purple
-                    Color(0xFF7C3AED), // Deep purple
-                    Color(0xFF6366F1), // Indigo
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Stack(
+          SliverAppBar(
+            pinned: true,
+            stretch: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            expandedHeight: expandedHeight,
+            automaticallyImplyLeading: false,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                // t = 1.0 when fully expanded, 0.0 when collapsed
+                final double max = expandedHeight;
+                final double min = kToolbarHeight + MediaQuery.of(context).padding.top;
+                final double current = constraints.maxHeight.clamp(min, max);
+                final double t = ((current - min) / (max - min)).clamp(0.0, 1.0);
+
+                return Stack(
+                  fit: StackFit.expand,
                   children: [
-                    // Decorative circles
-                    Positioned(
-                      top: -30,
-                      right: -30,
+                    // Purple gradient background with custom clip
+                    ClipPath(
+                      clipper: AppBarClipper(),
                       child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0xFF7A3AFB),
+                              Color(0xFF5B27D8),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    Positioned(
-                      bottom: -40,
-                      left: -40,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.06),
-                        ),
-                      ),
-                    ),
-                    // Content
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
+
+                    // Decorative purple shapes layer
+                    ClipPath(
+                      clipper: AppBarClipper(),
+                      child: Stack(
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Welcome Back!',
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -0.5,
-                                    fontSize: 22,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  _upcoming != null
-                                      ? 'Your next shift is ready'
-                                      : 'No upcoming shifts',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
+                          // Large light purple circle - top right
+                          Positioned(
+                            top: -40,
+                            right: -20,
+                            child: Container(
+                              width: 180,
+                              height: 180,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF9D7EF0).withOpacity(0.15),
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          if (widget.loading)
-                            Container(
-                              padding: const EdgeInsets.all(14),
+                          // Medium purple circle - top left
+                          Positioned(
+                            top: 20,
+                            left: -30,
+                            child: Container(
+                              width: 120,
+                              height: 120,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
                                 shape: BoxShape.circle,
-                              ),
-                              child: const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _upcoming != null
-                                    ? Icons.event_available_rounded
-                                    : Icons.calendar_today_rounded,
-                                color: Colors.white,
-                                size: 24,
+                                color: const Color(0xFF8B5CF6).withOpacity(0.12),
                               ),
                             ),
+                          ),
+                          // Small accent circle - bottom left
+                          Positioned(
+                            bottom: 10,
+                            left: 30,
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF6D28D9).withOpacity(0.2),
+                              ),
+                            ),
+                          ),
+                          // Decorative blob - center right
+                          Positioned(
+                            top: 60,
+                            right: 40,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFFAA88FF).withOpacity(0.1),
+                              ),
+                            ),
+                          ),
+                          // Extra small accent - bottom right area
+                          Positioned(
+                            bottom: 30,
+                            right: 80,
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF9D7EF0).withOpacity(0.18),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
+
+                    // Top row: Profile menu (right)
+                    SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            // Loading indicator (left side when refreshing)
+                            if (widget.isRefreshing)
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            const Spacer(),
+                            widget.profileMenu,
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Big title & subtitle (fade out as we collapse)
+                    Positioned(
+                      left: 20,
+                      right: 20,
+                      bottom: 16,
+                      child: Opacity(
+                        opacity: t, // 1 expanded -> 0 collapsed
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Welcome Back!',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                height: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              widget.countdownText,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-              ),
+                );
+              },
             ),
           ),
           SliverToBoxAdapter(
@@ -1098,6 +1471,42 @@ class _HomeTabState extends State<_HomeTab> {
     final date = e['date']?.toString() ?? '';
     final start = e['start_time']?.toString() ?? '';
     final end = e['end_time']?.toString() ?? '';
+    final clientName = e['client_name']?.toString() ?? '';
+
+    // Calculate shift duration
+    String? durationLabel;
+    final startMins = _parseTimeMinutes(start);
+    final endMins = _parseTimeMinutes(end);
+    if (startMins != null && endMins != null && endMins > startMins) {
+      final mins = endMins - startMins;
+      final hours = (mins / 60).floor();
+      final rem = mins % 60;
+      durationLabel = rem == 0 ? '$hours hrs' : '$hours hrs ${rem}m';
+    }
+
+    // Calculate estimated earnings
+    String? estimatedPay;
+    if (_acceptedRole != null && _acceptedRole!.isNotEmpty) {
+      final roles = e['roles'];
+      if (roles is List) {
+        for (final r in roles) {
+          if (r is Map && (r['role']?.toString() ?? '') == _acceptedRole) {
+            final tariff = r['tariff'];
+            if (tariff is Map) {
+              final rate = tariff['rate']?.toString();
+              final currency = tariff['currency']?.toString() ?? '\$';
+              final rateValue = double.tryParse(rate ?? '');
+              if (rateValue != null && startMins != null && endMins != null && endMins > startMins) {
+                final hours = (endMins - startMins) / 60.0;
+                final total = hours * rateValue;
+                estimatedPay = '$currency${total.toStringAsFixed(2)}';
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
 
     // Real data is now available from backend!
 
@@ -1126,133 +1535,323 @@ class _HomeTabState extends State<_HomeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (venue.isNotEmpty ||
-                venueAddress.isNotEmpty ||
-                googleMapsUrl.isNotEmpty) ...[
-              const SizedBox(height: 12),
+            // Role as main title
+            if (_acceptedRole?.isNotEmpty ?? false) ...[
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
                       ),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
-                      Icons.location_on_outlined,
-                      size: 14,
+                      Icons.work_rounded,
+                      size: 20,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (venue.isNotEmpty)
-                          Text(
-                            venue,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        if (venueAddress.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            venueAddress,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      ],
+                    child: Text(
+                      _acceptedRole!,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ),
-                  if (googleMapsUrl.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () => _launchMap(googleMapsUrl),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Icon(
-                              Icons.map_outlined,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.onSecondaryContainer,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
-            ],
-            if (date.isNotEmpty) ...[
               const SizedBox(height: 8),
+              // Event name as subtitle
+              Padding(
+                padding: const EdgeInsets.only(left: 44),
+                child: Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ] else ...[
+              // Fallback if no role
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
                         colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
                       ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.calendar_today_outlined,
-                      size: 14,
-                      color: Colors.white,
+                      shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _formatEventDateTimeLabel(
-                        dateStr: date,
-                        startTimeStr: start,
-                        endTimeStr: end,
+                      title,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                ],
+              ),
+            ],
+            // Client badge
+            if (clientName.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.only(left: 44),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.business_outlined,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        clientName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            // Date & Time - Prominent section
+            if (date.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _formatEventDateTimeLabel(
+                          dateStr: date,
+                          startTimeStr: start,
+                          endTimeStr: end,
+                        ),
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            // Address
+            if (venue.isNotEmpty ||
+                venueAddress.isNotEmpty ||
+                googleMapsUrl.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (venueAddress.isNotEmpty)
+                            Text(
+                              venueAddress,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          else if (venue.isNotEmpty)
+                            Text(
+                              venue,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (googleMapsUrl.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF10B981), Color(0xFF059669)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => _launchMap(googleMapsUrl),
+                            child: const Icon(
+                              Icons.directions_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            // Duration and Earnings - Highlighted section
+            if (durationLabel != null || estimatedPay != null) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  if (durationLabel != null)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primary.withOpacity(0.1),
+                              theme.colorScheme.primary.withOpacity(0.05),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              durationLabel,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Duration',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (durationLabel != null && estimatedPay != null)
+                    const SizedBox(width: 12),
+                  if (estimatedPay != null)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFDCFCE7),
+                              Color(0xFFF0FDF4),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.green.shade200,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.payments_rounded,
+                              size: 20,
+                              color: Colors.green.shade700,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              estimatedPay,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.green.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Estimated',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.green.shade700,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],
@@ -1425,13 +2024,57 @@ class _RolesSectionState extends State<_RolesSection> {
     return false;
   }
 
+  DateTime? _parseDateSafe(String input) {
+    try {
+      final iso = DateTime.tryParse(input);
+      if (iso != null) return DateTime(iso.year, iso.month, iso.day);
+    } catch (_) {}
+    final us = RegExp(r'^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$').firstMatch(input);
+    if (us != null) {
+      final m = int.tryParse(us.group(1) ?? '');
+      final d = int.tryParse(us.group(2) ?? '');
+      var y = int.tryParse(us.group(3) ?? '');
+      if (m != null && d != null && y != null) {
+        if (y < 100) y += 2000;
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    final ymd = RegExp(r'^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$').firstMatch(input);
+    if (ymd != null) {
+      final y = int.tryParse(ymd.group(1) ?? '');
+      final m = int.tryParse(ymd.group(2) ?? '');
+      final d = int.tryParse(ymd.group(3) ?? '');
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    return null;
+  }
+
   List<RoleSummary> _computeRoleSummaries() {
     final Map<String, List<Map<String, dynamic>>> roleToEvents = {};
     final Map<String, int> roleToNeeded = {};
     final Map<String, int?> roleToRemaining = {};
-    // Exclude events the current user already accepted
-    final sourceEvents = widget.events.where((e) => !_isAcceptedByUser(e, widget.userKey));
-    debugPrint('📋 Computing role summaries: ${widget.events.length} total events, ${sourceEvents.length} available (filtered out accepted)');
+    // Exclude events the current user already accepted and past events
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final sourceEvents = widget.events.where((e) {
+      if (_isAcceptedByUser(e, widget.userKey)) return false;
+      // Filter out past events
+      final dateStr = e['date']?.toString();
+      if (dateStr != null && dateStr.isNotEmpty) {
+        final eventDate = _parseDateSafe(dateStr);
+        if (eventDate != null && eventDate.isBefore(today)) {
+          return false; // Exclude past events
+        }
+      }
+      return true;
+    });
+    debugPrint('📋 Computing role summaries: ${widget.events.length} total events, ${sourceEvents.length} available (filtered out accepted and past)');
     for (final e in sourceEvents) {
       final stats = e['role_stats'];
       if (stats is List && stats.isNotEmpty) {
@@ -1485,78 +2128,188 @@ class _RolesSectionState extends State<_RolesSection> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final roleSummaries = _computeRoleSummaries();
+    final availableCount = roleSummaries.length;
+    final totalPositions = roleSummaries.fold<int>(
+      0,
+      (sum, role) => sum + role.totalNeeded,
+    );
+
     return DefaultTabController(
       length: 3,
-      child: Column(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+      child: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              pinned: false,
+              floating: true,
+              snap: true,
+              expandedHeight: 120.0,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Purple gradient background with custom clip
+                    ClipPath(
+                      clipper: AppBarClipper(),
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0xFF7A3AFB),
+                              Color(0xFF5B27D8),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Decorative purple shapes layer
+                    ClipPath(
+                      clipper: AppBarClipper(),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            top: -40,
+                            right: -20,
+                            child: Container(
+                              width: 180,
+                              height: 180,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF9D7EF0).withOpacity(0.15),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 20,
+                            left: -30,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Title and stats
+                    SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Available Roles',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$availableCount roles • $totalPositions positions open',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: TabBar(
-              labelColor: const Color(0xFF8B5CF6),
-              unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
-              indicatorColor: const Color(0xFF8B5CF6),
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5,
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+            ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _TabBarDelegate(
+                TabBar(
+                  labelColor: const Color(0xFF6A1B9A),
+                  unselectedLabelColor: const Color(0xFF6A1B9A).withOpacity(0.6),
+                  indicatorColor: const Color(0xFF6A1B9A),
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Available'),
+                    Tab(text: 'My Events'),
+                    Tab(text: 'Calendar'),
+                  ],
+                ),
               ),
-              tabs: const [
-                Tab(
-                  icon: Icon(Icons.work_outline_rounded, size: 22),
-                  text: 'Available',
-                ),
-                Tab(
-                  icon: Icon(Icons.event_available_rounded, size: 22),
-                  text: 'My Events',
-                ),
-                Tab(
-                  icon: Icon(Icons.calendar_month_outlined, size: 22),
-                  text: 'Calendar',
-                ),
-              ],
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                _RoleList(
-                  summaries: _computeRoleSummaries(),
-                  loading: widget.loading,
-                  allEvents: widget.events,
-                  userKey: widget.userKey,
-                ),
-                _MyEventsList(
-                  events: widget.events,
-                  userKey: widget.userKey,
-                  loading: widget.loading,
-                ),
-                _CalendarTab(
-                  events: widget.events,
-                  userKey: widget.userKey,
-                  loading: widget.loading,
-                  availability: widget.availability,
-                ),
-              ],
+          ];
+        },
+        body: TabBarView(
+          children: [
+            _RoleList(
+              summaries: roleSummaries,
+              loading: widget.loading,
+              allEvents: widget.events,
+              userKey: widget.userKey,
             ),
-          ),
-        ],
+            _MyEventsList(
+              events: widget.events,
+              userKey: widget.userKey,
+              loading: widget.loading,
+            ),
+            _CalendarTab(
+              events: widget.events,
+              userKey: widget.userKey,
+              loading: widget.loading,
+              availability: widget.availability,
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+// TabBar delegate for SliverPersistentHeader
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+
+  _TabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+      ),
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_TabBarDelegate oldDelegate) => false;
 }
 
 // Earnings tab with approved hours breakdown
@@ -1589,61 +2342,163 @@ class _EarningsTab extends StatelessWidget {
     }
 
     return FutureBuilder<Map<String, dynamic>>(
-      future: _calculateEarnings(events, userKey!),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+                future: _calculateEarnings(events, userKey!),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error loading earnings',
-              style: theme.textTheme.bodyLarge,
-            ),
-          );
-        }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Error loading earnings',
+                        style: theme.textTheme.bodyLarge,
+                      ),
+                    );
+                  }
 
-        final data = snapshot.data;
-        if (data == null || data['yearTotal'] == 0.0) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.account_balance_wallet_outlined,
-                  size: 80,
-                  color: theme.colorScheme.primary.withOpacity(0.3),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'No Earnings Yet',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Complete events to see your earnings here',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }
+                  final data = snapshot.data;
+                  if (data == null || data['yearTotal'] == 0.0) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.account_balance_wallet_outlined,
+                            size: 80,
+                            color: theme.colorScheme.primary.withOpacity(0.3),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'No Earnings Yet',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Complete events to see your earnings here',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
 
-        final yearTotal = data['yearTotal'] as double;
-        final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
-        final currentYear = DateTime.now().year;
+                  final yearTotal = data['yearTotal'] as double;
+                  final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
+                  final currentYear = DateTime.now().year;
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Year Total Card
-            Container(
+                  // Calculate current month earnings for header
+                  final now = DateTime.now();
+                  final currentMonthData = monthlyData.where((m) =>
+                    m['monthNum'] == now.month
+                  ).firstOrNull;
+                  final currentMonthEarnings = currentMonthData?['totalEarnings'] as double? ?? 0.0;
+
+                  return CustomScrollView(
+                    slivers: [
+                      SliverAppBar(
+                        pinned: false,
+                        floating: true,
+                        snap: true,
+                        expandedHeight: 120.0,
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        flexibleSpace: FlexibleSpaceBar(
+                          background: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // Purple gradient background with custom clip
+                              ClipPath(
+                                clipper: AppBarClipper(),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0xFF7A3AFB),
+                                        Color(0xFF5B27D8),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Decorative purple shapes layer
+                              ClipPath(
+                                clipper: AppBarClipper(),
+                                child: Stack(
+                                  children: [
+                                    Positioned(
+                                      top: -40,
+                                      right: -20,
+                                      child: Container(
+                                        width: 180,
+                                        height: 180,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: const Color(0xFF9D7EF0).withOpacity(0.15),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 20,
+                                      left: -30,
+                                      child: Container(
+                                        width: 120,
+                                        height: 120,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Title and stats
+                              SafeArea(
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'My Earnings',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'This month: \$${currentMonthEarnings.toStringAsFixed(2)} • YTD: \$${yearTotal.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            // Year Total Card
+                            Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -1842,13 +2697,16 @@ class _EarningsTab extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
+                        ),
+                      );
+                    }).toList(),
+                          ]),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               );
-            }).toList(),
-          ],
-        );
-      },
-    );
   }
 
   Future<Map<String, dynamic>> _calculateEarnings(
@@ -2365,22 +3223,142 @@ class _MyEventsList extends StatelessWidget {
   List<Map<String, dynamic>> _filterMyAccepted() {
     if (userKey == null) return const [];
     final List<Map<String, dynamic>> mine = [];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
     for (final e in events) {
       final accepted = e['accepted_staff'];
       if (accepted is List) {
+        bool isAccepted = false;
         for (final a in accepted) {
           if (a is String && a == userKey) {
-            mine.add(e);
+            isAccepted = true;
             break;
           }
           if (a is Map && a['userKey'] == userKey) {
-            mine.add(e);
+            isAccepted = true;
             break;
+          }
+        }
+
+        // Only include if accepted AND event is today or in the future
+        if (isAccepted) {
+          final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
+          if (eventDate != null && !eventDate.isBefore(today)) {
+            mine.add(e);
           }
         }
       }
     }
     return mine;
+  }
+
+  int _parseTimeMinutes(String? raw) {
+    if (raw == null) return 0;
+    final s = raw.trim();
+    if (s.isEmpty) return 0;
+    final m = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$').firstMatch(s);
+    if (m == null) return 0;
+    int hour = int.tryParse(m.group(1) ?? '0') ?? 0;
+    final minute = int.tryParse(m.group(2) ?? '0') ?? 0;
+    final ampm = m.group(3);
+    if (ampm != null) {
+      final u = ampm.toUpperCase();
+      if (u == 'AM') {
+        if (hour == 12) hour = 0;
+      } else if (u == 'PM') {
+        if (hour != 12) hour += 12;
+      }
+    }
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return 0;
+    return hour * 60 + minute;
+  }
+
+  int _calculateTotalHours(List<Map<String, dynamic>> events) {
+    int totalMinutes = 0;
+    for (final e in events) {
+      final startMins = _parseTimeMinutes(e['start_time']?.toString());
+      final endMins = _parseTimeMinutes(e['end_time']?.toString());
+      if (startMins > 0 && endMins > startMins) {
+        totalMinutes += (endMins - startMins);
+      }
+    }
+    return (totalMinutes / 60).round();
+  }
+
+  Map<String, List<Map<String, dynamic>>> _groupEventsByWeek(
+    List<Map<String, dynamic>> events,
+  ) {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    for (final event in events) {
+      final dateStr = event['date']?.toString();
+      if (dateStr == null || dateStr.isEmpty) continue;
+
+      final eventDate = _parseDateSafe(dateStr);
+      if (eventDate == null) continue;
+
+      // Find the start of the week (Monday)
+      final weekStart = eventDate.subtract(Duration(days: eventDate.weekday - 1));
+      final weekEnd = weekStart.add(const Duration(days: 6));
+
+      // Create week label
+      String weekLabel;
+      final thisWeekStart = today.subtract(Duration(days: today.weekday - 1));
+      final nextWeekStart = thisWeekStart.add(const Duration(days: 7));
+
+      if (weekStart == thisWeekStart) {
+        weekLabel = 'This Week';
+      } else if (weekStart == nextWeekStart) {
+        weekLabel = 'Next Week';
+      } else {
+        // Format as "Oct Mon 20 - Sun 26" for future weeks
+        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        final month = months[(weekStart.month - 1).clamp(0, 11)];
+        final startDay = days[(weekStart.weekday - 1).clamp(0, 6)];
+        final endDay = days[(weekEnd.weekday - 1).clamp(0, 6)];
+        weekLabel = '$month $startDay ${weekStart.day} - $endDay ${weekEnd.day}';
+      }
+
+      grouped.putIfAbsent(weekLabel, () => []);
+      grouped[weekLabel]!.add(event);
+    }
+
+    return grouped;
+  }
+
+  DateTime? _parseDateSafe(String input) {
+    try {
+      final iso = DateTime.tryParse(input);
+      if (iso != null) return DateTime(iso.year, iso.month, iso.day);
+    } catch (_) {}
+    final us = RegExp(r'^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$').firstMatch(input);
+    if (us != null) {
+      final m = int.tryParse(us.group(1) ?? '');
+      final d = int.tryParse(us.group(2) ?? '');
+      var y = int.tryParse(us.group(3) ?? '');
+      if (m != null && d != null && y != null) {
+        if (y < 100) y += 2000;
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    final ymd = RegExp(r'^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})$').firstMatch(input);
+    if (ymd != null) {
+      final y = int.tryParse(ymd.group(1) ?? '');
+      final m = int.tryParse(ymd.group(2) ?? '');
+      final d = int.tryParse(ymd.group(3) ?? '');
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    return null;
   }
 
   @override
@@ -2468,7 +3446,7 @@ class _MyEventsList extends StatelessWidget {
                                     ? 'Loading events...'
                                     : mine.isEmpty
                                     ? 'No accepted events'
-                                    : '${mine.length} ${mine.length == 1 ? 'event' : 'events'} accepted',
+                                    : '${mine.length} ${mine.length == 1 ? 'event' : 'events'} • ${_calculateTotalHours(mine)} hrs accepted',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: Colors.white.withOpacity(0.9),
                                   fontSize: 14,
@@ -2507,6 +3485,63 @@ class _MyEventsList extends StatelessWidget {
             ),
           ),
         ),
+        // View Past Events button
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => PastEventsPage(
+                        events: events,
+                        userKey: userKey,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.history_rounded,
+                        size: 18,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'View Past Events',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         if (mine.isEmpty && !loading)
           SliverToBoxAdapter(
             child: Padding(
@@ -2514,25 +3549,126 @@ class _MyEventsList extends StatelessWidget {
               child: _buildEmptyState(theme),
             ),
           ),
-        if (mine.isNotEmpty)
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              if (index >= mine.length) return null;
-
-              return Padding(
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  index == 0 ? 0 : 8,
-                  20,
-                  index == mine.length - 1 ? 20 : 8,
-                ),
-                child: _buildEventCard(context, theme, mine[index]),
-              );
-            }, childCount: mine.length),
-          ),
+        if (mine.isNotEmpty) ..._buildWeeklySections(theme, mine),
       ],
       ),
     );
+  }
+
+  List<Widget> _buildWeeklySections(
+    ThemeData theme,
+    List<Map<String, dynamic>> events,
+  ) {
+    final grouped = _groupEventsByWeek(events);
+    final List<Widget> sections = [];
+
+    // Sort events within each group by date (earliest first)
+    grouped.forEach((weekLabel, weekEvents) {
+      weekEvents.sort((a, b) {
+        final dateA = _parseDateSafe(a['date']?.toString() ?? '');
+        final dateB = _parseDateSafe(b['date']?.toString() ?? '');
+        if (dateA == null && dateB == null) return 0;
+        if (dateA == null) return 1;
+        if (dateB == null) return -1;
+        return dateA.compareTo(dateB);
+      });
+    });
+
+    // Sort week labels to show upcoming weeks first
+    final preferredOrder = ['This Week', 'Next Week'];
+    final sortedKeys = grouped.keys.toList()..sort((a, b) {
+      final aIndex = preferredOrder.indexOf(a);
+      final bIndex = preferredOrder.indexOf(b);
+
+      // Both are in preferred order list
+      if (aIndex != -1 && bIndex != -1) return aIndex.compareTo(bIndex);
+
+      // One is in preferred order, prioritize it (This Week or Next Week come first)
+      if (aIndex != -1) return -1;
+      if (bIndex != -1) return 1;
+
+      // Both are date-based week labels (e.g., "Jan 15-21")
+      // Extract earliest date from events in each week to determine order
+      final aEvents = grouped[a]!;
+      final bEvents = grouped[b]!;
+      if (aEvents.isNotEmpty && bEvents.isNotEmpty) {
+        final aDate = _parseDateSafe(aEvents.first['date']?.toString() ?? '');
+        final bDate = _parseDateSafe(bEvents.first['date']?.toString() ?? '');
+        if (aDate != null && bDate != null) {
+          return aDate.compareTo(bDate);
+        }
+      }
+
+      return a.compareTo(b);
+    });
+
+    for (final weekLabel in sortedKeys) {
+      final weekEvents = grouped[weekLabel]!;
+      final weekHours = _calculateTotalHours(weekEvents);
+
+      // Add week header
+      sections.add(
+        SliverToBoxAdapter(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    weekLabel,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${weekEvents.length} ${weekEvents.length == 1 ? 'event' : 'events'} • $weekHours hrs',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Add events for this week
+      sections.add(
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (index >= weekEvents.length) return null;
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  8,
+                  20,
+                  index == weekEvents.length - 1 ? 0 : 8,
+                ),
+                child: _buildEventCard(context, theme, weekEvents[index]),
+              );
+            },
+            childCount: weekEvents.length,
+          ),
+        ),
+      );
+    }
+
+    return sections;
   }
 
   Widget _buildEmptyState(ThemeData theme) {
