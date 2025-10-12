@@ -273,15 +273,24 @@ class _RootPageState extends State<RootPage> {
   }
 
   Future<void> _ensureSignedIn() async {
-    final token = await AuthService.getJwt();
-    if (token == null && mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-      return;
-    }
-    final newToken = await AuthService.getJwt();
-    _userKey = newToken == null ? null : decodeUserKeyFromJwt(newToken);
-    if (mounted) {
-      setState(() => _checkingAuth = false);
+    try {
+      final token = await AuthService.getJwt();
+      if (token == null && mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+        return;
+      }
+      final newToken = await AuthService.getJwt();
+      _userKey = newToken == null ? null : decodeUserKeyFromJwt(newToken);
+      if (mounted) {
+        setState(() => _checkingAuth = false);
+      }
+    } catch (e) {
+      // Handle secure storage corruption by clearing it and redirecting to login
+      print('Secure storage error: $e');
+      await AuthService.signOut(); // This will clear the corrupted storage
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
     }
 
     // Load initial data using DataService
@@ -2256,6 +2265,7 @@ class _RolesSectionState extends State<_RolesSection> {
                     Tab(text: 'Calendar'),
                   ],
                 ),
+                safeAreaPadding: MediaQuery.of(context).padding.top,
               ),
             ),
           ];
@@ -2289,27 +2299,33 @@ class _RolesSectionState extends State<_RolesSection> {
 // TabBar delegate for SliverPersistentHeader
 class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
+  final double safeAreaPadding;
 
-  _TabBarDelegate(this.tabBar);
-
-  @override
-  double get minExtent => tabBar.preferredSize.height;
+  _TabBarDelegate(this.tabBar, {this.safeAreaPadding = 0.0});
 
   @override
-  double get maxExtent => tabBar.preferredSize.height;
+  double get minExtent => tabBar.preferredSize.height + safeAreaPadding;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height + safeAreaPadding;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      decoration: const BoxDecoration(
+    return Material(
+      elevation: 4.0,
+      child: Container(
         color: Colors.white,
+        child: SafeArea(
+          bottom: false,
+          child: tabBar,
+        ),
       ),
-      child: tabBar,
     );
   }
 
   @override
-  bool shouldRebuild(_TabBarDelegate oldDelegate) => false;
+  bool shouldRebuild(_TabBarDelegate oldDelegate) =>
+      safeAreaPadding != oldDelegate.safeAreaPadding;
 }
 
 // Earnings tab with approved hours breakdown

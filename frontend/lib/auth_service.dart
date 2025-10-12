@@ -99,7 +99,16 @@ class AuthService {
   }
 
   /// Retrieves the stored JWT token
-  static Future<String?> getJwt() => _storage.read(key: _jwtStorageKey);
+  static Future<String?> getJwt() async {
+    try {
+      return await _storage.read(key: _jwtStorageKey);
+    } catch (e) {
+      _log('Error reading JWT from secure storage: $e', isError: true);
+      // Clear corrupted storage and return null
+      await _storage.delete(key: _jwtStorageKey);
+      return null;
+    }
+  }
 
   /// Saves JWT token to secure storage
   static Future<void> _saveJwt(String token) =>

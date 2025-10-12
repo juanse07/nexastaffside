@@ -89,35 +89,43 @@ class DataService extends ChangeNotifier {
     debugPrint('✅ DataService initialized with ${_events.length} events');
   }
 
+  /// Safely read from storage with error handling
+  Future<String?> _safeStorageRead(String key) async {
+    try {
+      return await _storage.read(key: key);
+    } catch (e) {
+      debugPrint('Error reading from secure storage (key: $key): $e');
+      // Clear corrupted storage entry
+      await _storage.delete(key: key);
+      return null;
+    }
+  }
+
   /// Load cached data from secure storage
   Future<void> _loadCachedData() async {
     try {
       // Load cached events
-      final cachedEvents = await _storage.read(key: _eventsStorageKey);
+      final cachedEvents = await _safeStorageRead(_eventsStorageKey);
       if (cachedEvents != null) {
         final data = json.decode(cachedEvents) as List<dynamic>;
         _events = data.cast<Map<String, dynamic>>();
       }
 
       // Load last fetch timestamp
-      final lastFetchStr = await _storage.read(key: _lastFetchKey);
+      final lastFetchStr = await _safeStorageRead(_lastFetchKey);
       if (lastFetchStr != null) {
         _lastFetch = DateTime.tryParse(lastFetchStr);
       }
 
       // Load cached availability
-      final cachedAvailability = await _storage.read(
-        key: _availabilityStorageKey,
-      );
+      final cachedAvailability = await _safeStorageRead(_availabilityStorageKey);
       if (cachedAvailability != null) {
         final data = json.decode(cachedAvailability) as List<dynamic>;
         _availability = data.cast<Map<String, dynamic>>();
       }
 
       // Load last availability fetch timestamp
-      final lastAvailabilityStr = await _storage.read(
-        key: _lastAvailabilityFetchKey,
-      );
+      final lastAvailabilityStr = await _safeStorageRead(_lastAvailabilityFetchKey);
       if (lastAvailabilityStr != null) {
         _lastAvailabilityFetch = DateTime.tryParse(lastAvailabilityStr);
       }
@@ -169,13 +177,13 @@ class DataService extends ChangeNotifier {
 
     try {
       // Build URL with delta sync support
-      final lastSyncTimestamp = await _storage.read(key: 'last_sync_events');
+      final lastSyncTimestamp = await _safeStorageRead('last_sync_events');
       final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/events');
       final uriWithParams = lastSyncTimestamp != null
           ? uri.replace(queryParameters: {'lastSync': lastSyncTimestamp})
           : uri;
 
-      final token = await _storage.read(key: 'auth_jwt');
+      final token = await _safeStorageRead('auth_jwt');
       final headers = <String, String>{};
       if (token != null) headers['Authorization'] = 'Bearer $token';
 
@@ -276,7 +284,7 @@ class DataService extends ChangeNotifier {
   /// Fetch availability from server with JWT token
   Future<void> _fetchAvailability({bool silent = false}) async {
     try {
-      final token = await _storage.read(key: 'auth_jwt');
+      final token = await _safeStorageRead('auth_jwt');
       if (token == null) return;
 
       final url = '$_apiBaseUrl$_apiPathPrefix/events/availability';
