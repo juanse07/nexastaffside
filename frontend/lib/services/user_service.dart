@@ -195,7 +195,16 @@ class UserService {
       _log('Preferred roles saved: ${roles.length} roles');
     } catch (e) {
       _log('Failed to save preferred roles: $e', isError: true);
-      rethrow;
+      // Try to clear and retry once
+      try {
+        await _storage.deleteAll();
+        final rolesJson = json.encode(roles.toList());
+        await _storage.write(key: _preferredRolesKey, value: rolesJson);
+        _log('Successfully saved roles after clearing storage');
+      } catch (retryError) {
+        _log('Failed to save roles even after clearing: $retryError', isError: true);
+        rethrow;
+      }
     }
   }
 

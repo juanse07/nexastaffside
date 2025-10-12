@@ -111,8 +111,22 @@ class AuthService {
   }
 
   /// Saves JWT token to secure storage
-  static Future<void> _saveJwt(String token) =>
-      _storage.write(key: _jwtStorageKey, value: token);
+  static Future<void> _saveJwt(String token) async {
+    try {
+      await _storage.write(key: _jwtStorageKey, value: token);
+    } catch (e) {
+      _log('Error writing JWT to secure storage: $e', isError: true);
+      // Try to clear and retry once
+      try {
+        await _storage.deleteAll();
+        await _storage.write(key: _jwtStorageKey, value: token);
+        _log('Successfully saved JWT after clearing storage');
+      } catch (retryError) {
+        _log('Failed to save JWT even after clearing storage: $retryError', isError: true);
+        rethrow;
+      }
+    }
+  }
 
   /// Signs in a user with Google OAuth
   /// Returns true if successful, false otherwise

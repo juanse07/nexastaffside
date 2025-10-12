@@ -6,6 +6,9 @@ import 'dart:io' show Platform;
 import 'dart:ui' show ImageFilter;
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 import '../auth_service.dart';
 import '../login_page.dart';
@@ -901,11 +904,26 @@ class _HomeTabState extends State<_HomeTab> {
   bool _loading = false;
   String? _status; // not_started | clocked_in | completed
   String? _acceptedRole; // The role name the user accepted for this event
+  bool _canClockIn = false;
+  String? _clockInError;
+  Timer? _validationTimer;
 
   @override
   void initState() {
     super.initState();
     _computeUpcoming();
+    // Start periodic validation check every 30 seconds
+    _validationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_upcoming != null && _status == null) {
+        _validateClockIn();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _validationTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -981,6 +999,11 @@ class _HomeTabState extends State<_HomeTab> {
       _loading = false;
       _status = resp?['status']?.toString();
     });
+
+    // Validate clock-in conditions after loading
+    if (_status == null) {
+      _validateClockIn();
+    }
   }
 
   DateTime? _eventDateTime(Map<String, dynamic> e) {
@@ -1180,6 +1203,187 @@ class _HomeTabState extends State<_HomeTab> {
       _loading = false;
       _status = res?['status']?.toString() ?? _status;
     });
+  }
+
+  Future<void> _validateClockIn() async {
+    if (_upcoming == null) {
+      setState(() {
+        _canClockIn = false;
+        _clockInError = null;
+      });
+      return;
+    }
+
+    try {
+      // Check 1: Date and time validation
+      final eventDt = _eventDateTime(_upcoming!);
+      if (eventDt == null) {
+        setState(() {
+          _canClockIn = false;
+          _clockInError = 'Event date/time not available';
+        });
+        return;
+      }
+
+      final now = DateTime.now();
+      // Allow clock-in 30 minutes before the event starts
+      final earliestClockIn = eventDt.subtract(const Duration(minutes: 30));
+      // Allow clock-in until the end time
+      final endTimeStr = _upcoming!['end_time']?.toString().trim();
+      final endTime = _tryParseTimeOfDay(endTimeStr);
+      DateTime latestClockIn;
+      if (endTime != null) {
+        latestClockIn = DateTime(
+          eventDt.year,
+          eventDt.month,
+          eventDt.day,
+          endTime.$1,
+          endTime.$2,
+        );
+      } else {
+        // If no end time, allow clock-in for 12 hours after start
+        latestClockIn = eventDt.add(const Duration(hours: 12));
+      }
+
+      if (now.isBefore(earliestClockIn)) {
+        final duration = earliestClockIn.difference(now);
+        String timeMessage;
+
+        if (duration.inDays > 0) {
+          final days = duration.inDays;
+          final hours = duration.inHours % 24;
+          if (hours > 0) {
+            timeMessage = '$days day${days > 1 ? 's' : ''} and $hours hour${hours > 1 ? 's' : ''}';
+          } else {
+            timeMessage = '$days day${days > 1 ? 's' : ''}';
+          }
+        } else if (duration.inHours > 0) {
+          final hours = duration.inHours;
+          final minutes = duration.inMinutes % 60;
+          if (minutes > 0) {
+            timeMessage = '$hours hour${hours > 1 ? 's' : ''} and $minutes min${minutes > 1 ? 's' : ''}';
+          } else {
+            timeMessage = '$hours hour${hours > 1 ? 's' : ''}';
+          }
+        } else {
+          final minutes = duration.inMinutes;
+          timeMessage = '$minutes minute${minutes > 1 ? 's' : ''}';
+        }
+
+        setState(() {
+          _canClockIn = false;
+          _clockInError = 'Clock in available in $timeMessage';
+        });
+        return;
+      }
+
+      if (now.isAfter(latestClockIn)) {
+        setState(() {
+          _canClockIn = false;
+          _clockInError = 'Event time has passed';
+        });
+        return;
+      }
+
+      // Check 2: Location validation
+      final venueAddress = _upcoming!['venue_address']?.toString() ?? '';
+      if (venueAddress.isEmpty) {
+        // If no venue address, skip location check
+        setState(() {
+          _canClockIn = true;
+          _clockInError = null;
+        });
+        return;
+      }
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _canClockIn = false;
+            _clockInError = 'Location permission required';
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _canClockIn = false;
+          _clockInError = 'Location permission denied. Enable in settings.';
+        });
+        return;
+      }
+
+      // Get current location
+      Position position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10),
+        );
+      } catch (e) {
+        setState(() {
+          _canClockIn = false;
+          _clockInError = 'Unable to get current location';
+        });
+        return;
+      }
+
+      // Get venue coordinates from address
+      List<Location> locations;
+      try {
+        locations = await locationFromAddress(venueAddress);
+      } catch (e) {
+        // If geocoding fails, allow clock-in (venue address might be invalid)
+        setState(() {
+          _canClockIn = true;
+          _clockInError = null;
+        });
+        return;
+      }
+
+      if (locations.isEmpty) {
+        setState(() {
+          _canClockIn = true;
+          _clockInError = null;
+        });
+        return;
+      }
+
+      final venueLocation = locations.first;
+      final distanceInMeters = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        venueLocation.latitude,
+        venueLocation.longitude,
+      );
+
+      // Allow clock-in within 500 meters (adjust as needed)
+      const maxDistanceMeters = 500.0;
+      if (distanceInMeters > maxDistanceMeters) {
+        final distanceKm = (distanceInMeters / 1000).toStringAsFixed(1);
+        setState(() {
+          _canClockIn = false;
+          _clockInError = 'Too far from venue (${distanceKm}km away)';
+        });
+        return;
+      }
+
+      // All checks passed!
+      setState(() {
+        _canClockIn = true;
+        _clockInError = null;
+      });
+    } catch (e) {
+      debugPrint('Clock-in validation error: $e');
+      setState(() {
+        _canClockIn = false;
+        _clockInError = 'Validation error';
+      });
+    }
   }
 
   Future<void> _launchMap(String url) async {
@@ -1863,6 +2067,36 @@ class _HomeTabState extends State<_HomeTab> {
                     ),
                 ],
               ),
+              // Tax reminder
+              if (estimatedPay != null) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 14,
+                        color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Estimate does not include applicable taxes',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ],
         ),
@@ -1873,25 +2107,29 @@ class _HomeTabState extends State<_HomeTab> {
   Widget _buildClockActions(ThemeData theme) {
     return Column(
       children: [
-        if (_status == null || _status == 'not_started')
+        if (_status == null || _status == 'not_started') ...[
           Container(
             width: double.infinity,
             height: 56,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF10B981), Color(0xFF059669)],
+              gradient: LinearGradient(
+                colors: _canClockIn
+                    ? const [Color(0xFF10B981), Color(0xFF059669)]
+                    : [Colors.grey.shade400, Colors.grey.shade500],
               ),
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF10B981).withOpacity(0.3),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              boxShadow: _canClockIn
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
             ),
             child: ElevatedButton.icon(
-              onPressed: !_loading ? _clockIn : null,
+              onPressed: (!_loading && _canClockIn) ? _clockIn : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 shadowColor: Colors.transparent,
@@ -1923,6 +2161,36 @@ class _HomeTabState extends State<_HomeTab> {
               ),
             ),
           ),
+          if (_clockInError != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 16,
+                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _clockInError!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
         if (_status == 'clocked_in')
           Container(
             width: double.infinity,
@@ -1996,13 +2264,29 @@ class _RolesSection extends StatefulWidget {
   State<_RolesSection> createState() => _RolesSectionState();
 }
 
-class _RolesSectionState extends State<_RolesSection> {
+class _RolesSectionState extends State<_RolesSection> with SingleTickerProviderStateMixin {
   Set<String> _preferredRoles = {};
+  late TabController _tabController;
+  int _currentTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {
+          _currentTabIndex = _tabController.index;
+        });
+      }
+    });
     _loadPreferredRoles();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
@@ -2135,6 +2419,72 @@ class _RolesSectionState extends State<_RolesSection> {
     }
   }
 
+  List<Map<String, dynamic>> _getMyAcceptedEvents() {
+    if (widget.userKey == null) return const [];
+    final List<Map<String, dynamic>> mine = [];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    for (final e in widget.events) {
+      final accepted = e['accepted_staff'];
+      if (accepted is List) {
+        bool isAccepted = false;
+        for (final a in accepted) {
+          if (a is String && a == widget.userKey) {
+            isAccepted = true;
+            break;
+          }
+          if (a is Map && a['userKey'] == widget.userKey) {
+            isAccepted = true;
+            break;
+          }
+        }
+
+        // Only include if accepted AND event is today or in the future
+        if (isAccepted) {
+          final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
+          if (eventDate != null && !eventDate.isBefore(today)) {
+            mine.add(e);
+          }
+        }
+      }
+    }
+    return mine;
+  }
+
+  int _parseTimeMinutes(String? raw) {
+    if (raw == null) return 0;
+    final s = raw.trim();
+    if (s.isEmpty) return 0;
+    final m = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$').firstMatch(s);
+    if (m == null) return 0;
+    int hour = int.tryParse(m.group(1) ?? '0') ?? 0;
+    final minute = int.tryParse(m.group(2) ?? '0') ?? 0;
+    final ampm = m.group(3);
+    if (ampm != null) {
+      final u = ampm.toUpperCase();
+      if (u == 'AM') {
+        if (hour == 12) hour = 0;
+      } else if (u == 'PM') {
+        if (hour != 12) hour += 12;
+      }
+    }
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return 0;
+    return hour * 60 + minute;
+  }
+
+  int _calculateTotalHours(List<Map<String, dynamic>> events) {
+    int totalMinutes = 0;
+    for (final e in events) {
+      final startMins = _parseTimeMinutes(e['start_time']?.toString());
+      final endMins = _parseTimeMinutes(e['end_time']?.toString());
+      if (startMins > 0 && endMins > startMins) {
+        totalMinutes += (endMins - startMins);
+      }
+    }
+    return (totalMinutes / 60).round();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -2145,9 +2495,38 @@ class _RolesSectionState extends State<_RolesSection> {
       (sum, role) => sum + role.totalNeeded,
     );
 
-    return DefaultTabController(
-      length: 3,
-      child: NestedScrollView(
+    // Get My Events statistics
+    final myEvents = _getMyAcceptedEvents();
+    final myEventsCount = myEvents.length;
+    final myEventsTotalHours = _calculateTotalHours(myEvents);
+
+    // Dynamic title and subtitle based on current tab
+    String appBarTitle;
+    String appBarSubtitle;
+
+    switch (_currentTabIndex) {
+      case 0: // Available tab
+        appBarTitle = 'Available Roles';
+        appBarSubtitle = '$availableCount roles • $totalPositions positions open';
+        break;
+      case 1: // My Events tab
+        appBarTitle = 'My Events';
+        appBarSubtitle = widget.loading
+            ? 'Loading events...'
+            : myEventsCount == 0
+                ? 'No accepted events'
+                : '$myEventsCount ${myEventsCount == 1 ? 'event' : 'events'} • $myEventsTotalHours hrs accepted';
+        break;
+      case 2: // Calendar tab
+        appBarTitle = 'Calendar';
+        appBarSubtitle = 'View your scheduled events';
+        break;
+      default:
+        appBarTitle = 'Available Roles';
+        appBarSubtitle = '$availableCount roles • $totalPositions positions open';
+    }
+
+    return NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
           return [
             SliverAppBar(
@@ -2218,7 +2597,7 @@ class _RolesSectionState extends State<_RolesSection> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             Text(
-                              'Available Roles',
+                              appBarTitle,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 24,
@@ -2227,7 +2606,7 @@ class _RolesSectionState extends State<_RolesSection> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '$availableCount roles • $totalPositions positions open',
+                              appBarSubtitle,
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.9),
                                 fontSize: 13,
@@ -2246,6 +2625,7 @@ class _RolesSectionState extends State<_RolesSection> {
               pinned: true,
               delegate: _TabBarDelegate(
                 TabBar(
+                  controller: _tabController,
                   labelColor: const Color(0xFF6A1B9A),
                   unselectedLabelColor: const Color(0xFF6A1B9A).withOpacity(0.6),
                   indicatorColor: const Color(0xFF6A1B9A),
@@ -2271,6 +2651,7 @@ class _RolesSectionState extends State<_RolesSection> {
           ];
         },
         body: TabBarView(
+          controller: _tabController,
           children: [
             _RoleList(
               summaries: roleSummaries,
@@ -2291,7 +2672,6 @@ class _RolesSectionState extends State<_RolesSection> {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -3386,125 +3766,18 @@ class _MyEventsList extends StatelessWidget {
       showLastRefreshTime: false,
       child: CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF8B5CF6), // Purple
-                  Color(0xFFA855F7), // Light purple
-                  Color(0xFFEC4899), // Pink
-                ],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                children: [
-                  // Decorative elements
-                  Positioned(
-                    top: -30,
-                    right: -30,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.1),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -40,
-                    left: -40,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.06),
-                      ),
-                    ),
-                  ),
-                  // Content
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'My Events',
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: -0.5,
-                                  fontSize: 22,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                loading
-                                    ? 'Loading events...'
-                                    : mine.isEmpty
-                                    ? 'No accepted events'
-                                    : '${mine.length} ${mine.length == 1 ? 'event' : 'events'} • ${_calculateTotalHours(mine)} hrs accepted',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: loading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(
-                                  Icons.event_available_rounded,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+        if (mine.isEmpty && !loading)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: _buildEmptyState(theme),
             ),
           ),
-        ),
+        if (mine.isNotEmpty) ..._buildWeeklySections(theme, mine),
         // View Past Events button
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
@@ -3558,14 +3831,6 @@ class _MyEventsList extends StatelessWidget {
             ),
           ),
         ),
-        if (mine.isEmpty && !loading)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: _buildEmptyState(theme),
-            ),
-          ),
-        if (mine.isNotEmpty) ..._buildWeeklySections(theme, mine),
       ],
       ),
     );

@@ -101,6 +101,24 @@ class DataService extends ChangeNotifier {
     }
   }
 
+  /// Safely write to storage with error handling and retry
+  Future<void> _safeStorageWrite(String key, String value) async {
+    try {
+      await _storage.write(key: key, value: value);
+    } catch (e) {
+      debugPrint('Error writing to secure storage (key: $key): $e');
+      // Try to clear all storage and retry once
+      try {
+        await _storage.deleteAll();
+        await _storage.write(key: key, value: value);
+        debugPrint('Successfully wrote to storage after clearing');
+      } catch (retryError) {
+        debugPrint('Failed to write to storage even after clearing: $retryError');
+        // Don't rethrow - continue operation even if storage fails
+      }
+    }
+  }
+
   /// Load cached data from secure storage
   Future<void> _loadCachedData() async {
     try {
@@ -139,10 +157,10 @@ class DataService extends ChangeNotifier {
   /// Cache data to secure storage
   Future<void> _cacheEvents(List<Map<String, dynamic>> events) async {
     try {
-      await _storage.write(key: _eventsStorageKey, value: json.encode(events));
-      await _storage.write(
-        key: _lastFetchKey,
-        value: DateTime.now().toIso8601String(),
+      await _safeStorageWrite(_eventsStorageKey, json.encode(events));
+      await _safeStorageWrite(
+        _lastFetchKey,
+        DateTime.now().toIso8601String(),
       );
     } catch (e) {
       debugPrint('Error caching events: $e');
@@ -154,13 +172,13 @@ class DataService extends ChangeNotifier {
     List<Map<String, dynamic>> availability,
   ) async {
     try {
-      await _storage.write(
-        key: _availabilityStorageKey,
-        value: json.encode(availability),
+      await _safeStorageWrite(
+        _availabilityStorageKey,
+        json.encode(availability),
       );
-      await _storage.write(
-        key: _lastAvailabilityFetchKey,
-        value: DateTime.now().toIso8601String(),
+      await _safeStorageWrite(
+        _lastAvailabilityFetchKey,
+        DateTime.now().toIso8601String(),
       );
     } catch (e) {
       debugPrint('Error caching availability: $e');
@@ -231,7 +249,7 @@ class DataService extends ChangeNotifier {
 
         // Save server timestamp for next delta sync
         if (serverTimestamp != null) {
-          await _storage.write(key: 'last_sync_events', value: serverTimestamp);
+          await _safeStorageWrite('last_sync_events', serverTimestamp);
         }
 
         if (!silent) {
