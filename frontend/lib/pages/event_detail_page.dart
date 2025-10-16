@@ -319,6 +319,20 @@ class EventDetailPage extends StatelessWidget {
       acceptedEvents,
     );
 
+    final eventStartDateTime =
+        _resolveEventStartDateTime(dateStr, startTimeStr);
+    final now = DateTime.now();
+    final Duration? timeUntilStart = eventStartDateTime != null
+        ? eventStartDateTime.difference(now)
+        : null;
+    final bool hasEventStarted =
+        timeUntilStart != null && timeUntilStart.isNegative;
+    final bool withinLockoutWindow = timeUntilStart != null &&
+        !timeUntilStart.isNegative &&
+        timeUntilStart < const Duration(hours: 72);
+    final bool canRequestCancellation =
+        !showRespondActions && timeUntilStart != null && !withinLockoutWindow && !hasEventStarted;
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
       appBar: AppBar(
@@ -745,7 +759,68 @@ class EventDetailPage extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextButton.icon(
+                      onPressed: canRequestCancellation
+                          ? () => _confirmCancellation(context, theme)
+                          : null,
+                      icon: const Icon(Icons.cancel_schedule_send_outlined, size: 18),
+                      label: const Text('Request cancellation'),
+                      style: ButtonStyle(
+                        alignment: Alignment.centerLeft,
+                        padding: MaterialStateProperty.all(
+                          const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                        ),
+                        foregroundColor: MaterialStateProperty.resolveWith((states) {
+                          if (states.contains(MaterialState.disabled)) {
+                            return theme.colorScheme.onSurface.withOpacity(0.35);
+                          }
+                          if (states.contains(MaterialState.pressed)) {
+                            return theme.colorScheme.onSurface.withOpacity(0.8);
+                          }
+                          return theme.colorScheme.onSurface.withOpacity(0.65);
+                        }),
+                        overlayColor: MaterialStateProperty.all(
+                          theme.colorScheme.primary.withOpacity(0.05),
+                        ),
+                      ),
+                    ),
+                    if (!canRequestCancellation)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          hasEventStarted
+                              ? 'This event has already started.'
+                              : withinLockoutWindow
+                                  ? 'Cancellation requests are unavailable within 72 hours of the start time.'
+                                  : 'Cancellation unavailable. Please contact support.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.55),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            )
         ],
       ),
     );
@@ -878,6 +953,39 @@ class EventDetailPage extends StatelessWidget {
     if (ok) Navigator.of(context).pop(true);
   }
 
+  Future<void> _confirmCancellation(
+    BuildContext context,
+    ThemeData theme,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Request cancellation?'),
+        content: const Text(
+          'We\'ll let the scheduling team know you can no longer make this event.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('KEEP EVENT'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.errorContainer,
+              foregroundColor: theme.colorScheme.onErrorContainer,
+            ),
+            child: const Text('REQUEST CANCELLATION'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _respond(context, theme, 'decline');
+    }
+  }
+
   bool _hasTimeConflictWithAccepted(
     Map<String, dynamic> e,
     List<Map<String, dynamic>> accepted,
@@ -900,6 +1008,21 @@ class EventDetailPage extends StatelessWidget {
       if (_overlaps(start, end, as, ae)) return true;
     }
     return false;
+  }
+
+  DateTime? _resolveEventStartDateTime(
+    String? dateStr,
+    String? startTimeStr,
+  ) {
+    final date = _parseDate(dateStr);
+    if (date == null) return null;
+    final startMinutes = _parseTimeMinutes(startTimeStr);
+    if (startMinutes == null) {
+      return DateTime(date.year, date.month, date.day);
+    }
+    final hour = startMinutes ~/ 60;
+    final minute = startMinutes % 60;
+    return DateTime(date.year, date.month, date.day, hour, minute);
   }
 
   bool _overlaps(int s1, int e1, int s2, int e2) {

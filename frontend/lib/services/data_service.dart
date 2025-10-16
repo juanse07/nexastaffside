@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 /// Enhanced data service with smart caching and efficient refresh mechanisms
 class DataService extends ChangeNotifier {
@@ -21,17 +22,26 @@ class DataService extends ChangeNotifier {
 
   List<Map<String, dynamic>> _events = [];
   List<Map<String, dynamic>> _availability = [];
+  List<Map<String, dynamic>> _eventsRaw = [];
+  List<Map<String, dynamic>> _myTeams = [];
+  List<Map<String, dynamic>> _pendingInvites = [];
+  final Set<String> _teamIds = <String>{};
   bool _isLoading = false;
   bool _isRefreshing = false;
   String? _lastError;
   DateTime? _lastFetch;
   DateTime? _lastAvailabilityFetch;
   Timer? _backgroundRefreshTimer;
+  io.Socket? _socket;
+  bool _connectingSocket = false;
 
   // Getters
   List<Map<String, dynamic>> get events => List.unmodifiable(_events);
   List<Map<String, dynamic>> get availability =>
       List.unmodifiable(_availability);
+  List<Map<String, dynamic>> get teams => List.unmodifiable(_myTeams);
+  List<Map<String, dynamic>> get pendingInvites =>
+      List.unmodifiable(_pendingInvites);
   bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
   String? get lastError => _lastError;
@@ -84,9 +94,15 @@ class DataService extends ChangeNotifier {
     // Always fetch fresh data on startup to ensure sync with server
     // This prevents showing stale cached data when events were deleted
     debugPrint('🌐 Fetching fresh data from server...');
-    await Future.wait([_fetchEvents(silent: true), _fetchAvailability(silent: true)]);
+    await Future.wait([
+      _fetchEvents(silent: true, forceFullSync: true),
+      _fetchAvailability(silent: true),
+      _fetchMyTeams(silent: true),
+      _fetchMyInvites(silent: true),
+    ]);
     notifyListeners();
     debugPrint('✅ DataService initialized with ${_events.length} events');
+    unawaited(_ensureSocketConnected());
   }
 
   /// Safely read from storage with error handling
@@ -113,7 +129,9 @@ class DataService extends ChangeNotifier {
         await _storage.write(key: key, value: value);
         debugPrint('Successfully wrote to storage after clearing');
       } catch (retryError) {
-        debugPrint('Failed to write to storage even after clearing: $retryError');
+        debugPrint(
+          'Failed to write to storage even after clearing: $retryError',
+        );
         // Don't rethrow - continue operation even if storage fails
       }
     }
@@ -127,6 +145,7 @@ class DataService extends ChangeNotifier {
       if (cachedEvents != null) {
         final data = json.decode(cachedEvents) as List<dynamic>;
         _events = data.cast<Map<String, dynamic>>();
+        _eventsRaw = List<Map<String, dynamic>>.from(_events);
       }
 
       // Load last fetch timestamp
@@ -136,14 +155,18 @@ class DataService extends ChangeNotifier {
       }
 
       // Load cached availability
-      final cachedAvailability = await _safeStorageRead(_availabilityStorageKey);
+      final cachedAvailability = await _safeStorageRead(
+        _availabilityStorageKey,
+      );
       if (cachedAvailability != null) {
         final data = json.decode(cachedAvailability) as List<dynamic>;
         _availability = data.cast<Map<String, dynamic>>();
       }
 
       // Load last availability fetch timestamp
-      final lastAvailabilityStr = await _safeStorageRead(_lastAvailabilityFetchKey);
+      final lastAvailabilityStr = await _safeStorageRead(
+        _lastAvailabilityFetchKey,
+      );
       if (lastAvailabilityStr != null) {
         _lastAvailabilityFetch = DateTime.tryParse(lastAvailabilityStr);
       }
@@ -158,10 +181,7 @@ class DataService extends ChangeNotifier {
   Future<void> _cacheEvents(List<Map<String, dynamic>> events) async {
     try {
       await _safeStorageWrite(_eventsStorageKey, json.encode(events));
-      await _safeStorageWrite(
-        _lastFetchKey,
-        DateTime.now().toIso8601String(),
-      );
+      await _safeStorageWrite(_lastFetchKey, DateTime.now().toIso8601String());
     } catch (e) {
       debugPrint('Error caching events: $e');
     }
@@ -186,7 +206,10 @@ class DataService extends ChangeNotifier {
   }
 
   /// Fetch events from server with delta sync support
-  Future<void> _fetchEvents({bool silent = false}) async {
+  Future<void> _fetchEvents({
+    bool silent = false,
+    bool forceFullSync = false,
+  }) async {
     if (!silent) {
       _isLoading = true;
       _lastError = null;
@@ -195,7 +218,13 @@ class DataService extends ChangeNotifier {
 
     try {
       // Build URL with delta sync support
-      final lastSyncTimestamp = await _safeStorageRead('last_sync_events');
+      String? lastSyncTimestamp;
+      if (forceFullSync) {
+        await _storage.delete(key: 'last_sync_events');
+        lastSyncTimestamp = null;
+      } else {
+        lastSyncTimestamp = await _safeStorageRead('last_sync_events');
+      }
       final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/events');
       final uriWithParams = lastSyncTimestamp != null
           ? uri.replace(queryParameters: {'lastSync': lastSyncTimestamp})
@@ -204,16 +233,32 @@ class DataService extends ChangeNotifier {
       final token = await _safeStorageRead('auth_jwt');
       final headers = <String, String>{};
       if (token != null) headers['Authorization'] = 'Bearer $token';
+      final decodedUser = _decodeUserKeyFromToken(token);
+      if (decodedUser != null) headers['x-user-key'] = decodedUser;
+      debugPrint(
+        '🔑 Using auth token: ${token ?? 'none'} (userKey=$decodedUser)',
+      );
 
+      debugPrint(
+        '🌍 Fetching events from ${uriWithParams.toString()} (forceFullSync=$forceFullSync, tokenPresent=${token != null})',
+      );
       final response = await http.get(uriWithParams, headers: headers);
+      debugPrint('📥 Events response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+        final preview = response.body.length > 500
+            ? '${response.body.substring(0, 500)}…'
+            : response.body;
+        debugPrint(
+          '🛰️ Events payload (${response.body.length} bytes): $preview',
+        );
 
         // Handle both legacy (List) and new delta sync (Map) response formats
         List<dynamic> eventsData;
         String? serverTimestamp;
         bool isDeltaSync = false;
+        Set<String> removedEventIds = {};
 
         if (responseData is List) {
           // Legacy format: direct array
@@ -224,25 +269,33 @@ class DataService extends ChangeNotifier {
           eventsData = (responseData['events'] ?? []) as List<dynamic>;
           serverTimestamp = responseData['serverTimestamp'] as String?;
           isDeltaSync = responseData['deltaSync'] == true;
+          removedEventIds = _extractRemovedEventIds(responseData);
         } else {
           throw Exception('Unexpected response format');
         }
 
         final userKey = _decodeUserKeyFromToken(token);
-        final newEvents = _filterEventsForAudience(
-          eventsData.cast<Map<String, dynamic>>(),
-          userKey,
-        );
+        final updatedEvents = eventsData.cast<Map<String, dynamic>>();
 
         // Delta sync: merge changes with existing events
         if (isDeltaSync && lastSyncTimestamp != null) {
-          debugPrint('🔄 Delta sync: ${newEvents.length} changes received');
-          _events = _mergeEvents(_events, newEvents);
+          debugPrint('🔄 Delta sync: ${updatedEvents.length} changes received');
+          _eventsRaw = _mergeEvents(
+            _eventsRaw,
+            updatedEvents,
+            removedEventIds: removedEventIds,
+          );
         } else {
           // Full sync: replace all events
-          debugPrint('🔄 Full sync: ${newEvents.length} events received (replacing ${_events.length} cached)');
-          _events = newEvents;
+          final fullNote = forceFullSync ? ' (forced)' : '';
+          debugPrint(
+            '🔄 Full sync$fullNote: ${updatedEvents.length} events received (replacing ${_eventsRaw.length} cached)',
+          );
+          _eventsRaw = updatedEvents;
         }
+
+        _events = _filterEventsForAudience(_eventsRaw, userKey);
+        unawaited(_ensureSocketConnected());
 
         _lastFetch = DateTime.now();
         await _cacheEvents(_events);
@@ -277,26 +330,232 @@ class DataService extends ChangeNotifier {
   /// Merge changed events with existing events (for delta sync)
   List<Map<String, dynamic>> _mergeEvents(
     List<Map<String, dynamic>> existing,
-    List<Map<String, dynamic>> changes,
-  ) {
-    // Create a map of existing events by ID
+    List<Map<String, dynamic>> changes, {
+    Set<String> removedEventIds = const <String>{},
+  }) {
     final Map<String, Map<String, dynamic>> eventMap = {};
     for (final event in existing) {
-      final id = event['_id'] ?? event['id'];
+      final id = _extractEventId(event);
       if (id != null) {
-        eventMap[id.toString()] = event;
+        eventMap[id] = Map<String, dynamic>.from(event);
       }
     }
 
-    // Apply changes (updates and new inserts)
     for (final change in changes) {
-      final id = change['_id'] ?? change['id'];
-      if (id != null) {
-        eventMap[id.toString()] = change;
+      final id = _extractEventId(change);
+      if (id == null) continue;
+
+      if (removedEventIds.contains(id) || _isEventMarkedDeleted(change)) {
+        eventMap.remove(id);
+        continue;
       }
+
+      final sanitized = Map<String, dynamic>.from(change);
+      sanitized['id'] = id;
+      sanitized.remove('_id');
+      eventMap[id] = sanitized;
     }
+
+    for (final id in removedEventIds) {
+      eventMap.remove(id);
+    }
+
+    eventMap.removeWhere((_, event) => _isEventMarkedDeleted(event));
 
     return eventMap.values.toList();
+  }
+
+  Future<void> _ensureSocketConnected() async {
+    final token = await _safeStorageRead('auth_jwt');
+    if (token == null || token.isEmpty) return;
+    final userKey = _decodeUserKeyFromToken(token);
+    if (userKey == null) return;
+
+    if (_socket != null) {
+      _socket!.emit('register', {
+        'userKey': userKey,
+        'teamIds': _teamIds.toList(),
+      });
+      if (_teamIds.isNotEmpty) {
+        _socket!.emit('joinTeams', _teamIds.toList());
+      }
+      return;
+    }
+    if (_connectingSocket) return;
+    _connectingSocket = true;
+    try {
+      final uri = Uri.parse(_apiBaseUrl);
+      final scheme = uri.scheme.isEmpty ? 'https' : uri.scheme;
+      final host = uri.host.isNotEmpty ? uri.host : uri.path;
+      final port = uri.hasPort ? ':${uri.port}' : '';
+      final origin = '$scheme://$host$port';
+
+      final options = io.OptionBuilder()
+          .setTransports(['websocket'])
+          .setAuth({
+            'token': token,
+            'userKey': userKey,
+            'teamIds': _teamIds.toList(),
+          })
+          .disableAutoConnect()
+          .build();
+
+      final socket = io.io(origin, options);
+
+      void refreshTeams() {
+        unawaited(_fetchMyTeams(silent: true));
+      }
+
+      void refreshInvites() {
+        unawaited(_fetchMyInvites(silent: true));
+      }
+
+      void refreshEvents() {
+        unawaited(_fetchEvents(silent: true));
+      }
+
+      socket.onConnect((_) {
+        socket.emit('register', {
+          'userKey': userKey,
+          'teamIds': _teamIds.toList(),
+        });
+        if (_teamIds.isNotEmpty) {
+          socket.emit('joinTeams', _teamIds.toList());
+        }
+      });
+
+      socket.on('team:memberAdded', (_) => refreshTeams());
+      socket.on('team:memberRemoved', (_) => refreshTeams());
+      socket.on('team:created', (_) => refreshTeams());
+      socket.on('team:deleted', (_) => refreshTeams());
+      socket.on('team:updated', (_) => refreshTeams());
+
+      socket.on('team:invitesCreated', (_) => refreshInvites());
+      socket.on('team:inviteReceived', (_) => refreshInvites());
+      socket.on('team:inviteCancelled', (_) => refreshInvites());
+      socket.on('team:inviteAccepted', (_) => refreshTeams());
+      socket.on('team:inviteDeclined', (_) => refreshInvites());
+
+      socket.on('event:created', (_) => refreshEvents());
+      socket.on('event:updated', (_) => refreshEvents());
+
+      socket.connect();
+      _socket = socket;
+    } finally {
+      _connectingSocket = false;
+    }
+  }
+
+  Set<String> _extractRemovedEventIds(Map<String, dynamic> payload) {
+    final result = <String>{};
+
+    void addId(dynamic raw) {
+      if (raw == null) return;
+      final id = raw.toString();
+      if (id.isNotEmpty) {
+        result.add(id);
+      }
+    }
+
+    const candidateKeys = [
+      'removedEventIds',
+      'deletedEventIds',
+      'removedIds',
+      'deletedIds',
+      'tombstoneIds',
+    ];
+
+    for (final key in candidateKeys) {
+      final value = payload[key];
+      if (value is List) {
+        for (final item in value) {
+          addId(item);
+        }
+      } else if (value != null && key == 'removedEventIds' && value is String) {
+        addId(value);
+      }
+    }
+
+    final deletedEntries = payload['deletedEvents'] ?? payload['removedEvents'];
+    if (deletedEntries is List) {
+      for (final entry in deletedEntries) {
+        if (entry is Map<String, dynamic>) {
+          final id = entry['_id'] ?? entry['id'];
+          if (id != null) {
+            addId(id);
+          }
+        } else {
+          addId(entry);
+        }
+      }
+    } else if (deletedEntries is Map<String, dynamic>) {
+      addId(deletedEntries['_id'] ?? deletedEntries['id']);
+    }
+
+    final tombstones = payload['tombstones'];
+    if (tombstones is List) {
+      for (final entry in tombstones) {
+        if (entry is Map<String, dynamic>) {
+          final id = entry['_id'] ?? entry['id'];
+          final deleted =
+              entry['deleted'] == true ||
+              entry['isDeleted'] == true ||
+              entry['tombstone'] == true ||
+              entry['__tombstone__'] == true ||
+              entry.containsKey('deletedAt') ||
+              entry.containsKey('deleted_at');
+          if (id != null && deleted) {
+            addId(id);
+          }
+        } else {
+          addId(entry);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  String? _extractEventId(Map<String, dynamic> event) {
+    final id = event['id'] ?? event['_id'];
+    if (id == null) return null;
+    final idStr = id.toString();
+    return idStr.isEmpty ? null : idStr;
+  }
+
+  bool _isEventMarkedDeleted(Map<String, dynamic> event) {
+    bool isTruthy(dynamic value) {
+      if (value == null) return false;
+      if (value is bool) return value;
+      if (value is num) return value != 0;
+      if (value is DateTime) return true;
+      final str = value.toString().trim().toLowerCase();
+      if (str.isEmpty) return false;
+      if (str == 'false' || str == '0' || str == 'null') return false;
+      if (DateTime.tryParse(value.toString()) != null) return true;
+      return true;
+    }
+
+    bool flagTrue(String key) => isTruthy(event[key]);
+
+    final status = event['status']?.toString().toLowerCase();
+    final tombstone =
+        isTruthy(event['tombstone']) ||
+        isTruthy(event['__tombstone__']) ||
+        isTruthy(event['isTombstone']);
+    final hasDeletedTimestamp =
+        (event.containsKey('deletedAt') && event['deletedAt'] != null) ||
+        (event.containsKey('deleted_at') && event['deleted_at'] != null);
+
+    return flagTrue('deleted') ||
+        flagTrue('_deleted') ||
+        flagTrue('isDeleted') ||
+        flagTrue('is_deleted') ||
+        flagTrue('removed') ||
+        flagTrue('isRemoved') ||
+        tombstone ||
+        hasDeletedTimestamp ||
+        (status == 'deleted');
   }
 
   /// Fetch availability from server with JWT token
@@ -328,6 +587,79 @@ class DataService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error fetching availability: $e');
+    }
+  }
+
+  void _updateTeamIds() {
+    _teamIds
+      ..clear()
+      ..addAll(
+        _myTeams
+            .map((team) => team['teamId']?.toString() ?? '')
+            .where((id) => id.isNotEmpty),
+      );
+    unawaited(_ensureSocketConnected());
+  }
+
+  Future<void> _fetchMyTeams({bool silent = false}) async {
+    final token = await _safeStorageRead('auth_jwt');
+    if (token == null || token.isEmpty) return;
+    final userKey = _decodeUserKeyFromToken(token);
+    final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/teams/my');
+    final headers = <String, String>{'Authorization': 'Bearer $token'};
+    if (userKey != null) headers['x-user-key'] = userKey;
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = json.decode(response.body) as Map<String, dynamic>;
+        final teamsRaw = decoded['teams'] as List? ?? const [];
+        _myTeams = teamsRaw
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList(growable: false);
+        _updateTeamIds();
+        final token = await _safeStorageRead('auth_jwt');
+        _events = _filterEventsForAudience(
+          _eventsRaw,
+          _decodeUserKeyFromToken(token),
+        );
+        notifyListeners();
+      } else {
+        debugPrint(
+          'Failed to fetch teams: ${response.statusCode} ${response.body}',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching teams: $e');
+    }
+  }
+
+  Future<void> _fetchMyInvites({bool silent = false}) async {
+    final token = await _safeStorageRead('auth_jwt');
+    if (token == null || token.isEmpty) return;
+    final userKey = _decodeUserKeyFromToken(token);
+    final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/teams/my/invites');
+    final headers = <String, String>{'Authorization': 'Bearer $token'};
+    if (userKey != null) headers['x-user-key'] = userKey;
+
+    try {
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = json.decode(response.body) as Map<String, dynamic>;
+        final invitesRaw = decoded['invites'] as List? ?? const [];
+        _pendingInvites = invitesRaw
+            .whereType<Map>()
+            .map((e) => e.cast<String, dynamic>())
+            .toList(growable: false);
+        notifyListeners();
+      } else {
+        debugPrint(
+          'Failed to fetch invites: ${response.statusCode} ${response.body}',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching invites: $e');
     }
   }
 
@@ -372,24 +704,63 @@ class DataService extends ChangeNotifier {
     List<Map<String, dynamic>> events,
     String? userKey,
   ) {
-    return events.map((evt) {
+    final List<Map<String, dynamic>> filtered = [];
+
+    for (final evt in events) {
       final roles = (evt['roles'] as List<dynamic>? ?? [])
           .cast<Map<String, dynamic>>();
-      final audience = (evt['audience_user_keys'] as List<dynamic>? ?? [])
+      final audienceUsers = (evt['audience_user_keys'] as List<dynamic>? ?? [])
           .map((e) => e.toString())
+          .where((value) => value.isNotEmpty)
           .toList();
-      if (audience.isEmpty) {
-        return {...evt, 'roles': roles};
+      final audienceTeams = (evt['audience_team_ids'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .where((value) => value.isNotEmpty)
+          .toList();
+
+      final accepted = (evt['accepted_staff'] as List<dynamic>? ?? []);
+      var isAccepted = false;
+      if (userKey != null) {
+        for (final entry in accepted) {
+          if (entry is String && entry == userKey) {
+            isAccepted = true;
+            break;
+          }
+          if (entry is Map<String, dynamic>) {
+            final key = entry['userKey']?.toString();
+            if (key != null && key == userKey) {
+              isAccepted = true;
+              break;
+            }
+          }
+        }
       }
-      final filteredRoles = roles.where((r) {
+
+      final isGlobalAudience = audienceUsers.isEmpty && audienceTeams.isEmpty;
+      final bool inAudienceUsers =
+          userKey != null && audienceUsers.contains(userKey);
+      final bool inAudienceTeams = audienceTeams.any(_teamIds.contains);
+
+      final filteredRoles = roles.where((role) {
+        if (isGlobalAudience) return true;
         final visibleAll =
-            (r['visible_for_all'] == true) || (r['visibleForAll'] == true);
+            (role['visible_for_all'] == true) ||
+            (role['visibleForAll'] == true);
         if (visibleAll) return true;
-        if (userKey == null) return false;
-        return audience.contains(userKey);
+        if (isAccepted) return true;
+        if (inAudienceUsers) return true;
+        if (inAudienceTeams) return true;
+        return false;
       }).toList();
-      return {...evt, 'roles': filteredRoles};
-    }).toList();
+
+      if (filteredRoles.isEmpty && !isGlobalAudience && !isAccepted) {
+        continue;
+      }
+
+      filtered.add({...evt, 'roles': filteredRoles});
+    }
+
+    return filtered;
   }
 
   /// Smart refresh - only fetches if data is stale
@@ -400,6 +771,8 @@ class DataService extends ChangeNotifier {
     if (!isAvailabilityFresh) {
       await _fetchAvailability();
     }
+    await _fetchMyTeams(silent: true);
+    await _fetchMyInvites(silent: true);
   }
 
   /// Manual refresh - always fetches fresh data (for pull-to-refresh)
@@ -408,10 +781,63 @@ class DataService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Future.wait([_fetchEvents(), _fetchAvailability()]);
+      await Future.wait([
+        _fetchEvents(forceFullSync: true),
+        _fetchAvailability(),
+        _fetchMyTeams(silent: true),
+        _fetchMyInvites(silent: true),
+      ]);
     } finally {
       _isRefreshing = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> refreshTeamsAndInvites() async {
+    await Future.wait([_fetchMyTeams(), _fetchMyInvites()]);
+  }
+
+  Future<void> acceptInvite(String inviteToken) async {
+    final token = await _safeStorageRead('auth_jwt');
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated');
+    }
+    final userKey = _decodeUserKeyFromToken(token);
+    final headers = <String, String>{'Authorization': 'Bearer $token'};
+    if (userKey != null) headers['x-user-key'] = userKey;
+    final uri = Uri.parse(
+      '$_apiBaseUrl$_apiPathPrefix/invites/$inviteToken/accept',
+    );
+
+    final response = await http.post(uri, headers: headers);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      await _fetchMyInvites(silent: true);
+      await _fetchMyTeams(silent: true);
+      await _fetchEvents(silent: true, forceFullSync: true);
+      notifyListeners();
+    } else {
+      throw Exception('Failed to accept invite (${response.statusCode})');
+    }
+  }
+
+  Future<void> declineInvite(String inviteToken) async {
+    final token = await _safeStorageRead('auth_jwt');
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated');
+    }
+    final userKey = _decodeUserKeyFromToken(token);
+    final headers = <String, String>{'Authorization': 'Bearer $token'};
+    if (userKey != null) headers['x-user-key'] = userKey;
+    final uri = Uri.parse(
+      '$_apiBaseUrl$_apiPathPrefix/invites/$inviteToken/decline',
+    );
+
+    final response = await http.post(uri, headers: headers);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      await _fetchMyInvites(silent: true);
+      notifyListeners();
+    } else {
+      throw Exception('Failed to decline invite (${response.statusCode})');
     }
   }
 
@@ -480,6 +906,7 @@ class DataService extends ChangeNotifier {
   @override
   void dispose() {
     _backgroundRefreshTimer?.cancel();
+    _socket?.dispose();
     super.dispose();
   }
 
