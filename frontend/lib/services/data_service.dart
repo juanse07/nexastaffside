@@ -8,6 +8,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+import 'chat_service.dart';
+
 /// Enhanced data service with smart caching and efficient refresh mechanisms
 class DataService extends ChangeNotifier {
   static const String _eventsStorageKey = 'cached_events';
@@ -438,6 +440,20 @@ class DataService extends ChangeNotifier {
 
       socket.on('event:created', (_) => refreshEvents());
       socket.on('event:updated', (_) => refreshEvents());
+
+      // Chat message listener
+      socket.on('chat:message', (data) {
+        debugPrint('[SOCKET] Received chat:message event: $data');
+        if (data != null && data is Map<String, dynamic>) {
+          // Forward to ChatService
+          try {
+            final chatService = ChatService();
+            chatService.handleIncomingMessage(data);
+          } catch (e) {
+            debugPrint('[SOCKET] Error handling chat message: $e');
+          }
+        }
+      });
 
       socket.connect();
       _socket = socket;
