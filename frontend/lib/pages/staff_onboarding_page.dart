@@ -176,7 +176,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
 
   bool _saving = false;
   String? _error;
-  int _selectedDefaultTab = 0; // 0=Clock In, 1=Roles, 2=Earnings, 3=Team Center
+  int _selectedDefaultTab = 0; // 0=Clock In, 1=Roles, 2=Earnings, 3=Chat
 
   @override
   void initState() {
@@ -449,7 +449,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                             },
                           ),
                           ChoiceChip(
-                            label: const Text('Team Center'),
+                            label: const Text('Chat'),
                             selected: _selectedDefaultTab == 3,
                             onSelected: (selected) {
                               if (selected) {
