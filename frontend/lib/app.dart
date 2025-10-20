@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'pages/root_page.dart';
+import 'pages/staff_onboarding_page.dart';
 import 'login_page.dart';
 
 class MyApp extends StatelessWidget {
@@ -71,7 +71,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       routes: {
-        '/': (_) => const RootPage(),
+        '/': (_) => const StaffOnboardingGate(),
         '/login': (_) => const LoginPage(),
       },
       initialRoute: '/',

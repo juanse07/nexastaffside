@@ -11,6 +11,7 @@ class UserProfilePage extends StatefulWidget {
 class _UserProfilePageState extends State<UserProfilePage> {
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _appIdCtrl = TextEditingController();
   final _pictureCtrl = TextEditingController();
 
@@ -30,6 +31,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       setState(() {
         _firstNameCtrl.text = me.firstName ?? '';
         _lastNameCtrl.text = me.lastName ?? '';
+        _phoneCtrl.text = me.phoneNumber ?? '';
         _appIdCtrl.text = me.appId ?? '';
         _pictureCtrl.text = me.picture ?? '';
         _loading = false;
@@ -55,6 +57,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
         lastName: _lastNameCtrl.text.trim().isEmpty
             ? null
             : _lastNameCtrl.text.trim(),
+        phoneNumber: _phoneCtrl.text.trim().isEmpty
+            ? null
+            : _phoneCtrl.text.trim(),
         appId:
             _appIdCtrl.text.trim().isEmpty ? null : _appIdCtrl.text.trim(),
         picture: _pictureCtrl.text.trim().isEmpty
@@ -80,6 +85,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void dispose() {
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
+    _phoneCtrl.dispose();
     _appIdCtrl.dispose();
     _pictureCtrl.dispose();
     super.dispose();
@@ -126,6 +132,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   TextField(
                     controller: _lastNameCtrl,
                     decoration: const InputDecoration(labelText: 'Last name'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _phoneCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone number',
+                      hintText: '(555) 123-4567',
+                      helperText: 'US format only',
+                    ),
+                    keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 12),
                   TextField(

@@ -15,6 +15,7 @@ class UserProfile {
   final String? name;
   final String? picture;
   final String? appId;
+  final String? phoneNumber;
 
   UserProfile({
     this.id,
@@ -24,17 +25,19 @@ class UserProfile {
     this.name,
     this.picture,
     this.appId,
+    this.phoneNumber,
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
       id: map['id']?.toString(),
       email: map['email']?.toString(),
-      firstName: map['first_name']?.toString(),
-      lastName: map['last_name']?.toString(),
+      firstName: map['firstName']?.toString(),
+      lastName: map['lastName']?.toString(),
       name: map['name']?.toString(),
       picture: map['picture']?.toString(),
-      appId: map['app_id']?.toString(),
+      appId: map['appId']?.toString(),
+      phoneNumber: map['phoneNumber']?.toString(),
     );
   }
 }
@@ -131,6 +134,7 @@ class UserService {
   static Future<UserProfile> updateMe({
     String? firstName,
     String? lastName,
+    String? phoneNumber,
     String? appId,
     String? picture,
   }) async {
@@ -140,9 +144,10 @@ class UserService {
     }
 
     final payload = <String, dynamic>{};
-    if (firstName != null) payload['first_name'] = firstName;
-    if (lastName != null) payload['last_name'] = lastName;
-    if (appId != null) payload['app_id'] = appId;
+    if (firstName != null) payload['firstName'] = firstName;
+    if (lastName != null) payload['lastName'] = lastName;
+    if (phoneNumber != null) payload['phoneNumber'] = phoneNumber;
+    if (appId != null) payload['appId'] = appId;
     if (picture != null) payload['picture'] = picture;
 
     final resp = await _makeRequest(

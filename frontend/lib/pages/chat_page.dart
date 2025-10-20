@@ -5,6 +5,11 @@ import 'package:intl/intl.dart';
 
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
+import '../services/data_service.dart';
+import '../widgets/event_invitation_card.dart';
+
+// Global cache to persist event data across widget rebuilds
+final Map<String, Map<String, dynamic>> _globalEventCache = {};
 
 class ChatPage extends StatefulWidget {
   const ChatPage({
@@ -107,14 +112,19 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _scrollToBottom() {
+  void _scrollToBottom({bool animated = true}) {
+    // With reverse: true, we scroll to 0 to reach the bottom
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        if (animated) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+          );
+        } else {
+          _scrollController.jumpTo(0);
+        }
       }
     });
   }
@@ -168,37 +178,141 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: <Widget>[
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-              backgroundImage: widget.managerPicture != null
-                  ? NetworkImage(widget.managerPicture!)
-                  : null,
-              child: widget.managerPicture == null
-                  ? Text(
-                      _getInitials(widget.managerName),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    )
-                  : null,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(65),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF7C3AED), // Purple 600
+                Color(0xFF6366F1), // Indigo 500
+                Color(0xFF8B5CF6), // Purple 500
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                widget.managerName,
-                style: const TextStyle(fontSize: 16),
-                overflow: TextOverflow.ellipsis,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7C3AED).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Decorative shadow shapes
+              Positioned(
+                top: -20,
+                right: -40,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -30,
+                left: -20,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              // AppBar content
+              AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: Container(
+                  margin: const EdgeInsets.only(left: 4),
+                  child: IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                title: Row(
+                  children: <Widget>[
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundImage: widget.managerPicture != null
+                            ? NetworkImage(widget.managerPicture!)
+                            : null,
+                        child: widget.managerPicture == null
+                            ? Text(
+                                _getInitials(widget.managerName),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.managerName,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black26,
+                              offset: Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        elevation: 1,
       ),
       body: Column(
         children: <Widget>[
@@ -259,21 +373,33 @@ class _ChatPageState extends State<ChatPage> {
       onRefresh: _loadMessages,
       child: ListView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.all(16),
+        reverse: true, // This makes latest messages stay at bottom
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _messages.length,
         itemBuilder: (context, index) {
-          final message = _messages[index];
+          // Reverse the index since we're using reverse: true
+          final reversedIndex = _messages.length - 1 - index;
+          final message = _messages[reversedIndex];
           final isMe = message.senderType == SenderType.user;
-          final showDate = index == 0 ||
-              !_isSameDay(_messages[index - 1].createdAt, message.createdAt);
+
+          // Check if we should show date (compare with next message in original order)
+          final showDate = reversedIndex == 0 ||
+              !_isSameDay(_messages[reversedIndex - 1].createdAt, message.createdAt);
 
           return Column(
+            key: ValueKey(message.id), // Prevent unnecessary rebuilds
             children: <Widget>[
+              // Check if it's an invitation card or regular message
+              message.messageType == 'eventInvitation'
+                  ? _buildInvitationCard(message)
+                  : _MessageBubble(
+                      key: ValueKey('bubble_${message.id}'),
+                      message: message,
+                      isMe: isMe,
+                    ),
+              // Add small spacing between messages
+              const SizedBox(height: 4),
               if (showDate) _buildDateDivider(message.createdAt),
-              _MessageBubble(
-                message: message,
-                isMe: isMe,
-              ),
             ],
           );
         },
@@ -322,6 +448,248 @@ class _ChatPageState extends State<ChatPage> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  Widget _buildInvitationCard(ChatMessage message) {
+    final metadata = message.metadata ?? {};
+    final eventId = metadata['eventId'] as String?;
+    final roleId = metadata['roleId'] as String?;
+    final status = metadata['status'] as String?;
+    final respondedAt = metadata['respondedAt'] != null
+        ? DateTime.parse(metadata['respondedAt'] as String)
+        : null;
+
+    debugPrint('[INVITATION_ANALYTICS] invitation_card_displayed');
+    debugPrint('[INVITATION_ANALYTICS] messageId: ${message.id}');
+    debugPrint('[INVITATION_ANALYTICS] eventId: $eventId');
+    debugPrint('[INVITATION_ANALYTICS] roleId: $roleId');
+    debugPrint('[INVITATION_ANALYTICS] status: $status');
+    debugPrint('[INVITATION_ANALYTICS] userRole: staff');
+
+    if (eventId == null || roleId == null) {
+      debugPrint('[INVITATION_ANALYTICS] invitation_card_error: missing eventId or roleId');
+      return const SizedBox.shrink();
+    }
+
+    // Check cache first
+    if (_globalEventCache.containsKey(message.id)) {
+      return _buildInvitationCardWidget(
+        _globalEventCache[message.id]!,
+        roleId,
+        status,
+        respondedAt,
+        message,
+        eventId,
+      );
+    }
+
+    // Fetch event data using the new invitation endpoint only if not cached
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _chatService.fetchInvitationEvent(message.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          debugPrint('[INVITATION_ANALYTICS] invitation_card_error: event not found');
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Event not found'),
+          );
+        }
+
+        final eventData = snapshot.data!;
+
+        // Cache the result
+        _globalEventCache[message.id] = eventData;
+
+        return _buildInvitationCardWidget(
+          eventData,
+          roleId,
+          status,
+          respondedAt,
+          message,
+          eventId,
+        );
+      },
+    );
+  }
+
+  Widget _buildInvitationCardWidget(
+    Map<String, dynamic> eventData,
+    String roleId,
+    String? status,
+    DateTime? respondedAt,
+    ChatMessage message,
+    String eventId,
+  ) {
+    final roles = eventData['roles'] as List<dynamic>? ?? [];
+    final role = roles.cast<Map<String, dynamic>>().firstWhere(
+      (r) => (r['_id'] ?? r['role_id'] ?? r['role']) == roleId,
+      orElse: () => <String, dynamic>{},
+    );
+
+    final eventName = eventData['title'] as String? ?? eventData['event_name'] as String? ?? 'Event';
+    final roleName = role['role_name'] as String? ?? role['role'] as String? ?? 'Role';
+    final clientName = eventData['client_name'] as String? ?? 'Client';
+    final venueName = eventData['venue_name'] as String? ?? eventData['venue_address'] as String?;
+    final rate = role['rate'] as num? ?? (role['tariff'] as Map<String, dynamic>?)?['rate'] as num?;
+    final startDateStr = eventData['start_date'] as String? ?? eventData['date'] as String?;
+    final startDate = startDateStr != null
+        ? DateTime.parse(startDateStr)
+        : DateTime.now();
+    final endDate = eventData['end_date'] != null
+        ? DateTime.parse(eventData['end_date'] as String)
+        : startDate.add(const Duration(hours: 4));
+
+    debugPrint('[INVITATION_ANALYTICS] invitation_card_loaded successfully');
+    debugPrint('[INVITATION_ANALYTICS] eventName: $eventName');
+    debugPrint('[INVITATION_ANALYTICS] roleName: $roleName');
+    debugPrint('[INVITATION_ANALYTICS] venueName: $venueName');
+
+    return EventInvitationCard(
+      key: ValueKey('invitation_${message.id}'),
+      eventName: eventName,
+      roleName: roleName,
+      clientName: clientName,
+      startDate: startDate,
+      endDate: endDate,
+      venueName: venueName,
+      rate: rate?.toDouble(),
+      status: status,
+      respondedAt: respondedAt,
+      onAccept: status == null || status == 'pending'
+          ? () => _handleInvitationResponse(message, eventId, roleId, true)
+          : null,
+      onDecline: status == null || status == 'pending'
+          ? () => _showDeclineConfirmation(message, eventId, roleId)
+          : null,
+    );
+  }
+
+  Future<void> _showDeclineConfirmation(
+    ChatMessage message,
+    String eventId,
+    String roleId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Decline Invitation?'),
+        content: const Text(
+          'Are you sure you want to decline this event invitation? '
+          'The manager will be notified.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.grey.shade700,
+            ),
+            child: const Text('Decline'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _handleInvitationResponse(message, eventId, roleId, false);
+    }
+  }
+
+  Future<void> _handleInvitationResponse(
+    ChatMessage message,
+    String eventId,
+    String roleId,
+    bool accept,
+  ) async {
+    final startTime = DateTime.now();
+    final sentAt = message.createdAt;
+    final responseTimeMinutes = startTime.difference(sentAt).inMinutes;
+
+    debugPrint('[INVITATION_ANALYTICS] invitation_responded event started');
+    debugPrint('[INVITATION_ANALYTICS] messageId: ${message.id}');
+    debugPrint('[INVITATION_ANALYTICS] eventId: $eventId');
+    debugPrint('[INVITATION_ANALYTICS] roleId: $roleId');
+    debugPrint('[INVITATION_ANALYTICS] accept: $accept');
+    debugPrint('[INVITATION_ANALYTICS] responseTimeMinutes: $responseTimeMinutes');
+    debugPrint('[INVITATION_ANALYTICS] managerId: ${widget.managerId}');
+
+    try {
+      await _chatService.respondToInvitation(
+        messageId: message.id,
+        eventId: eventId,
+        roleId: roleId,
+        accept: accept,
+      );
+
+      final duration = DateTime.now().difference(startTime);
+      debugPrint('[INVITATION_ANALYTICS] invitation_responded success');
+      debugPrint('[INVITATION_ANALYTICS] apiCallDuration: ${duration.inMilliseconds}ms');
+      debugPrint('[INVITATION_ANALYTICS] accepted: $accept');
+
+      // Update the message locally to reflect the response
+      final index = _messages.indexWhere((m) => m.id == message.id);
+      if (index != -1 && mounted) {
+        setState(() {
+          // The backend will update the message and send it via socket
+          // For now, we'll wait for the socket update
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(accept ? 'Invitation accepted!' : 'Invitation declined'),
+            backgroundColor: accept ? Colors.green : Colors.grey.shade600,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // Reload messages to get updated status
+      await _loadMessages();
+
+      // Refresh events and availability to update Available Roles and My Events
+      if (accept) {
+        debugPrint('[INVITATION_ANALYTICS] refreshing events after accept');
+        try {
+          final dataService = DataService();
+          await dataService.forceRefresh();
+          debugPrint('[INVITATION_ANALYTICS] events refreshed successfully');
+        } catch (refreshError) {
+          debugPrint('[INVITATION_ANALYTICS] error refreshing events: $refreshError');
+          // Don't fail the whole operation if refresh fails
+        }
+      }
+    } catch (e) {
+      final duration = DateTime.now().difference(startTime);
+      debugPrint('[INVITATION_ANALYTICS] invitation_error');
+      debugPrint('[INVITATION_ANALYTICS] error: $e');
+      debugPrint('[INVITATION_ANALYTICS] messageId: ${message.id}');
+      debugPrint('[INVITATION_ANALYTICS] eventId: $eventId');
+      debugPrint('[INVITATION_ANALYTICS] step: respond');
+      debugPrint('[INVITATION_ANALYTICS] duration: ${duration.inMilliseconds}ms');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to respond: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildMessageInput() {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -363,21 +731,45 @@ class _ChatPageState extends State<ChatPage> {
             const SizedBox(width: 8),
             Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF7C3AED), // Light purple
+                    Color(0xFF6366F1), // Medium purple
+                    Color(0xFF4F46E5), // Darker purple
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
-              child: IconButton(
-                icon: _sending
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Icon(Icons.send, color: Colors.white),
-                onPressed: _sending ? null : _sendMessage,
+              child: Material(
+                color: Colors.transparent,
+                child: IconButton(
+                  icon: _sending
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.send, color: Color(0xFFB8860B), size: 22),
+                  onPressed: _sending ? null : _sendMessage,
+                ),
               ),
             ),
           ],
@@ -398,6 +790,7 @@ class _ChatPageState extends State<ChatPage> {
 
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
+    super.key,
     required this.message,
     required this.isMe,
   });
@@ -408,82 +801,95 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxBubbleWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.75;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: <Widget>[
-          if (!isMe) ...<Widget>[
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: theme.primaryColor.withOpacity(0.1),
-              backgroundImage: message.senderPicture != null
-                  ? NetworkImage(message.senderPicture!)
-                  : null,
-              child: message.senderPicture == null
-                  ? Text(
-                      (message.senderName ?? '?')[0].toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: theme.primaryColor,
-                        fontWeight: FontWeight.w600,
+    return Align(
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: screenWidth > 900 ? 800 : screenWidth,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+          child: Row(
+            mainAxisAlignment:
+                isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              if (!isMe) ...<Widget>[
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: theme.primaryColor.withOpacity(0.1),
+                  backgroundImage: message.senderPicture != null
+                      ? NetworkImage(message.senderPicture!)
+                      : null,
+                  child: message.senderPicture == null
+                      ? Text(
+                          (message.senderName ?? '?')[0].toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isMe ? theme.primaryColor : Colors.grey[200],
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(20),
+                        topRight: const Radius.circular(20),
+                        bottomLeft: Radius.circular(isMe ? 20 : 4),
+                        bottomRight: Radius.circular(isMe ? 4 : 20),
                       ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isMe ? theme.primaryColor : Colors.grey[200],
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isMe ? 20 : 4),
-                  bottomRight: Radius.circular(isMe ? 4 : 20),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        if (!isMe && message.senderName != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              message.senderName!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        Text(
+                          message.message,
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: isMe ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat('h:mm a').format(message.createdAt),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isMe ? Colors.white70 : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  if (!isMe && message.senderName != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: Text(
-                        message.senderName!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                  Text(
-                    message.message,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: isMe ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat('h:mm a').format(message.createdAt),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isMe ? Colors.white70 : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+              if (isMe) const SizedBox(width: 8),
+            ],
           ),
-          if (isMe) const SizedBox(width: 8),
-        ],
+        ),
       ),
     );
   }

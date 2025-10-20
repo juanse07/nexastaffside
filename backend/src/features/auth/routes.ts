@@ -40,6 +40,8 @@ async function upsertUser(profile: VerifiedProfile) {
   const client = await getMongoClient();
   const users = client.db().collection('users');
   const filter = { provider: profile.provider, subject: profile.subject };
+
+  // Only update OAuth fields, preserve profile fields (first_name, last_name, phone_number, app_id)
   const update = {
     $set: {
       provider: profile.provider,
@@ -49,7 +51,13 @@ async function upsertUser(profile: VerifiedProfile) {
       picture: profile.picture,
       updatedAt: new Date(),
     },
-    $setOnInsert: { createdAt: new Date() },
+    $setOnInsert: {
+      createdAt: new Date(),
+      first_name: null,
+      last_name: null,
+      phone_number: null,
+      app_id: null,
+    },
   };
   await users.updateOne(filter, update, { upsert: true });
 }

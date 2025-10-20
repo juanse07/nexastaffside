@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:ui' show ImageFilter;
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
@@ -21,9 +23,9 @@ import 'event_detail_page.dart';
 import 'past_events_page.dart';
 import 'user_profile_page.dart';
 import 'team_center_page.dart';
-import 'team_center_page.dart';
+import 'conversations_page.dart';
 
-enum _AccountMenuAction { profile, logout }
+enum _AccountMenuAction { profile, teams, settings, logout }
 
 List<Uri> _mapUriCandidates(String raw) {
   final trimmed = raw.trim();
@@ -278,6 +280,17 @@ class _RootPageState extends State<RootPage> {
   void initState() {
     super.initState();
     _ensureSignedIn();
+    _loadDefaultTab();
+  }
+
+  Future<void> _loadDefaultTab() async {
+    final prefs = await SharedPreferences.getInstance();
+    final defaultTab = prefs.getInt('default_tab') ?? 0;
+    if (mounted) {
+      setState(() {
+        _selectedBottomIndex = defaultTab;
+      });
+    }
   }
 
   Future<void> _ensureSignedIn() async {
@@ -563,25 +576,29 @@ class _RootPageState extends State<RootPage> {
           body: IndexedStack(
             index: _selectedBottomIndex,
             children: [
-              _HomeTab(
-                events: dataService.events,
-                userKey: _userKey,
-                loading: dataService.isLoading,
-                profileMenu: _buildProfileMenu(context),
-                isRefreshing: dataService.isRefreshing,
-                countdownText: _getSmartCountdownText(),
-              ),
+              ConversationsPage(
+                profileMenu: _buildProfileMenu(context, pendingInvites),
+              ), // Chats tab (index 0) - Now default/first
               _RolesSection(
                 events: dataService.events,
                 userKey: _userKey,
                 loading: dataService.isLoading,
                 availability: dataService.availability,
+                profileMenu: _buildProfileMenu(context, pendingInvites),
               ),
-              const TeamCenterPage(),
               _EarningsTab(
                 events: dataService.events,
                 userKey: _userKey,
                 loading: dataService.isLoading,
+                profileMenu: _buildProfileMenu(context, pendingInvites),
+              ),
+              _HomeTab(
+                events: dataService.events,
+                userKey: _userKey,
+                loading: dataService.isLoading,
+                profileMenu: _buildProfileMenu(context, pendingInvites),
+                isRefreshing: dataService.isRefreshing,
+                countdownText: _getSmartCountdownText(),
               ),
             ],
           ),
@@ -610,9 +627,9 @@ class _RootPageState extends State<RootPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildNavItem(
-                      icon: Icons.home_outlined,
-                      selectedIcon: Icons.home,
-                      label: 'Home',
+                      icon: Icons.chat_bubble_outline,
+                      selectedIcon: Icons.chat_bubble,
+                      label: 'Chats',
                       index: 0,
                     ),
                     _buildNavItem(
@@ -622,16 +639,15 @@ class _RootPageState extends State<RootPage> {
                       index: 1,
                     ),
                     _buildNavItem(
-                      icon: Icons.groups_outlined,
-                      selectedIcon: Icons.groups,
-                      label: 'Teams',
-                      index: 2,
-                      badgeCount: pendingInvites,
-                    ),
-                    _buildNavItem(
                       icon: Icons.account_balance_wallet_outlined,
                       selectedIcon: Icons.account_balance_wallet,
                       label: 'Earnings',
+                      index: 2,
+                    ),
+                    _buildNavItem(
+                      icon: Icons.access_time_outlined,
+                      selectedIcon: Icons.access_time,
+                      label: 'Clock In',
                       index: 3,
                     ),
                   ],
@@ -818,7 +834,7 @@ class _RootPageState extends State<RootPage> {
     return false;
   }
 
-  Widget _buildProfileMenu(BuildContext context) {
+  Widget _buildProfileMenu(BuildContext context, int pendingInvites) {
     return PopupMenuButton<_AccountMenuAction>(
       tooltip: 'Account',
       onSelected: (value) async {
@@ -828,6 +844,14 @@ class _RootPageState extends State<RootPage> {
               MaterialPageRoute(builder: (context) => const UserProfilePage()),
             );
             await _loadUserProfile();
+            break;
+          case _AccountMenuAction.teams:
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const TeamCenterPage()),
+            );
+            break;
+          case _AccountMenuAction.settings:
+            _showDefaultTabSettings();
             break;
           case _AccountMenuAction.logout:
             _signOut();
@@ -845,6 +869,50 @@ class _RootPageState extends State<RootPage> {
               ),
               const SizedBox(width: 12),
               const Text('My Profile'),
+            ],
+          ),
+        ),
+        PopupMenuItem<_AccountMenuAction>(
+          value: _AccountMenuAction.teams,
+          child: Row(
+            children: [
+              Icon(
+                Icons.groups_outlined,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              const SizedBox(width: 12),
+              const Text('Teams'),
+              if (pendingInvites > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$pendingInvites',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        PopupMenuItem<_AccountMenuAction>(
+          value: _AccountMenuAction.settings,
+          child: Row(
+            children: [
+              Icon(
+                Icons.settings_outlined,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              const SizedBox(width: 12),
+              const Text('Settings'),
             ],
           ),
         ),
@@ -877,6 +945,122 @@ class _RootPageState extends State<RootPage> {
                 ),
               )
             : const Icon(Icons.account_circle, size: 28, color: Colors.white),
+      ),
+    );
+  }
+
+  Future<void> _showDefaultTabSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentDefault = prefs.getInt('default_tab') ?? 0;
+    int? selectedTab = currentDefault;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Default Start Screen'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Choose which screen to open when you launch the app:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              RadioListTile<int>(
+                title: const Row(
+                  children: [
+                    Icon(Icons.chat_bubble, size: 20),
+                    SizedBox(width: 12),
+                    Text('Chats'),
+                  ],
+                ),
+                value: 0,
+                groupValue: selectedTab,
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedTab = value;
+                  });
+                },
+              ),
+              RadioListTile<int>(
+                title: const Row(
+                  children: [
+                    Icon(Icons.work_rounded, size: 20),
+                    SizedBox(width: 12),
+                    Text('Roles'),
+                  ],
+                ),
+                value: 1,
+                groupValue: selectedTab,
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedTab = value;
+                  });
+                },
+              ),
+              RadioListTile<int>(
+                title: const Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet, size: 20),
+                    SizedBox(width: 12),
+                    Text('Earnings'),
+                  ],
+                ),
+                value: 2,
+                groupValue: selectedTab,
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedTab = value;
+                  });
+                },
+              ),
+              RadioListTile<int>(
+                title: const Row(
+                  children: [
+                    Icon(Icons.access_time, size: 20),
+                    SizedBox(width: 12),
+                    Text('Clock In'),
+                  ],
+                ),
+                value: 3,
+                groupValue: selectedTab,
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedTab = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (selectedTab != null) {
+                  await prefs.setInt('default_tab', selectedTab!);
+                  if (mounted) {
+                    setState(() {
+                      _selectedBottomIndex = selectedTab!;
+                    });
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Default start screen updated'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -920,6 +1104,110 @@ class AppBarClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
+
+// Shared AppBar builder for consistent styling across Clock In, Roles, and Earnings tabs
+Widget buildStyledAppBar({
+  required String title,
+  required String subtitle,
+  required Widget profileMenu,
+}) {
+  return SliverAppBar(
+    pinned: false,
+    floating: true,
+    snap: true,
+    expandedHeight: 120.0,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    flexibleSpace: FlexibleSpaceBar(
+      background: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Purple gradient background with custom clip
+          ClipPath(
+            clipper: AppBarClipper(),
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
+                ),
+              ),
+            ),
+          ),
+          // Decorative purple shapes layer
+          ClipPath(
+            clipper: AppBarClipper(),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -40,
+                  right: -20,
+                  child: Container(
+                    width: 180,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF9D7EF0).withOpacity(0.15),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 20,
+                  left: -30,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF8B5CF6).withOpacity(0.12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Title and stats with profile menu
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  profileMenu,
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _HomeTab extends StatefulWidget {
@@ -1460,192 +1748,16 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const double expandedHeight = 170.0;
 
     return EnhancedRefreshIndicator(
       showLastRefreshTime: false,
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            stretch: true,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            expandedHeight: expandedHeight,
-            automaticallyImplyLeading: false,
-            flexibleSpace: LayoutBuilder(
-              builder: (context, constraints) {
-                // t = 1.0 when fully expanded, 0.0 when collapsed
-                final double max = expandedHeight;
-                final double min =
-                    kToolbarHeight + MediaQuery.of(context).padding.top;
-                final double current = constraints.maxHeight.clamp(min, max);
-                final double t = ((current - min) / (max - min)).clamp(
-                  0.0,
-                  1.0,
-                );
-
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Purple gradient background with custom clip
-                    ClipPath(
-                      clipper: AppBarClipper(),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Decorative purple shapes layer
-                    ClipPath(
-                      clipper: AppBarClipper(),
-                      child: Stack(
-                        children: [
-                          // Large light purple circle - top right
-                          Positioned(
-                            top: -40,
-                            right: -20,
-                            child: Container(
-                              width: 180,
-                              height: 180,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF9D7EF0,
-                                ).withOpacity(0.15),
-                              ),
-                            ),
-                          ),
-                          // Medium purple circle - top left
-                          Positioned(
-                            top: 20,
-                            left: -30,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF8B5CF6,
-                                ).withOpacity(0.12),
-                              ),
-                            ),
-                          ),
-                          // Small accent circle - bottom left
-                          Positioned(
-                            bottom: 10,
-                            left: 30,
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF6D28D9).withOpacity(0.2),
-                              ),
-                            ),
-                          ),
-                          // Decorative blob - center right
-                          Positioned(
-                            top: 60,
-                            right: 40,
-                            child: Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFAA88FF).withOpacity(0.1),
-                              ),
-                            ),
-                          ),
-                          // Extra small accent - bottom right area
-                          Positioned(
-                            bottom: 30,
-                            right: 80,
-                            child: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF9D7EF0,
-                                ).withOpacity(0.18),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Top row: Profile menu (right)
-                    SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          children: [
-                            // Loading indicator (left side when refreshing)
-                            if (widget.isRefreshing)
-                              const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            const Spacer(),
-                            widget.profileMenu,
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Big title & subtitle (fade out as we collapse)
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: 16,
-                      child: Opacity(
-                        opacity: t, // 1 expanded -> 0 collapsed
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Welcome Back!',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
-                                height: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              widget.countdownText,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+          buildStyledAppBar(
+            title: 'Clock In',
+            subtitle: widget.countdownText,
+            profileMenu: widget.profileMenu,
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -2339,12 +2451,14 @@ class _RolesSection extends StatefulWidget {
   final String? userKey;
   final bool loading;
   final List<Map<String, dynamic>> availability;
+  final Widget profileMenu;
 
   const _RolesSection({
     required this.events,
     required this.userKey,
     required this.loading,
     required this.availability,
+    required this.profileMenu,
   });
 
   @override
@@ -2600,94 +2714,10 @@ class _RolesSectionState extends State<_RolesSection>
     return NestedScrollView(
       headerSliverBuilder: (context, innerBoxIsScrolled) {
         return [
-          SliverAppBar(
-            pinned: false,
-            floating: true,
-            snap: true,
-            expandedHeight: 120.0,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Purple gradient background with custom clip
-                  ClipPath(
-                    clipper: AppBarClipper(),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Decorative purple shapes layer
-                  ClipPath(
-                    clipper: AppBarClipper(),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          top: -40,
-                          right: -20,
-                          child: Container(
-                            width: 180,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF9D7EF0).withOpacity(0.15),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 20,
-                          left: -30,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF8B5CF6).withOpacity(0.12),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Title and stats
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            appBarTitle,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            appBarSubtitle,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          buildStyledAppBar(
+            title: appBarTitle,
+            subtitle: appBarSubtitle,
+            profileMenu: widget.profileMenu,
           ),
           SliverPersistentHeader(
             pinned: true,
@@ -2782,11 +2812,13 @@ class _EarningsTab extends StatelessWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
+  final Widget profileMenu;
 
   const _EarningsTab({
     required this.events,
     required this.userKey,
     required this.loading,
+    required this.profileMenu,
   });
 
   @override
@@ -2794,62 +2826,117 @@ class _EarningsTab extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (userKey == null) {
-      return Center(
-        child: Text(
-          'Please log in to view earnings',
-          style: theme.textTheme.bodyLarge,
-        ),
+      return CustomScrollView(
+        slivers: [
+          buildStyledAppBar(
+            title: 'My Earnings',
+            subtitle: 'Please log in to view',
+            profileMenu: profileMenu,
+          ),
+          SliverFillRemaining(
+            child: Center(
+              child: Text(
+                'Please log in to view earnings',
+                style: theme.textTheme.bodyLarge,
+              ),
+            ),
+          ),
+        ],
       );
     }
 
     if (loading) {
-      return const Center(child: CircularProgressIndicator());
+      return CustomScrollView(
+        slivers: [
+          buildStyledAppBar(
+            title: 'My Earnings',
+            subtitle: 'Loading...',
+            profileMenu: profileMenu,
+          ),
+          const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ],
+      );
     }
 
     return FutureBuilder<Map<String, dynamic>>(
       future: _calculateEarnings(events, userKey!),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return CustomScrollView(
+            slivers: [
+              buildStyledAppBar(
+                title: 'My Earnings',
+                subtitle: 'Loading earnings...',
+                profileMenu: profileMenu,
+              ),
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          );
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error loading earnings',
-              style: theme.textTheme.bodyLarge,
-            ),
+          return CustomScrollView(
+            slivers: [
+              buildStyledAppBar(
+                title: 'My Earnings',
+                subtitle: 'Error loading data',
+                profileMenu: profileMenu,
+              ),
+              SliverFillRemaining(
+                child: Center(
+                  child: Text(
+                    'Error loading earnings',
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                ),
+              ),
+            ],
           );
         }
 
         final data = snapshot.data;
         if (data == null || data['yearTotal'] == 0.0) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.account_balance_wallet_outlined,
-                  size: 80,
-                  color: theme.colorScheme.primary.withOpacity(0.3),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'No Earnings Yet',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+          return CustomScrollView(
+            slivers: [
+              buildStyledAppBar(
+                title: 'My Earnings',
+                subtitle: 'No earnings yet',
+                profileMenu: profileMenu,
+              ),
+              SliverFillRemaining(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 80,
+                        color: theme.colorScheme.primary.withOpacity(0.3),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'No Earnings Yet',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Complete events to see your earnings here',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'Complete events to see your earnings here',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         }
 
@@ -2867,98 +2954,10 @@ class _EarningsTab extends StatelessWidget {
 
         return CustomScrollView(
           slivers: [
-            SliverAppBar(
-              pinned: false,
-              floating: true,
-              snap: true,
-              expandedHeight: 120.0,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Purple gradient background with custom clip
-                    ClipPath(
-                      clipper: AppBarClipper(),
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Decorative purple shapes layer
-                    ClipPath(
-                      clipper: AppBarClipper(),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            top: -40,
-                            right: -20,
-                            child: Container(
-                              width: 180,
-                              height: 180,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF9D7EF0,
-                                ).withOpacity(0.15),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 20,
-                            left: -30,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(
-                                  0xFF8B5CF6,
-                                ).withOpacity(0.12),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Title and stats
-                    SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text(
-                              'My Earnings',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'This month: \$${currentMonthEarnings.toStringAsFixed(2)} • YTD: \$${yearTotal.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            buildStyledAppBar(
+              title: 'My Earnings',
+              subtitle: 'This month: \$${currentMonthEarnings.toStringAsFixed(2)} • YTD: \$${yearTotal.toStringAsFixed(0)}',
+              profileMenu: profileMenu,
             ),
             SliverPadding(
               padding: const EdgeInsets.all(16),
@@ -4515,6 +4514,32 @@ class _RoleList extends StatelessWidget {
       }
     }
 
+    // Sort by event date
+    roleEventPairs.sort((a, b) {
+      final aDate = (a['event'] as Map<String, dynamic>)['date']?.toString() ?? '';
+      final bDate = (b['event'] as Map<String, dynamic>)['date']?.toString() ?? '';
+      return aDate.compareTo(bDate);
+    });
+
+    // Group events by month for headers
+    final Map<String, List<Map<String, dynamic>>> eventsByMonth = {};
+    for (final pair in roleEventPairs) {
+      final event = pair['event'] as Map<String, dynamic>;
+      final dateStr = event['date']?.toString() ?? '';
+      if (dateStr.isNotEmpty) {
+        try {
+          final date = DateTime.parse(dateStr);
+          final monthKey = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+          eventsByMonth.putIfAbsent(monthKey, () => []).add(pair);
+        } catch (e) {
+          // If date parsing fails, add to "unknown" group
+          eventsByMonth.putIfAbsent('unknown', () => []).add(pair);
+        }
+      } else {
+        eventsByMonth.putIfAbsent('unknown', () => []).add(pair);
+      }
+    }
+
     if (roleEventPairs.isEmpty && !loading) {
       return EnhancedRefreshIndicator(
         showLastRefreshTime: false,
@@ -4570,27 +4595,64 @@ class _RoleList extends StatelessWidget {
               ),
             ),
           if (roleEventPairs.isNotEmpty)
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                if (index >= roleEventPairs.length) return null;
+            ...eventsByMonth.entries.map((monthEntry) {
+              final monthKey = monthEntry.key;
+              final monthEvents = monthEntry.value;
 
-                return Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    index == 0 ? 0 : 8,
-                    20,
-                    index == roleEventPairs.length - 1 ? 20 : 8,
-                  ),
-                  child: _buildEventCard(
-                    context,
-                    theme,
-                    roleEventPairs[index]['event'] as Map<String, dynamic>,
-                    roleNameOverride:
-                        roleEventPairs[index]['roleName'] as String,
-                  ),
-                );
-              }, childCount: roleEventPairs.length),
-            ),
+              // Format month header
+              String monthLabel = 'No Date';
+              if (monthKey != 'unknown') {
+                try {
+                  final parts = monthKey.split('-');
+                  final year = int.parse(parts[0]);
+                  final month = int.parse(parts[1]);
+                  final date = DateTime(year, month);
+                  monthLabel = DateFormat('MMMM yyyy').format(date);
+                } catch (e) {
+                  monthLabel = monthKey;
+                }
+              }
+
+              return SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  // First item is the month header
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 20, 20, 12),
+                      child: Text(
+                        monthLabel,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[700],
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Adjust index for event cards (subtract 1 for header)
+                  final eventIndex = index - 1;
+                  if (eventIndex >= monthEvents.length) return null;
+
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      8,
+                      20,
+                      eventIndex == monthEvents.length - 1 ? 8 : 8,
+                    ),
+                    child: _buildEventCard(
+                      context,
+                      theme,
+                      monthEvents[eventIndex]['event'] as Map<String, dynamic>,
+                      roleNameOverride:
+                          monthEvents[eventIndex]['roleName'] as String,
+                    ),
+                  );
+                }, childCount: monthEvents.length + 1), // +1 for header
+              );
+            }).toList(),
         ],
       ),
     );

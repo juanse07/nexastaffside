@@ -9,6 +9,7 @@ import morgan from 'morgan';
 import { getMongoClient } from './db/mongoClient.js';
 import authRouter from './features/auth/routes.js';
 import eventsRouter from './features/events/routes.js';
+import usersRouter from './features/users/routes.js';
 
 const app = express();
 app.use(express.json());
@@ -18,9 +19,11 @@ app.use(morgan('dev'));
 
 app.use('/events', eventsRouter);
 app.use('/auth', authRouter);
+app.use('/users', usersRouter);
 // Also mount under /api/* to support deployments that prefix routes
 app.use('/api/events', eventsRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ ok: true, service: 'backend', timestamp: new Date().toISOString() });
