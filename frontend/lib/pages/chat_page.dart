@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
@@ -175,6 +176,38 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
+  Future<void> _initiateCall() async {
+    // For now, we'll show a dialog since we don't have the manager's phone number
+    // In a real app, you'd have the phone number from the manager's profile
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Call Manager'),
+        content: Text('Call ${widget.managerName}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              // In a real app, you would have the manager's phone number
+              // and would use: launchUrl(Uri(scheme: 'tel', path: phoneNumber))
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Calling feature will be available soon'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.phone),
+            label: const Text('Call'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -309,6 +342,30 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ],
                 ),
+                actions: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.phone,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      onPressed: _initiateCall,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
