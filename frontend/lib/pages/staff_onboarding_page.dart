@@ -49,6 +49,15 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
     } catch (e) {
       print('[ONBOARDING GATE ERROR] Failed to load profile: $e');
 
+      // If user doesn't exist or auth failed, sign out and go to login
+      if (e.toString().contains('404') ||
+          e.toString().contains('401') ||
+          e.toString().contains('Unauthorized')) {
+        print('[ONBOARDING GATE] Auth error - signing out');
+        await _signOut();
+        return;
+      }
+
       if (!mounted) return;
 
       setState(() {
@@ -199,9 +208,9 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
       return 'Phone number is required';
     }
 
-    // US phone validation: (XXX) XXX-XXXX, XXX-XXX-XXXX, or XXXXXXXXXX
+    // US phone validation: XXX-XXX-XXXX or XXXXXXXXXX
     final phoneRegex = RegExp(
-      r'^(\(\d{3}\)\s?\d{3}-\d{4}|\d{3}-\d{3}-\d{4}|\d{10})$',
+      r'^(\d{3}-\d{3}-\d{4}|\d{10})$',
     );
 
     if (!phoneRegex.hasMatch(value.trim())) {
@@ -223,11 +232,24 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
 
     try {
       print('[ONBOARDING] Saving profile...');
+      print('[ONBOARDING] firstName: "${_firstNameController.text.trim()}"');
+      print('[ONBOARDING] lastName: "${_lastNameController.text.trim()}"');
+      print('[ONBOARDING] phoneNumber: "${_phoneController.text.trim()}"');
+      print('[ONBOARDING] appId: "${_appIdController.text.trim()}"');
+
+      final fn = _firstNameController.text.trim();
+      final ln = _lastNameController.text.trim();
+      final pn = _phoneController.text.trim();
+
+      print('[DEBUG] About to call updateMe with:');
+      print('[DEBUG] firstName length: ${fn.length} value: "$fn"');
+      print('[DEBUG] lastName length: ${ln.length} value: "$ln"');
+      print('[DEBUG] phoneNumber length: ${pn.length} value: "$pn"');
 
       await UserService.updateMe(
-        firstName: _firstNameController.text.trim(),
-        lastName: _lastNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
+        firstName: fn,
+        lastName: ln,
+        phoneNumber: pn,
         appId: _appIdController.text.trim().isEmpty
             ? null
             : _appIdController.text.trim(),
@@ -355,10 +377,10 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                 controller: _phoneController,
                 decoration: const InputDecoration(
                   labelText: 'Phone Number *',
-                  hintText: '(555) 123-4567',
+                  hintText: '555-123-4567',
                   prefixIcon: Icon(Icons.phone_outlined),
                   border: OutlineInputBorder(),
-                  helperText: 'US format only',
+                  helperText: 'Format: XXX-XXX-XXXX or 10 digits',
                 ),
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,

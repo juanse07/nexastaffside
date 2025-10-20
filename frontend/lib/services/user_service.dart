@@ -144,11 +144,13 @@ class UserService {
     }
 
     final payload = <String, dynamic>{};
-    if (firstName != null) payload['firstName'] = firstName;
-    if (lastName != null) payload['lastName'] = lastName;
-    if (phoneNumber != null) payload['phoneNumber'] = phoneNumber;
-    if (appId != null) payload['appId'] = appId;
-    if (picture != null) payload['picture'] = picture;
+    if (firstName != null && firstName.isNotEmpty) payload['firstName'] = firstName;
+    if (lastName != null && lastName.isNotEmpty) payload['lastName'] = lastName;
+    if (phoneNumber != null && phoneNumber.isNotEmpty) payload['phoneNumber'] = phoneNumber;
+    if (appId != null && appId.isNotEmpty) payload['appId'] = appId;
+    if (picture != null && picture.isNotEmpty) payload['picture'] = picture;
+
+    _log('Update payload: ${jsonEncode(payload)}');
 
     final resp = await _makeRequest(
       request: () => http.patch(

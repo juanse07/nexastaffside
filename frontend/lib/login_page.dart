@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 
 import 'auth_service.dart';
+import 'pages/staff_onboarding_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,7 +28,10 @@ class _LoginPageState extends State<LoginPage> {
       if (!ok) _error = err ?? 'Google sign-in failed';
     });
     if (ok && mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const StaffOnboardingGate()),
+        (route) => false,
+      );
     }
   }
 
@@ -42,7 +46,10 @@ class _LoginPageState extends State<LoginPage> {
       if (!ok) _error = 'Apple sign-in failed';
     });
     if (ok && mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const StaffOnboardingGate()),
+        (route) => false,
+      );
     }
   }
 
