@@ -40,7 +40,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to accept invite: \$e')));
+        ).showSnackBar(SnackBar(content: Text('Failed to accept invite: $e')));
       }
     } finally {
       if (mounted) {
@@ -61,7 +61,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to decline invite: \$e')));
+        ).showSnackBar(SnackBar(content: Text('Failed to decline invite: $e')));
       }
     } finally {
       if (mounted) {
@@ -137,25 +137,14 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
               ],
             ),
             const SizedBox(height: 16),
-            if (invites.isEmpty) ...[
+            if (invites.isEmpty)
               Text(
                 'No pending invites right now. New invitations will appear here.',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _processing ? null : () => _showEnterInviteCodeDialog(service),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-                icon: const Icon(Icons.vpn_key),
-                label: const Text('Enter Invite Code'),
-              ),
-            ] else
+              )
+            else
               ...invites.map((invite) {
                 final teamName = (invite['teamName'] ?? 'Team').toString();
                 final token = (invite['token'] ?? '').toString();
@@ -181,7 +170,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              'Manager: \$managerId',
+                              'Manager: $managerId',
                               style: TextStyle(color: Colors.grey.shade600),
                             ),
                           ),
@@ -189,7 +178,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              'Expires: \$expiresAt',
+                              'Expires: $expiresAt',
                               style: TextStyle(
                                 color: Colors.grey.shade500,
                                 fontSize: 12,
@@ -296,7 +285,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              'Joined: \$joinedAt',
+                              'Joined: $joinedAt',
                               style: TextStyle(
                                 color: Colors.grey.shade500,
                                 fontSize: 12,
