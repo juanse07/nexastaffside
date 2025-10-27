@@ -47,7 +47,6 @@ class SyncService {
       // Initialize Workmanager
       await Workmanager().initialize(
         callbackDispatcher,
-        isInDebugMode: false,
       );
 
       // Register periodic sync task (runs every 15 minutes)

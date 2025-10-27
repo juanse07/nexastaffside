@@ -55,7 +55,7 @@ dependencies:
   # Offline Support
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-  workmanager: ^0.5.2
+  workmanager: ^0.9.0
   connectivity_plus: ^5.0.2
 
   # Push Notifications
