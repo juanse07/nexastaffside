@@ -906,7 +906,7 @@ class DataService extends ChangeNotifier {
     final response = await http.post(
       uri,
       headers: headers,
-      body: json.encode({'shortCode': code}),
+      body: json.encode({'code': code}),
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {

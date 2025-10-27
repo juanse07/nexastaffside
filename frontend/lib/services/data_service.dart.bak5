@@ -906,7 +906,7 @@ class DataService extends ChangeNotifier {
     final response = await http.post(
       uri,
       headers: headers,
-      body: json.encode({'shortCode': code}),
+      body: json.encode({'code': code}),
     );
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -916,16 +916,11 @@ class DataService extends ChangeNotifier {
       notifyListeners();
     } else if (response.statusCode == 404) {
       throw Exception('Invalid or expired invite code');
-    } else if (response.statusCode == 400 || response.statusCode == 409 || response.statusCode == 410) {
-      // Parse error message from backend (400 = validation, 409 = conflict/already member, 410 = expired/max uses)
-      try {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        final error = data['message'] ?? data['error'] ?? 'Failed to join team';
-        throw Exception(error);
-      } catch (e) {
-        if (e is Exception) rethrow;
-        throw Exception('Failed to join team (${response.statusCode})');
-      }
+    } else if (response.statusCode == 400) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      final error = data['error'] ?? 'Failed to join team';
+      throw Exception(error);
+    } else {
       throw Exception('Failed to join team (${response.statusCode})');
     }
   }

@@ -1,5 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Push Notifications permissions -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Location permissions for clock-in geofencing -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Background sync with Workmanager -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- Allow cleartext (HTTP) for development when hitting local backend. Restrict to debug by default. -->
     <application
         android:label="Nexa Staff"

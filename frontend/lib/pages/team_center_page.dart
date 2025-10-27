@@ -84,24 +84,33 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<DataService>(
-      builder: (context, dataService, _) {
-        final invites = dataService.pendingInvites;
-        final teams = dataService.teams;
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Team Center'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Consumer<DataService>(
+        builder: (context, dataService, _) {
+          final invites = dataService.pendingInvites;
+          final teams = dataService.teams;
 
-        return RefreshIndicator(
-          onRefresh: () => _onRefresh(dataService),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildInvitesSection(dataService, invites),
-              const SizedBox(height: 24),
-              _buildTeamsSection(teams),
-            ],
-          ),
-        );
-      },
+          return RefreshIndicator(
+            onRefresh: () => _onRefresh(dataService),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildInvitesSection(dataService, invites),
+                const SizedBox(height: 24),
+                _buildTeamsSection(teams),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

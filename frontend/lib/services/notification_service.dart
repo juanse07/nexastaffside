@@ -140,7 +140,7 @@ class NotificationService {
 
       // Check if device is actually subscribed
       final pushSubscription = OneSignal.User.pushSubscription;
-      final isSubscribed = pushSubscription.optedIn;
+      final isSubscribed = pushSubscription.optedIn ?? false;
       print('[NOTIF REG] Player ID: $playerId, Subscribed: $isSubscribed');
 
       if (!isSubscribed) {
@@ -151,15 +151,33 @@ class NotificationService {
         print('[NOTIF REG] Opt-in completed, new status: ${pushSubscription.optedIn}');
       }
 
-      // Get auth token
-      final token = await _secureStorage.read(key: 'auth_token');
+      // Get auth token (using correct key from AuthService)
+      final token = await _secureStorage.read(key: 'auth_jwt');
       if (token == null) {
         print('[NOTIF REG] No auth token available');
         return;
       }
 
-      // Get user ID
-      final userId = await _secureStorage.read(key: 'user_id');
+      // Fetch user ID from /users/me API
+      String? userId;
+      try {
+        final response = await http.get(
+          Uri.parse('$_baseUrl/api/users/me'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          userId = data['id']?.toString();
+          print('[NOTIF REG] Fetched user ID: $userId');
+        } else {
+          print('[NOTIF REG] Failed to fetch user ID: ${response.statusCode}');
+          return;
+        }
+      } catch (e) {
+        print('[NOTIF REG] Error fetching user ID: $e');
+        return;
+      }
+
       if (userId != null) {
         // Set external user ID in OneSignal
         print('[NOTIF REG] Setting OneSignal external user ID: $userId');
@@ -341,7 +359,7 @@ class NotificationService {
   /// Load notification preferences
   Future<void> _loadNotificationPreferences() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _secureStorage.read(key: 'auth_jwt');
       if (token == null) return;
 
       final response = await http.get(
@@ -366,7 +384,7 @@ class NotificationService {
   /// Update notification preferences
   Future<bool> updatePreferences(Map<String, bool> preferences) async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _secureStorage.read(key: 'auth_jwt');
       if (token == null) return false;
 
       final response = await http.patch(
@@ -388,7 +406,7 @@ class NotificationService {
   /// Get notification history
   Future<List<Map<String, dynamic>>> getNotificationHistory() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _secureStorage.read(key: 'auth_jwt');
       if (token == null) return [];
 
       final response = await http.get(
@@ -412,7 +430,7 @@ class NotificationService {
   /// Mark notification as read
   Future<bool> markAsRead(String notificationId) async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _secureStorage.read(key: 'auth_jwt');
       if (token == null) return false;
 
       final response = await http.post(
@@ -434,7 +452,7 @@ class NotificationService {
   /// Get unread count from server
   Future<int> getUnreadCount() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _secureStorage.read(key: 'auth_jwt');
       if (token == null) return 0;
 
       final response = await http.get(
@@ -458,7 +476,7 @@ class NotificationService {
   /// Send test notification
   Future<bool> sendTestNotification() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _secureStorage.read(key: 'auth_jwt');
       if (token == null) return false;
 
       final response = await http.post(
@@ -485,7 +503,7 @@ class NotificationService {
   Future<void> unregisterDevice() async {
     try {
       final deviceState = await OneSignal.User.getOnesignalId();
-      final token = await _secureStorage.read(key: 'auth_token');
+      final token = await _secureStorage.read(key: 'auth_jwt');
 
       if (deviceState != null && token != null) {
         await http.delete(

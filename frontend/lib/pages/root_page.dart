@@ -16,6 +16,9 @@ import '../auth_service.dart';
 import '../login_page.dart';
 import '../services/data_service.dart';
 import '../services/user_service.dart';
+import '../services/offline_service.dart';
+import '../services/sync_service.dart';
+import '../models/pending_clock_action.dart';
 import '../utils/id.dart';
 import '../utils/jwt.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
@@ -1562,74 +1565,151 @@ class _HomeTabState extends State<_HomeTab> {
       _loading = true;
     });
 
+    // Check network status
+    final isOnline = await SyncService.isOnline();
+    print('[CLOCK-IN] Network status: ${isOnline ? "online" : "offline"}');
+
+    // Get current location for caching
+    Position? currentPosition;
     try {
-      print('[CLOCK-IN] Calling API with eventId: $id');
-      final res = await AuthService.clockIn(eventId: id);
-      print('[CLOCK-IN] API response: $res');
-
-      // Check if already clocked in
-      final message = res?['message']?.toString() ?? '';
-      final alreadyClockedIn = message.toLowerCase().contains('already clocked in');
-
-      // Extract clockInAt timestamp from response
-      final clockInAtStr = res?['clockInAt']?.toString();
-      DateTime? clockInTime;
-      if (clockInAtStr != null) {
-        try {
-          clockInTime = DateTime.parse(clockInAtStr);
-          print('[CLOCK-IN] Parsed clockInAt: $clockInTime');
-        } catch (e) {
-          print('[CLOCK-IN] Failed to parse clockInAt: $e');
-        }
-      }
-
-      setState(() {
-        _loading = false;
-        _status = res?['status']?.toString() ?? (alreadyClockedIn ? 'clocked_in' : _status);
-        // Set clock-in time from server response
-        if (clockInTime != null) {
-          _clockInTime = clockInTime;
-        }
-      });
-
-      // Start elapsed timer if successfully clocked in (new or existing)
-      if (_status == 'clocked_in' && clockInTime != null) {
-        _startElapsedTimer();
-        print('[CLOCK-IN] ✓ Timer started with clockInTime: $_clockInTime');
-      }
-
-      // Show appropriate message
-      if (mounted && context.mounted) {
-        if (alreadyClockedIn) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✓ Timer restored - You are already clocked in'),
-              backgroundColor: Color(0xFFF59E0B),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✓ Clocked in successfully!'),
-              backgroundColor: Color(0xFF10B981),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-      print('[CLOCK-IN] ✓ Clock-in successful, status: $_status');
+      currentPosition = await Geolocator.getCurrentPosition();
+      // Cache location for offline clock-out
+      await OfflineService.cacheLocation(id, currentPosition);
+      print('[CLOCK-IN] Location cached for event: $id');
     } catch (e) {
-      print('[CLOCK-IN] ✗ Error: $e');
+      print('[CLOCK-IN] Failed to cache location: $e');
+    }
+
+    if (isOnline) {
+      // Online: Try API call
+      try {
+        print('[CLOCK-IN] Calling API with eventId: $id');
+        final res = await AuthService.clockIn(eventId: id);
+        print('[CLOCK-IN] API response: $res');
+
+        // Check if already clocked in
+        final message = res?['message']?.toString() ?? '';
+        final alreadyClockedIn = message.toLowerCase().contains('already clocked in');
+
+        // Extract clockInAt timestamp from response
+        final clockInAtStr = res?['clockInAt']?.toString();
+        DateTime? clockInTime;
+        if (clockInAtStr != null) {
+          try {
+            clockInTime = DateTime.parse(clockInAtStr);
+            print('[CLOCK-IN] Parsed clockInAt: $clockInTime');
+          } catch (e) {
+            print('[CLOCK-IN] Failed to parse clockInAt: $e');
+          }
+        }
+
+        setState(() {
+          _loading = false;
+          _status = res?['status']?.toString() ?? (alreadyClockedIn ? 'clocked_in' : _status);
+          // Set clock-in time from server response
+          if (clockInTime != null) {
+            _clockInTime = clockInTime;
+          }
+        });
+
+        // Start elapsed timer if successfully clocked in (new or existing)
+        if (_status == 'clocked_in' && clockInTime != null) {
+          _startElapsedTimer();
+          print('[CLOCK-IN] ✓ Timer started with clockInTime: $_clockInTime');
+        }
+
+        // Show appropriate message
+        if (mounted && context.mounted) {
+          if (alreadyClockedIn) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✓ Timer restored - You are already clocked in'),
+                backgroundColor: Color(0xFFF59E0B),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✓ Clocked in successfully!'),
+                backgroundColor: Color(0xFF10B981),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+        print('[CLOCK-IN] ✓ Clock-in successful, status: $_status');
+      } catch (e) {
+        // API call failed - queue offline action
+        print('[CLOCK-IN] API failed, queuing offline action: $e');
+        await _queueOfflineClockIn(id, currentPosition);
+      }
+    } else {
+      // Offline: Queue action immediately
+      print('[CLOCK-IN] Offline mode - queuing action');
+      await _queueOfflineClockIn(id, currentPosition);
+    }
+  }
+
+  Future<void> _queueOfflineClockIn(String eventId, Position? position) async {
+    try {
+      final action = PendingClockAction(
+        id: '${eventId}_clockin_${DateTime.now().millisecondsSinceEpoch}',
+        action: 'clock-in',
+        eventId: eventId,
+        timestamp: DateTime.now(),
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+        locationSource: 'live',
+      );
+
+      await OfflineService.addPendingAction(action);
+
+      // Update UI optimistically
+      setState(() {
+        _loading = false;
+        _status = 'clocked_in';
+        _clockInTime = DateTime.now();
+      });
+
+      _startElapsedTimer();
+
+      // Show offline message
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.cloud_off, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('✓ Clocked in (offline) - Will sync when online'),
+                ),
+              ],
+            ),
+            backgroundColor: Color(0xFF8B5CF6),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+
+      print('[CLOCK-IN] ✓ Queued offline clock-in');
+
+      // Try immediate sync in background
+      SyncService.syncPendingActions().then((count) {
+        if (count > 0) {
+          print('[CLOCK-IN] Synced $count offline actions');
+        }
+      });
+    } catch (e) {
       setState(() {
         _loading = false;
       });
 
-      // Show error message
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to clock in: ${e.toString()}'),
+            content: Text('Failed to queue clock-in: ${e.toString()}'),
             backgroundColor: const Color(0xFFEF4444),
             duration: const Duration(seconds: 3),
           ),
@@ -1648,41 +1728,142 @@ class _HomeTabState extends State<_HomeTab> {
       _loading = true;
     });
 
-    try {
-      print('[CLOCK-OUT] Calling API with eventId: $id');
-      final res = await AuthService.clockOut(eventId: id);
-      print('[CLOCK-OUT] API response: $res');
+    // Check network status
+    final isOnline = await SyncService.isOnline();
+    print('[CLOCK-OUT] Network status: ${isOnline ? "online" : "offline"}');
 
+    // Get location (current or cached)
+    double? latitude;
+    double? longitude;
+    String locationSource = 'live';
+
+    try {
+      final currentPosition = await Geolocator.getCurrentPosition();
+      latitude = currentPosition.latitude;
+      longitude = currentPosition.longitude;
+      print('[CLOCK-OUT] Using live location');
+    } catch (e) {
+      // Failed to get current location, try cached
+      print('[CLOCK-OUT] Failed to get live location: $e');
+      final cached = await OfflineService.getCachedLocation(id);
+      if (cached != null) {
+        latitude = cached['latitude'] as double?;
+        longitude = cached['longitude'] as double?;
+        locationSource = 'cached';
+        print('[CLOCK-OUT] Using cached location from clock-in');
+      }
+    }
+
+    if (isOnline) {
+      // Online: Try API call
+      try {
+        print('[CLOCK-OUT] Calling API with eventId: $id');
+        final res = await AuthService.clockOut(eventId: id);
+        print('[CLOCK-OUT] API response: $res');
+
+        setState(() {
+          _loading = false;
+          _status = res?['status']?.toString() ?? _status;
+        });
+
+        // Stop elapsed timer
+        _stopElapsedTimer();
+
+        // Remove cached location
+        await OfflineService.removeCachedLocation(id);
+
+        // Show success message
+        if (mounted && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✓ Clocked out successfully! Time worked: $_elapsedTimeText'),
+              backgroundColor: const Color(0xFF10B981),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        print('[CLOCK-OUT] ✓ Clock-out successful, status: $_status');
+      } catch (e) {
+        // API call failed - queue offline action
+        print('[CLOCK-OUT] API failed, queuing offline action: $e');
+        await _queueOfflineClockOut(id, latitude, longitude, locationSource);
+      }
+    } else {
+      // Offline: Queue action immediately
+      print('[CLOCK-OUT] Offline mode - queuing action');
+      await _queueOfflineClockOut(id, latitude, longitude, locationSource);
+    }
+  }
+
+  Future<void> _queueOfflineClockOut(
+    String eventId,
+    double? latitude,
+    double? longitude,
+    String locationSource,
+  ) async {
+    try {
+      final action = PendingClockAction(
+        id: '${eventId}_clockout_${DateTime.now().millisecondsSinceEpoch}',
+        action: 'clock-out',
+        eventId: eventId,
+        timestamp: DateTime.now(),
+        latitude: latitude,
+        longitude: longitude,
+        locationSource: locationSource,
+      );
+
+      await OfflineService.addPendingAction(action);
+
+      // Update UI optimistically
       setState(() {
         _loading = false;
-        _status = res?['status']?.toString() ?? _status;
+        _status = 'clocked_out';
       });
 
-      // Stop elapsed timer
       _stopElapsedTimer();
 
-      // Show success message
+      // Show offline message
       if (mounted && context.mounted) {
+        final locationWarning = locationSource == 'cached'
+          ? ' (using clock-in location)'
+          : '';
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Clocked out successfully! Time worked: $_elapsedTimeText'),
-            backgroundColor: const Color(0xFF10B981),
+            content: Row(
+              children: [
+                const Icon(Icons.cloud_off, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '✓ Clocked out (offline)$locationWarning - Will sync when online',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF8B5CF6),
             duration: const Duration(seconds: 3),
           ),
         );
       }
-      print('[CLOCK-OUT] ✓ Clock-out successful, status: $_status');
+
+      print('[CLOCK-OUT] ✓ Queued offline clock-out (location: $locationSource)');
+
+      // Try immediate sync in background
+      SyncService.syncPendingActions().then((count) {
+        if (count > 0) {
+          print('[CLOCK-OUT] Synced $count offline actions');
+        }
+      });
     } catch (e) {
-      print('[CLOCK-OUT] ✗ Error: $e');
       setState(() {
         _loading = false;
       });
 
-      // Show error message
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to clock out: ${e.toString()}'),
+            content: Text('Failed to queue clock-out: ${e.toString()}'),
             backgroundColor: const Color(0xFFEF4444),
             duration: const Duration(seconds: 3),
           ),

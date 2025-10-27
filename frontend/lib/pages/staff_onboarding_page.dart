@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/user_service.dart';
+import '../services/notification_service.dart';
 import 'root_page.dart';
 
 class StaffOnboardingGate extends StatefulWidget {
@@ -39,6 +40,15 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
           'firstName=${profile.firstName}, '
           'lastName=${profile.lastName}, '
           'phone=${profile.phoneNumber}');
+
+      // Initialize notifications after authentication
+      print('[ONBOARDING GATE] Initializing notifications...');
+      try {
+        await NotificationService().initialize();
+        print('[ONBOARDING GATE] ✅ Notifications initialized successfully');
+      } catch (e) {
+        print('[ONBOARDING GATE] ❌ Failed to initialize notifications: $e');
+      }
 
       setState(() {
         _profile = profile;

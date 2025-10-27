@@ -127,7 +127,8 @@ class EventInvitationCard extends StatelessWidget {
                       venueName!,
                       style: const TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF6B7280),
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
                       ),
                     ),
                   ),
@@ -168,11 +169,23 @@ class EventInvitationCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
-                    'Event for: $clientName',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
+                  child: RichText(
+                    text: TextSpan(
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                        fontFamily: 'Roboto',
+                      ),
+                      children: [
+                        const TextSpan(text: 'Event for: '),
+                        TextSpan(
+                          text: clientName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
