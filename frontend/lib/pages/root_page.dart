@@ -1238,6 +1238,9 @@ class _HomeTabState extends State<_HomeTab> {
   bool _canClockIn = false;
   String? _clockInError;
   Timer? _validationTimer;
+  Timer? _elapsedTimer;
+  DateTime? _clockInTime;
+  String _elapsedTimeText = '00:00:00';
 
   @override
   void initState() {
@@ -1254,7 +1257,32 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   void dispose() {
     _validationTimer?.cancel();
+    _elapsedTimer?.cancel();
     super.dispose();
+  }
+
+  void _startElapsedTimer() {
+    _clockInTime = DateTime.now();
+    _elapsedTimer?.cancel();
+    _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_clockInTime != null && mounted) {
+        final elapsed = DateTime.now().difference(_clockInTime!);
+        final hours = elapsed.inHours.toString().padLeft(2, '0');
+        final minutes = (elapsed.inMinutes % 60).toString().padLeft(2, '0');
+        final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
+        setState(() {
+          _elapsedTimeText = '$hours:$minutes:$seconds';
+        });
+      }
+    });
+  }
+
+  void _stopElapsedTimer() {
+    _elapsedTimer?.cancel();
+    _clockInTime = null;
+    setState(() {
+      _elapsedTimeText = '00:00:00';
+    });
   }
 
   @override
@@ -1294,14 +1322,17 @@ class _HomeTabState extends State<_HomeTab> {
       }
     }
     if (mine.isEmpty) return;
-    // Choose nearest upcoming (today/future and not already started). If none, show none.
+    // Choose nearest upcoming event (today or future, prioritize by date/time)
     final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
     DateTime? bestFuture;
     Map<String, dynamic>? bestFutureEvent;
     for (final e in mine) {
       final dt = _eventDateTime(e);
       if (dt == null) continue;
-      if (!dt.isBefore(now)) {
+      // Include if event date is today or future (ignore time for today)
+      final eventDate = DateTime(dt.year, dt.month, dt.day);
+      if (!eventDate.isBefore(todayStart)) {
         if (bestFuture == null || dt.isBefore(bestFuture)) {
           bestFuture = dt;
           bestFutureEvent = e;
@@ -1525,28 +1556,139 @@ class _HomeTabState extends State<_HomeTab> {
     if (_upcoming == null) return;
     final id = resolveEventId(_upcoming!);
     if (id == null) return;
+
+    print('[CLOCK-IN] Button pressed, starting clock-in...');
     setState(() {
       _loading = true;
     });
-    final res = await AuthService.clockIn(eventId: id);
-    setState(() {
-      _loading = false;
-      _status = res?['status']?.toString() ?? _status;
-    });
+
+    try {
+      print('[CLOCK-IN] Calling API with eventId: $id');
+      final res = await AuthService.clockIn(eventId: id);
+      print('[CLOCK-IN] API response: $res');
+
+      // Check if already clocked in
+      final message = res?['message']?.toString() ?? '';
+      final alreadyClockedIn = message.toLowerCase().contains('already clocked in');
+
+      // Extract clockInAt timestamp from response
+      final clockInAtStr = res?['clockInAt']?.toString();
+      DateTime? clockInTime;
+      if (clockInAtStr != null) {
+        try {
+          clockInTime = DateTime.parse(clockInAtStr);
+          print('[CLOCK-IN] Parsed clockInAt: $clockInTime');
+        } catch (e) {
+          print('[CLOCK-IN] Failed to parse clockInAt: $e');
+        }
+      }
+
+      setState(() {
+        _loading = false;
+        _status = res?['status']?.toString() ?? (alreadyClockedIn ? 'clocked_in' : _status);
+        // Set clock-in time from server response
+        if (clockInTime != null) {
+          _clockInTime = clockInTime;
+        }
+      });
+
+      // Start elapsed timer if successfully clocked in (new or existing)
+      if (_status == 'clocked_in' && clockInTime != null) {
+        _startElapsedTimer();
+        print('[CLOCK-IN] ✓ Timer started with clockInTime: $_clockInTime');
+      }
+
+      // Show appropriate message
+      if (mounted && context.mounted) {
+        if (alreadyClockedIn) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Timer restored - You are already clocked in'),
+              backgroundColor: Color(0xFFF59E0B),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Clocked in successfully!'),
+              backgroundColor: Color(0xFF10B981),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+      print('[CLOCK-IN] ✓ Clock-in successful, status: $_status');
+    } catch (e) {
+      print('[CLOCK-IN] ✗ Error: $e');
+      setState(() {
+        _loading = false;
+      });
+
+      // Show error message
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to clock in: ${e.toString()}'),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _clockOut() async {
     if (_upcoming == null) return;
     final id = resolveEventId(_upcoming!);
     if (id == null) return;
+
+    print('[CLOCK-OUT] Button pressed, starting clock-out...');
     setState(() {
       _loading = true;
     });
-    final res = await AuthService.clockOut(eventId: id);
-    setState(() {
-      _loading = false;
-      _status = res?['status']?.toString() ?? _status;
-    });
+
+    try {
+      print('[CLOCK-OUT] Calling API with eventId: $id');
+      final res = await AuthService.clockOut(eventId: id);
+      print('[CLOCK-OUT] API response: $res');
+
+      setState(() {
+        _loading = false;
+        _status = res?['status']?.toString() ?? _status;
+      });
+
+      // Stop elapsed timer
+      _stopElapsedTimer();
+
+      // Show success message
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Clocked out successfully! Time worked: $_elapsedTimeText'),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      print('[CLOCK-OUT] ✓ Clock-out successful, status: $_status');
+    } catch (e) {
+      print('[CLOCK-OUT] ✗ Error: $e');
+      setState(() {
+        _loading = false;
+      });
+
+      // Show error message
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to clock out: ${e.toString()}'),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _validateClockIn() async {
@@ -1559,9 +1701,11 @@ class _HomeTabState extends State<_HomeTab> {
     }
 
     try {
+      print('[CLOCK-IN] Starting validation...');
       // Check 1: Date and time validation
       final eventDt = _eventDateTime(_upcoming!);
       if (eventDt == null) {
+        print('[CLOCK-IN] ✗ No event date/time');
         setState(() {
           _canClockIn = false;
           _clockInError = 'Event date/time not available';
@@ -1570,8 +1714,12 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       final now = DateTime.now();
+      print('[CLOCK-IN] Event time: $eventDt');
+      print('[CLOCK-IN] Current time: $now');
+
       // Allow clock-in 30 minutes before the event starts
       final earliestClockIn = eventDt.subtract(const Duration(minutes: 30));
+      print('[CLOCK-IN] Earliest clock-in: $earliestClockIn');
       // Allow clock-in until the end time
       final endTimeStr = _upcoming!['end_time']?.toString().trim();
       final endTime = _tryParseTimeOfDay(endTimeStr);
@@ -1616,6 +1764,7 @@ class _HomeTabState extends State<_HomeTab> {
           timeMessage = '$minutes minute${minutes > 1 ? 's' : ''}';
         }
 
+        print('[CLOCK-IN] ✗ Too early: $timeMessage until clock-in available');
         setState(() {
           _canClockIn = false;
           _clockInError = 'Clock in available in $timeMessage';
@@ -1623,7 +1772,13 @@ class _HomeTabState extends State<_HomeTab> {
         return;
       }
 
-      if (now.isAfter(latestClockIn)) {
+      // Allow late clock-in if event is today (same date)
+      final eventDate = DateTime(eventDt.year, eventDt.month, eventDt.day);
+      final todayDate = DateTime(now.year, now.month, now.day);
+      final isToday = eventDate.isAtSameMomentAs(todayDate);
+
+      if (!isToday && now.isAfter(latestClockIn)) {
+        print('[CLOCK-IN] ✗ Event time has passed (not today)');
         setState(() {
           _canClockIn = false;
           _clockInError = 'Event time has passed';
@@ -1631,10 +1786,18 @@ class _HomeTabState extends State<_HomeTab> {
         return;
       }
 
+      if (isToday) {
+        print('[CLOCK-IN] ✓ Event is today - allowing late clock-in');
+      } else {
+        print('[CLOCK-IN] ✓ Time check passed');
+      }
+
       // Check 2: Location validation
       final venueAddress = _upcoming!['venue_address']?.toString() ?? '';
+      print('[CLOCK-IN] Venue address: $venueAddress');
       if (venueAddress.isEmpty) {
         // If no venue address, skip location check
+        print('[CLOCK-IN] ✓ No venue address required - ENABLED');
         setState(() {
           _canClockIn = true;
           _clockInError = null;
@@ -1643,10 +1806,13 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       // Check location permission
+      print('[CLOCK-IN] Checking location permission...');
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        print('[CLOCK-IN] Permission denied, requesting...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
+          print('[CLOCK-IN] ✗ Location permission denied');
           setState(() {
             _canClockIn = false;
             _clockInError = 'Location permission required';
@@ -1656,6 +1822,7 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       if (permission == LocationPermission.deniedForever) {
+        print('[CLOCK-IN] ✗ Location permission denied forever');
         setState(() {
           _canClockIn = false;
           _clockInError = 'Location permission denied. Enable in settings.';
@@ -1663,14 +1830,19 @@ class _HomeTabState extends State<_HomeTab> {
         return;
       }
 
+      print('[CLOCK-IN] ✓ Permission granted: $permission');
+
       // Get current location
       Position position;
       try {
+        print('[CLOCK-IN] Getting current location...');
         position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
           timeLimit: const Duration(seconds: 10),
         );
+        print('[CLOCK-IN] Current position: (${position.latitude}, ${position.longitude})');
       } catch (e) {
+        print('[CLOCK-IN] ✗ Failed to get location: $e');
         setState(() {
           _canClockIn = false;
           _clockInError = 'Unable to get current location';
@@ -1681,9 +1853,11 @@ class _HomeTabState extends State<_HomeTab> {
       // Get venue coordinates from address
       List<Location> locations;
       try {
+        print('[CLOCK-IN] Geocoding venue address...');
         locations = await locationFromAddress(venueAddress);
       } catch (e) {
         // If geocoding fails, allow clock-in (venue address might be invalid)
+        print('[CLOCK-IN] ⚠ Geocoding failed, allowing clock-in: $e');
         setState(() {
           _canClockIn = true;
           _clockInError = null;
@@ -1692,6 +1866,7 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       if (locations.isEmpty) {
+        print('[CLOCK-IN] ⚠ No coordinates found, allowing clock-in');
         setState(() {
           _canClockIn = true;
           _clockInError = null;
@@ -1700,6 +1875,8 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       final venueLocation = locations.first;
+      print('[CLOCK-IN] Venue position: (${venueLocation.latitude}, ${venueLocation.longitude})');
+
       final distanceInMeters = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -1707,10 +1884,13 @@ class _HomeTabState extends State<_HomeTab> {
         venueLocation.longitude,
       );
 
+      print('[CLOCK-IN] Distance: ${distanceInMeters.toStringAsFixed(0)}m');
+
       // Allow clock-in within 500 meters (adjust as needed)
       const maxDistanceMeters = 500.0;
       if (distanceInMeters > maxDistanceMeters) {
         final distanceKm = (distanceInMeters / 1000).toStringAsFixed(1);
+        print('[CLOCK-IN] ✗ Too far from venue: ${distanceKm}km away');
         setState(() {
           _canClockIn = false;
           _clockInError = 'Too far from venue (${distanceKm}km away)';
@@ -1719,6 +1899,7 @@ class _HomeTabState extends State<_HomeTab> {
       }
 
       // All checks passed!
+      print('[CLOCK-IN] ✓✓ ALL CHECKS PASSED - ENABLED');
       setState(() {
         _canClockIn = true;
         _clockInError = null;
@@ -2390,7 +2571,78 @@ class _HomeTabState extends State<_HomeTab> {
             ),
           ],
         ],
-        if (_status == 'clocked_in')
+        if (_status == 'clocked_in') ...[
+          // Elapsed time display
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF6366F1).withOpacity(0.1),
+                  const Color(0xFF8B5CF6).withOpacity(0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.timer,
+                        color: Color(0xFF10B981),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Time Worked',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _elapsedTimeText,
+                  style: const TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: 2,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Started at ${_clockInTime != null ? "${_clockInTime!.hour.toString().padLeft(2, '0')}:${_clockInTime!.minute.toString().padLeft(2, '0')}" : "--:--"}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Clock out button
           Container(
             width: double.infinity,
             height: 56,
@@ -2440,6 +2692,7 @@ class _HomeTabState extends State<_HomeTab> {
               ),
             ),
           ),
+        ],
       ],
     );
   }
@@ -4101,21 +4354,13 @@ class _MyEventsList extends StatelessWidget {
   }) {
     final eventName = e['event_name']?.toString() ?? 'Untitled Event';
     final clientName = e['client_name']?.toString() ?? '';
-    final venue =
-        e['event_name']?.toString() ?? e['venue_name']?.toString() ?? '';
+    final venue = e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
     final rawMaps = e['google_maps_url']?.toString() ?? '';
     final googleMapsUrl = rawMaps.isNotEmpty
         ? rawMaps
         : (venueAddress.isNotEmpty ? venueAddress : venue);
     final date = e['date']?.toString() ?? '';
-
-    // Debug: Check My Events data
-    print('🔥 MY EVENTS DEBUG 🔥 Event: ${e['event_name']}');
-    print('🔥 MY EVENTS DEBUG 🔥 venue_address: "$venueAddress"');
-    print('🔥 MY EVENTS DEBUG 🔥 google_maps_url: "$googleMapsUrl"');
-    print('🔥 MY EVENTS DEBUG 🔥 venue_name: "${e['venue_name']}"');
-    print('🔥 MY EVENTS DEBUG 🔥 All keys: ${e.keys.toList()}');
 
     String? role;
     bool isConfirmed = false;
@@ -4300,33 +4545,41 @@ class _MyEventsList extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (venue.isNotEmpty &&
-                                    venue.toLowerCase() !=
-                                        eventName.toLowerCase())
-                                  Text(
-                                    venue,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                if (venueAddress.isNotEmpty) ...[
+                            child: RichText(
+                              text: TextSpan(
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                children: [
                                   if (venue.isNotEmpty &&
                                       venue.toLowerCase() !=
-                                          eventName.toLowerCase())
-                                    const SizedBox(height: 2),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    venueAddress,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w400,
+                                          eventName.toLowerCase()) ...[
+                                    TextSpan(
+                                      text: venue,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
                                     ),
-                                  ),
+                                    if (venueAddress.isNotEmpty)
+                                      TextSpan(
+                                        text: '\n$venueAddress',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                  ] else if (venueAddress.isNotEmpty)
+                                    TextSpan(
+                                      text: venueAddress,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                           if (googleMapsUrl.isNotEmpty) ...[
@@ -4397,14 +4650,24 @@ class _MyEventsList extends StatelessWidget {
                     ],
                     if (clientName.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Text(
-                        'Event for: $clientName',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                            0.6,
+                      RichText(
+                        text: TextSpan(
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(
+                              0.6,
+                            ),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
                           ),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                          children: [
+                            const TextSpan(text: 'Event for: '),
+                            TextSpan(
+                              text: clientName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -4717,8 +4980,7 @@ class _RoleList extends StatelessWidget {
   }) {
     final eventName = e['event_name']?.toString() ?? 'Untitled Event';
     final clientName = e['client_name']?.toString() ?? '';
-    final venue =
-        e['event_name']?.toString() ?? e['venue_name']?.toString() ?? '';
+    final venue = e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
     final rawMaps = e['google_maps_url']?.toString() ?? '';
     final googleMapsUrl = rawMaps.isNotEmpty
@@ -4898,33 +5160,41 @@ class _RoleList extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (venue.isNotEmpty &&
-                                    venue.toLowerCase() !=
-                                        eventName.toLowerCase())
-                                  Text(
-                                    venue,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                if (venueAddress.isNotEmpty) ...[
+                            child: RichText(
+                              text: TextSpan(
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                children: [
                                   if (venue.isNotEmpty &&
                                       venue.toLowerCase() !=
-                                          eventName.toLowerCase())
-                                    const SizedBox(height: 2),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    venueAddress,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      fontWeight: FontWeight.w400,
+                                          eventName.toLowerCase()) ...[
+                                    TextSpan(
+                                      text: venue,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
                                     ),
-                                  ),
+                                    if (venueAddress.isNotEmpty)
+                                      TextSpan(
+                                        text: '\n$venueAddress',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                  ] else if (venueAddress.isNotEmpty)
+                                    TextSpan(
+                                      text: venueAddress,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                           if (googleMapsUrl.isNotEmpty) ...[
@@ -4995,14 +5265,24 @@ class _RoleList extends StatelessWidget {
                     ],
                     if (clientName.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Text(
-                        'Event for: $clientName',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                            0.6,
+                      RichText(
+                        text: TextSpan(
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(
+                              0.6,
+                            ),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w400,
                           ),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                          children: [
+                            const TextSpan(text: 'Event for: '),
+                            TextSpan(
+                              text: clientName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
