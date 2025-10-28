@@ -41,6 +41,7 @@ class _ChatPageState extends State<ChatPage> {
   String? _error;
   bool _sending = false;
   StreamSubscription<ChatMessage>? _messageSubscription;
+  String? _visibleDate; // Tracks the currently visible date section
 
   @override
   void initState() {
@@ -48,6 +49,36 @@ class _ChatPageState extends State<ChatPage> {
     _loadMessages();
     _listenToNewMessages();
     _markAsRead();
+    _scrollController.addListener(_updateVisibleDate);
+  }
+
+  void _updateVisibleDate() {
+    if (!_scrollController.hasClients || _messages.isEmpty) return;
+
+    // Get the scroll position
+    final scrollOffset = _scrollController.offset;
+
+    // Since we use reverse: true, messages are displayed newest first (index 0)
+    // As we scroll up (increasing offset), we see older messages
+    // Messages are in chronological order in the list (oldest at end)
+
+    // Approximate: each message is ~80px, find the visible index
+    final approximateIndex = (scrollOffset / 80).floor();
+
+    // When scrolling up (increasing offset), we want to show older dates
+    // So we need to go from beginning (newest) toward end (oldest)
+    final targetIndex = approximateIndex.clamp(0, _messages.length - 1);
+
+    if (targetIndex < _messages.length) {
+      final message = _messages[_messages.length - 1 - targetIndex]; // Reverse the index
+      final newDate = DateFormat('MMM d, yyyy').format(message.createdAt);
+
+      if (_visibleDate != newDate) {
+        setState(() {
+          _visibleDate = newDate;
+        });
+      }
+    }
   }
 
   void _listenToNewMessages() {
@@ -91,6 +122,10 @@ class _ChatPageState extends State<ChatPage> {
           ..clear()
           ..addAll(messages);
         _loading = false;
+        // Set initial visible date to most recent message
+        if (_messages.isNotEmpty) {
+          _visibleDate = DateFormat('MMM d, yyyy').format(_messages.first.createdAt);
+        }
       });
 
       _scrollToBottom();
@@ -372,12 +407,56 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ),
       ),
-      body: Column(
+      body: Stack(
         children: <Widget>[
-          Expanded(
-            child: _buildMessageList(),
+          // Main content
+          Column(
+            children: <Widget>[
+              Expanded(
+                child: _buildMessageList(),
+              ),
+              _buildMessageInput(),
+            ],
           ),
-          _buildMessageInput(),
+          // Floating date chip
+          if (_visibleDate != null)
+            Positioned(
+              top: 12,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: AnimatedOpacity(
+                  opacity: _visibleDate != null ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED).withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.12),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _visibleDate!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
