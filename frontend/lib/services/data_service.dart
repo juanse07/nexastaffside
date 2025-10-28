@@ -298,7 +298,31 @@ class DataService extends ChangeNotifier {
           _eventsRaw = updatedEvents;
         }
 
+        debugPrint('[DATA_SERVICE] Before filter: ${_eventsRaw.length} events (userKey=$userKey)');
         _events = _filterEventsForAudience(_eventsRaw, userKey);
+        debugPrint('[DATA_SERVICE] After filter: ${_events.length} events');
+
+        // Debug: Check if any events have this user in accepted_staff
+        if (userKey != null) {
+          int acceptedCount = 0;
+          for (final evt in _eventsRaw) {
+            final accepted = evt['accepted_staff'] as List?;
+            if (accepted != null) {
+              for (final entry in accepted) {
+                String? entryKey;
+                if (entry is String) entryKey = entry;
+                if (entry is Map) entryKey = entry['userKey']?.toString();
+                if (entryKey == userKey) {
+                  acceptedCount++;
+                  debugPrint('[DATA_SERVICE] User IS accepted in event: ${evt['_id']} (${evt['event_name']})');
+                  break;
+                }
+              }
+            }
+          }
+          debugPrint('[DATA_SERVICE] Total events where user is accepted: $acceptedCount');
+        }
+
         unawaited(_ensureSocketConnected());
 
         _lastFetch = DateTime.now();
