@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/chat_message.dart';
@@ -719,8 +720,11 @@ class _ChatPageState extends State<ChatPage> {
       if (accept) {
         debugPrint('[INVITATION_ANALYTICS] refreshing events after accept');
         try {
-          final dataService = DataService();
+          final dataService = context.read<DataService>();
+          debugPrint('🎯 Event accepted, invalidating cache and refreshing...');
+          await dataService.invalidateEventsCache();
           await dataService.forceRefresh();
+          debugPrint('🎯 Refresh complete after event accept');
           debugPrint('[INVITATION_ANALYTICS] events refreshed successfully');
         } catch (refreshError) {
           debugPrint('[INVITATION_ANALYTICS] error refreshing events: $refreshError');
