@@ -675,13 +675,39 @@ class _ChatPageState extends State<ChatPage> {
     final clientName = eventData['client_name'] as String? ?? 'Client';
     final venueName = eventData['venue_name'] as String? ?? eventData['venue_address'] as String?;
     final rate = role['rate'] as num? ?? (role['tariff'] as Map<String, dynamic>?)?['rate'] as num?;
-    final startDateStr = eventData['start_date'] as String? ?? eventData['date'] as String?;
-    final startDate = startDateStr != null
-        ? DateTime.parse(startDateStr)
-        : DateTime.now();
-    final endDate = eventData['end_date'] != null
-        ? DateTime.parse(eventData['end_date'] as String)
-        : startDate.add(const Duration(hours: 4));
+
+    // Parse date and times properly
+    final dateStr = eventData['date'] as String?;
+    final startTimeStr = eventData['start_time'] as String?;
+    final endTimeStr = eventData['end_time'] as String?;
+
+    DateTime startDate;
+    DateTime endDate;
+
+    if (dateStr != null && startTimeStr != null) {
+      // Parse the date (e.g., "2025-10-27")
+      final baseDate = DateTime.parse(dateStr);
+      // Parse the time (e.g., "13:00")
+      final startTimeParts = startTimeStr.split(':');
+      final startHour = int.tryParse(startTimeParts[0]) ?? 0;
+      final startMinute = startTimeParts.length > 1 ? (int.tryParse(startTimeParts[1]) ?? 0) : 0;
+      // Combine date + time
+      startDate = DateTime(baseDate.year, baseDate.month, baseDate.day, startHour, startMinute);
+
+      // Same for end time
+      if (endTimeStr != null) {
+        final endTimeParts = endTimeStr.split(':');
+        final endHour = int.tryParse(endTimeParts[0]) ?? 0;
+        final endMinute = endTimeParts.length > 1 ? (int.tryParse(endTimeParts[1]) ?? 0) : 0;
+        endDate = DateTime(baseDate.year, baseDate.month, baseDate.day, endHour, endMinute);
+      } else {
+        endDate = startDate.add(const Duration(hours: 4));
+      }
+    } else {
+      // Fallback if data is missing
+      startDate = DateTime.now();
+      endDate = startDate.add(const Duration(hours: 4));
+    }
 
     debugPrint('[INVITATION_ANALYTICS] invitation_card_loaded successfully');
     debugPrint('[INVITATION_ANALYTICS] eventName: $eventName');
