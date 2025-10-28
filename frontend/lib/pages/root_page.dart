@@ -4355,76 +4355,20 @@ class _MyEventsListState extends State<_MyEventsList> {
     final theme = Theme.of(context);
     final mine = _filterMyAccepted();
 
-    return EnhancedRefreshIndicator(
-      showLastRefreshTime: false,
-      child: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // Scrolling week banner (not pinned)
-          if (mine.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF7C3AED), // Purple 600
-                      Color(0xFF6366F1), // Indigo 500
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF7C3AED).withOpacity(0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+    return Stack(
+      children: [
+        // Main scrollable content
+        EnhancedRefreshIndicator(
+          showLastRefreshTime: false,
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // Add spacing at top for the floating banner
+              if (mine.isNotEmpty)
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 60),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_today_rounded,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _currentWeekLabel ?? 'My Events',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                    if (_currentWeekLabel != null)
-                      Text(
-                        '$_currentWeekEventCount ${_currentWeekEventCount == 1 ? 'event' : 'events'} • ${_currentWeekHours.toStringAsFixed(1)} hrs',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          if (mine.isEmpty && !widget.loading)
+              if (mine.isEmpty && !widget.loading)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -4493,6 +4437,74 @@ class _MyEventsListState extends State<_MyEventsList> {
           ),
         ],
       ),
+    ),
+        // Floating transparent banner positioned below tabs
+        if (mine.isNotEmpty && _currentWeekLabel != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF7C3AED).withOpacity(0.75), // Purple 600
+                    const Color(0xFF6366F1).withOpacity(0.75), // Indigo 500
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C3AED).withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _currentWeekLabel!,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '$_currentWeekEventCount ${_currentWeekEventCount == 1 ? 'event' : 'events'} • ${_currentWeekHours.toStringAsFixed(1)} hrs',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.95),
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
