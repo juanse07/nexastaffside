@@ -4121,100 +4121,7 @@ class _EventStat extends StatelessWidget {
   }
 }
 
-// Pinned header delegate for floating week banner
-class _WeekBannerDelegate extends SliverPersistentHeaderDelegate {
-  final String? weekLabel;
-  final int eventCount;
-  final double hours;
-  final ThemeData theme;
-
-  _WeekBannerDelegate({
-    required this.weekLabel,
-    required this.eventCount,
-    required this.hours,
-    required this.theme,
-  });
-
-  @override
-  double get minExtent => weekLabel != null ? 56.0 : 0.0;
-
-  @override
-  double get maxExtent => weekLabel != null ? 56.0 : 0.0;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    if (weekLabel == null) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF7C3AED), // Purple 600
-            Color(0xFF6366F1), // Indigo 500
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.calendar_today_rounded,
-              size: 16,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              weekLabel!,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-          Text(
-            '$eventCount ${eventCount == 1 ? 'event' : 'events'} • ${hours.toStringAsFixed(1)} hrs',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.9),
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _WeekBannerDelegate oldDelegate) {
-    return weekLabel != oldDelegate.weekLabel ||
-        eventCount != oldDelegate.eventCount ||
-        hours != oldDelegate.hours;
-  }
-}
-
-// Data class to track week section information for floating banner
+// Data class to track week section information for scrolling banner
 class _WeekSectionInfo {
   final String label;
   final int eventCount;
@@ -4453,15 +4360,68 @@ class _MyEventsListState extends State<_MyEventsList> {
       child: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          // Floating/Pinned week banner
+          // Scrolling week banner (not pinned)
           if (mine.isNotEmpty)
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _WeekBannerDelegate(
-                weekLabel: _currentWeekLabel,
-                eventCount: _currentWeekEventCount,
-                hours: _currentWeekHours,
-                theme: theme,
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF7C3AED), // Purple 600
+                      Color(0xFF6366F1), // Indigo 500
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF7C3AED).withOpacity(0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _currentWeekLabel ?? 'My Events',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                    if (_currentWeekLabel != null)
+                      Text(
+                        '$_currentWeekEventCount ${_currentWeekEventCount == 1 ? 'event' : 'events'} • ${_currentWeekHours.toStringAsFixed(1)} hrs',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withOpacity(0.9),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           if (mine.isEmpty && !widget.loading)
