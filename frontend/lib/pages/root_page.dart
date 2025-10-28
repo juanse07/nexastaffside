@@ -4121,7 +4121,115 @@ class _EventStat extends StatelessWidget {
   }
 }
 
-class _MyEventsList extends StatelessWidget {
+// Pinned header delegate for floating week banner
+class _WeekBannerDelegate extends SliverPersistentHeaderDelegate {
+  final String? weekLabel;
+  final int eventCount;
+  final double hours;
+  final ThemeData theme;
+
+  _WeekBannerDelegate({
+    required this.weekLabel,
+    required this.eventCount,
+    required this.hours,
+    required this.theme,
+  });
+
+  @override
+  double get minExtent => weekLabel != null ? 56.0 : 0.0;
+
+  @override
+  double get maxExtent => weekLabel != null ? 56.0 : 0.0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    if (weekLabel == null) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF7C3AED), // Purple 600
+            Color(0xFF6366F1), // Indigo 500
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7C3AED).withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.calendar_today_rounded,
+              size: 16,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              weekLabel!,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          Text(
+            '$eventCount ${eventCount == 1 ? 'event' : 'events'} • ${hours.toStringAsFixed(1)} hrs',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withOpacity(0.9),
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _WeekBannerDelegate oldDelegate) {
+    return weekLabel != oldDelegate.weekLabel ||
+        eventCount != oldDelegate.eventCount ||
+        hours != oldDelegate.hours;
+  }
+}
+
+// Data class to track week section information for floating banner
+class _WeekSectionInfo {
+  final String label;
+  final int eventCount;
+  final double hours;
+  final double approximateStartOffset;
+
+  const _WeekSectionInfo({
+    required this.label,
+    required this.eventCount,
+    required this.hours,
+    required this.approximateStartOffset,
+  });
+}
+
+class _MyEventsList extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
@@ -4132,22 +4240,66 @@ class _MyEventsList extends StatelessWidget {
     required this.loading,
   });
 
+  @override
+  State<_MyEventsList> createState() => _MyEventsListState();
+}
+
+class _MyEventsListState extends State<_MyEventsList> {
+  final ScrollController _scrollController = ScrollController();
+  final List<_WeekSectionInfo> _weekSections = [];
+  String? _currentWeekLabel;
+  int _currentWeekEventCount = 0;
+  double _currentWeekHours = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_weekSections.isEmpty || !_scrollController.hasClients) return;
+
+    final scrollOffset = _scrollController.offset;
+
+    // Find which week section is currently visible
+    for (int i = _weekSections.length - 1; i >= 0; i--) {
+      if (scrollOffset >= _weekSections[i].approximateStartOffset) {
+        final section = _weekSections[i];
+        if (_currentWeekLabel != section.label) {
+          setState(() {
+            _currentWeekLabel = section.label;
+            _currentWeekEventCount = section.eventCount;
+            _currentWeekHours = section.hours;
+          });
+        }
+        break;
+      }
+    }
+  }
+
   List<Map<String, dynamic>> _filterMyAccepted() {
-    if (userKey == null) return const [];
+    if (widget.userKey == null) return const [];
     final List<Map<String, dynamic>> mine = [];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    for (final e in events) {
+    for (final e in widget.events) {
       final accepted = e['accepted_staff'];
       if (accepted is List) {
         bool isAccepted = false;
         for (final a in accepted) {
-          if (a is String && a == userKey) {
+          if (a is String && a == widget.userKey) {
             isAccepted = true;
             break;
           }
-          if (a is Map && a['userKey'] == userKey) {
+          if (a is Map && a['userKey'] == widget.userKey) {
             isAccepted = true;
             break;
           }
@@ -4299,8 +4451,20 @@ class _MyEventsList extends StatelessWidget {
     return EnhancedRefreshIndicator(
       showLastRefreshTime: false,
       child: CustomScrollView(
+        controller: _scrollController,
         slivers: [
-          if (mine.isEmpty && !loading)
+          // Floating/Pinned week banner
+          if (mine.isNotEmpty)
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _WeekBannerDelegate(
+                weekLabel: _currentWeekLabel,
+                eventCount: _currentWeekEventCount,
+                hours: _currentWeekHours,
+                theme: theme,
+              ),
+            ),
+          if (mine.isEmpty && !widget.loading)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(20),
@@ -4320,7 +4484,7 @@ class _MyEventsList extends StatelessWidget {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) =>
-                            PastEventsPage(events: events, userKey: userKey),
+                            PastEventsPage(events: widget.events, userKey: widget.userKey),
                       ),
                     );
                   },
@@ -4379,6 +4543,10 @@ class _MyEventsList extends StatelessWidget {
     final grouped = _groupEventsByWeek(events);
     final List<Widget> sections = [];
 
+    // Clear and reset week sections tracking
+    _weekSections.clear();
+    double currentOffset = 56.0; // Start after the pinned header
+
     // Sort events within each group by date (earliest first)
     grouped.forEach((weekLabel, weekEvents) {
       weekEvents.sort((a, b) {
@@ -4423,6 +4591,18 @@ class _MyEventsList extends StatelessWidget {
     for (final weekLabel in sortedKeys) {
       final weekEvents = grouped[weekLabel]!;
       final weekHours = _calculateTotalHours(weekEvents);
+
+      // Track section info for scroll detection
+      _weekSections.add(_WeekSectionInfo(
+        label: weekLabel,
+        eventCount: weekEvents.length,
+        hours: weekHours.toDouble(),
+        approximateStartOffset: currentOffset,
+      ));
+
+      // Update offset for next section
+      // Approximate heights: header (~52px) + events (120px each) + spacing
+      currentOffset += 52.0 + (weekEvents.length * 128.0);
 
       // Add week header
       sections.add(
@@ -4481,6 +4661,20 @@ class _MyEventsList extends StatelessWidget {
           }, childCount: weekEvents.length),
         ),
       );
+    }
+
+    // Initialize current week to the first section
+    if (_weekSections.isNotEmpty && _currentWeekLabel == null) {
+      final firstSection = _weekSections.first;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _currentWeekLabel = firstSection.label;
+            _currentWeekEventCount = firstSection.eventCount;
+            _currentWeekHours = firstSection.hours;
+          });
+        }
+      });
     }
 
     return sections;
