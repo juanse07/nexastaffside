@@ -4753,7 +4753,7 @@ class _MyEventsListState extends State<_MyEventsList> {
       final acc = e['accepted_staff'];
       if (acc is List) {
         for (final a in acc) {
-          if (a is Map && a['userKey'] == userKey) {
+          if (a is Map && a['userKey'] == widget.userKey) {
             role = a['role']?.toString();
             final response = a['response']?.toString();
             isConfirmed = response == 'accept';
