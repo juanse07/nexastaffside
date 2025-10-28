@@ -74,6 +74,15 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
   }
 
   Future<void> _loadMessages() async {
+    // Don't try to fetch messages if chat is disabled
+    if (!widget.chatEnabled) {
+      setState(() {
+        _loading = false;
+        _error = null;
+      });
+      return;
+    }
+
     try {
       setState(() {
         _loading = true;
@@ -236,6 +245,42 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
     }
 
     if (_messages.isEmpty) {
+      if (!widget.chatEnabled) {
+        // Chat is disabled - show friendly waiting message
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.schedule, size: 64, color: Colors.orange.shade300),
+                const SizedBox(height: 24),
+                Text(
+                  'Chat Opens Soon',
+                  style: TextStyle(
+                    color: Colors.grey.shade800,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Team chat will automatically open 1 hour before your shift starts',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Come back closer to your shift time to coordinate with your team!',
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
