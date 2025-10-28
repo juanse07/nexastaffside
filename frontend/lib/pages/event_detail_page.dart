@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../auth_service.dart';
 import '../services/data_service.dart';
 import '../utils/id.dart';
+import 'event_team_chat_page.dart';
 
 class EventDetailPage extends StatelessWidget {
   final Map<String, dynamic> event;
@@ -344,6 +345,25 @@ class EventDetailPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: !showRespondActions
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.black),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EventTeamChatPage(
+                          eventId: (event['_id'] ?? event['id'] ?? '').toString(),
+                          eventName: eventName,
+                          chatEnabled: event['chatEnabled'] == true,
+                        ),
+                      ),
+                    );
+                  },
+                  tooltip: 'Team Chat',
+                ),
+              ]
+            : null,
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),

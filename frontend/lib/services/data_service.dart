@@ -36,6 +36,8 @@ class DataService extends ChangeNotifier {
   Timer? _backgroundRefreshTimer;
   io.Socket? _socket;
   bool _connectingSocket = false;
+  final StreamController<Map<String, dynamic>> _eventChatMessageController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   // Getters
   List<Map<String, dynamic>> get events => List.unmodifiable(_events);
@@ -452,6 +454,15 @@ class DataService extends ChangeNotifier {
           } catch (e) {
             debugPrint('[SOCKET] Error handling chat message: $e');
           }
+        }
+      });
+
+      // Event team chat message listener
+      socket.on('event_chat:message', (data) {
+        debugPrint('[SOCKET] Received event_chat:message event: $data');
+        if (data != null && data is Map<String, dynamic>) {
+          // Forward to EventTeamChatService via stream
+          _eventChatMessageController.add(data);
         }
       });
 
@@ -992,9 +1003,24 @@ class DataService extends ChangeNotifier {
     return true;
   }
 
+  /// Event chat message stream
+  Stream<Map<String, dynamic>> get eventChatMessageStream =>
+      _eventChatMessageController.stream;
+
+  /// Emit a socket event
+  void emitSocketEvent(String event, dynamic data) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit(event, data);
+      debugPrint('[SOCKET] Emitted $event: $data');
+    } else {
+      debugPrint('[SOCKET] Cannot emit $event - socket not connected');
+    }
+  }
+
   @override
   void dispose() {
     _backgroundRefreshTimer?.cancel();
+    _eventChatMessageController.close();
     _socket?.dispose();
     super.dispose();
   }
