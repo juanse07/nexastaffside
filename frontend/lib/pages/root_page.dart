@@ -3042,6 +3042,8 @@ class _RolesSectionState extends State<_RolesSection>
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
+    debugPrint('[MY_EVENTS] Filtering ${widget.events.length} events for user ${widget.userKey}');
+
     for (final e in widget.events) {
       final accepted = e['accepted_staff'];
       if (accepted is List) {
@@ -3060,12 +3062,18 @@ class _RolesSectionState extends State<_RolesSection>
         // Only include if accepted AND event is today or in the future
         if (isAccepted) {
           final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
+          debugPrint('[MY_EVENTS] Event ${e['_id']} (${e['event_name']}): date=$eventDate, today=$today, isBefore=${eventDate?.isBefore(today)}');
           if (eventDate != null && !eventDate.isBefore(today)) {
             mine.add(e);
+            debugPrint('[MY_EVENTS] ✓ Added event ${e['_id']} to My Events');
+          } else {
+            debugPrint('[MY_EVENTS] ✗ Skipped event ${e['_id']} - date in past or null');
           }
         }
       }
     }
+
+    debugPrint('[MY_EVENTS] Final count: ${mine.length} events');
     return mine;
   }
 
