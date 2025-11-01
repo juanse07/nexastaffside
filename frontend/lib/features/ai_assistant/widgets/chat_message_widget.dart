@@ -183,39 +183,60 @@ class ChatMessageWidget extends StatelessWidget {
   Widget _buildMessageContent(bool isUser) {
     final content = message.content;
     final lines = content.split('\n');
+    final widgets = <Widget>[];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: lines.map((line) {
-        // Check for [LINK:...] pattern
-        final linkPattern = RegExp(r'\[LINK:([^\]]+)\]');
-        final linkMatch = linkPattern.firstMatch(line);
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
 
-        if (linkMatch != null) {
-          return _buildClickableLink(line, linkMatch, isUser);
+      // Check for [LINK:...] pattern
+      final linkPattern = RegExp(r'\[LINK:([^\]]+)\]');
+      final linkMatch = linkPattern.firstMatch(line);
+
+      if (linkMatch != null) {
+        widgets.add(_buildClickableLink(line, linkMatch, isUser));
+        continue;
+      }
+
+      // Check for address patterns: "- Lugar:" or "- Venue:" (with optional markdown bold **)
+      final addressPattern = RegExp(
+        r'^[\s\-]*\*{0,2}(Lugar|Venue)\*{0,2}:\s*(.+)$',
+        caseSensitive: false,
+      );
+      final addressMatch = addressPattern.firstMatch(line);
+
+      if (addressMatch != null) {
+        // Check if next line looks like a street address (starts with a number)
+        String fullAddress = addressMatch.group(2)!.trim();
+        if (i + 1 < lines.length) {
+          final nextLine = lines[i + 1].trim();
+          final streetAddressPattern = RegExp(r'^\d+\s+');
+          if (streetAddressPattern.hasMatch(nextLine)) {
+            // Multi-line address: combine venue name and street address
+            fullAddress = '$fullAddress $nextLine';
+            i++; // Skip the next line since we've consumed it
+          }
         }
 
-        // Check for address patterns: "- Lugar:" or "- Venue:" (with optional markdown bold **)
-        final addressPattern = RegExp(
-          r'^[\s\-]*\*{0,2}(Lugar|Venue)\*{0,2}:\s*(.+)$',
-          caseSensitive: false,
-        );
-        final addressMatch = addressPattern.firstMatch(line);
+        widgets.add(_buildAddressLine(line, addressMatch, isUser, fullAddress));
+        continue;
+      }
 
-        if (addressMatch != null) {
-          return _buildAddressLine(line, addressMatch, isUser);
-        }
-
-        // Regular text line
-        return Text(
+      // Regular text line
+      widgets.add(
+        Text(
           line,
           style: TextStyle(
             color: isUser ? Colors.white : const Color(0xFF0F172A),
             fontSize: 15,
             height: 1.4,
           ),
-        );
-      }).toList(),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
     );
   }
 
@@ -264,8 +285,8 @@ class ChatMessageWidget extends StatelessWidget {
   }
 
   /// Build a clickable address line with maps icon
-  Widget _buildAddressLine(String line, RegExpMatch match, bool isUser) {
-    final address = match.group(2)!.trim(); // group(2) is the address text
+  Widget _buildAddressLine(String line, RegExpMatch match, bool isUser, String fullAddress) {
+    final address = fullAddress; // Use the full address (may include next line)
     final prefix = line.substring(0, match.start + match.group(0)!.indexOf(':') + 1);
 
     return Padding(
