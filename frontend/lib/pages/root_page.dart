@@ -27,6 +27,7 @@ import 'past_events_page.dart';
 import 'user_profile_page.dart';
 import 'team_center_page.dart';
 import 'conversations_page.dart';
+import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 
 enum _AccountMenuAction { profile, teams, settings, logout }
 
@@ -272,18 +273,47 @@ class RootPage extends StatefulWidget {
   State<RootPage> createState() => _RootPageState();
 }
 
-class _RootPageState extends State<RootPage> {
+class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   bool _checkingAuth = true;
   String? _userKey;
   String? _userPictureUrl;
   int _selectedBottomIndex = 0;
   Map<String, dynamic>? _upcoming;
 
+  // Bottom bar visibility - Optimized for performance
+  bool _isBottomBarVisible = true;
+  late AnimationController _bottomBarAnimationController;
+  late Animation<Offset> _bottomBarAnimation;
+
+  // Performance optimizations
+  Timer? _scrollEndTimer;
+  bool _isAnimating = false;
+
+  // For scroll detection - Optimized thresholds
+  double _lastScrollPosition = 0;
+  double _scrollThreshold = 3.0; // Reduced for faster response
+  double _velocityThreshold = 120.0; // Velocity-based hiding
+  double _lastVelocity = 0;
+
   @override
   void initState() {
     super.initState();
     _ensureSignedIn();
     _loadDefaultTab();
+
+    // Initialize bottom bar animation - Optimized for performance
+    _bottomBarAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300), // Smooth animation
+      vsync: this,
+    );
+    _bottomBarAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0, 1),
+    ).animate(CurvedAnimation(
+      parent: _bottomBarAnimationController,
+      curve: Curves.easeOutCubic, // Snappy curve with smooth deceleration
+      reverseCurve: Curves.easeOutCubic,
+    ));
   }
 
   Future<void> _loadDefaultTab() async {
@@ -338,6 +368,43 @@ class _RootPageState extends State<RootPage> {
     } catch (_) {
       // Ignore errors loading profile for avatar
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollEndTimer?.cancel();
+    _bottomBarAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _hideBottomBar() {
+    if (_isBottomBarVisible && !_isAnimating) {
+      _isAnimating = true;
+      _isBottomBarVisible = false;
+      _bottomBarAnimationController.forward().whenComplete(() {
+        _isAnimating = false;
+      });
+    }
+  }
+
+  void _showBottomBar() {
+    if (!_isBottomBarVisible && !_isAnimating) {
+      _isAnimating = true;
+      _isBottomBarVisible = true;
+      _bottomBarAnimationController.reverse().whenComplete(() {
+        _isAnimating = false;
+      });
+    }
+  }
+
+  // Optimized scroll-end detection for auto-showing bottom bar
+  void _handleScrollEnd() {
+    _scrollEndTimer?.cancel();
+    _scrollEndTimer = Timer(const Duration(milliseconds: 15000), () {
+      if (!_isBottomBarVisible && _lastVelocity.abs() < 50) {
+        _showBottomBar();
+      }
+    });
   }
 
   Future<void> _signOut() async {
@@ -576,9 +643,59 @@ class _RootPageState extends State<RootPage> {
 
         return Scaffold(
           backgroundColor: theme.colorScheme.surfaceContainerLowest,
-          body: IndexedStack(
-            index: _selectedBottomIndex,
-            children: [
+          extendBody: true,
+          extendBodyBehindAppBar: true,
+          body: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              // Optimized scroll detection with velocity tracking
+              if (notification is ScrollUpdateNotification) {
+                // Ignore horizontal scroll events (like PageView swipes)
+                if (notification.metrics.axis != Axis.vertical) return false;
+
+                final metrics = notification.metrics;
+                final currentScroll = metrics.pixels;
+                final scrollDiff = currentScroll - _lastScrollPosition;
+
+                // Check if we have enough content to warrant hiding navigation
+                // Staff app cards have more spacing, so 4 cards = ~320px scrollable content
+                if (metrics.maxScrollExtent < 320) {
+                  _showBottomBar(); // Always show when content is minimal
+                  return false;
+                }
+
+                // Track velocity for smoother behavior
+                if (notification.dragDetails != null) {
+                  _lastVelocity = notification.dragDetails!.primaryDelta ?? 0;
+                }
+
+                // Always show at top
+                if (currentScroll <= 0) {
+                  _showBottomBar();
+                  _scrollEndTimer?.cancel();
+                }
+                // Hide on fast downward scroll or consistent downward movement
+                else if ((scrollDiff > _scrollThreshold && currentScroll > 100) ||
+                         (_lastVelocity < -_velocityThreshold && currentScroll > 100)) {
+                  _hideBottomBar();
+                  _handleScrollEnd();
+                }
+                // Show on upward scroll or fast upward flick
+                else if (scrollDiff < -_scrollThreshold || _lastVelocity > _velocityThreshold) {
+                  _showBottomBar();
+                  _scrollEndTimer?.cancel();
+                }
+
+                _lastScrollPosition = currentScroll;
+              }
+              // Handle scroll end to show bar after user stops scrolling
+              else if (notification is ScrollEndNotification) {
+                _handleScrollEnd();
+              }
+              return false;
+            },
+            child: IndexedStack(
+              index: _selectedBottomIndex,
+              children: [
               ConversationsPage(
                 profileMenu: _buildProfileMenu(context, pendingInvites),
               ), // Chats tab (index 0) - Now default/first
@@ -588,6 +705,8 @@ class _RootPageState extends State<RootPage> {
                 loading: dataService.isLoading,
                 availability: dataService.availability,
                 profileMenu: _buildProfileMenu(context, pendingInvites),
+                onHideBottomBar: _hideBottomBar,
+                onShowBottomBar: _showBottomBar,
               ),
               _EarningsTab(
                 events: dataService.events,
@@ -602,62 +721,87 @@ class _RootPageState extends State<RootPage> {
                 profileMenu: _buildProfileMenu(context, pendingInvites),
                 isRefreshing: dataService.isRefreshing,
                 countdownText: _getSmartCountdownText(),
+                onHideBottomBar: _hideBottomBar,
+                onShowBottomBar: _showBottomBar,
               ),
+              // AI Assistant (index 4) - Now navigates to separate screen, not a tab
             ],
-          ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildNavItem(
-                      icon: Icons.chat_bubble_outline,
-                      selectedIcon: Icons.chat_bubble,
-                      label: 'Chats',
-                      index: 0,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.work_outline_rounded,
-                      selectedIcon: Icons.work_rounded,
-                      label: 'Roles',
-                      index: 1,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.account_balance_wallet_outlined,
-                      selectedIcon: Icons.account_balance_wallet,
-                      label: 'Earnings',
-                      index: 2,
-                    ),
-                    _buildNavItem(
-                      icon: Icons.access_time_outlined,
-                      selectedIcon: Icons.access_time,
-                      label: 'Clock In',
-                      index: 3,
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
+          bottomNavigationBar: RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _bottomBarAnimation,
+              builder: (context, child) {
+                // Use hardware acceleration for transform
+                // Fixed 150px slide like manager app (navbar height + padding)
+                final translateY = _bottomBarAnimation.value.dy * 150;
+                return Transform.translate(
+                  offset: Offset(0, translateY),
+                  filterQuality: FilterQuality.none, // Optimize rendering
+                  child: child!,
+                );
+              },
+              child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(
+                        icon: Icons.chat_bubble_outline,
+                        selectedIcon: Icons.chat_bubble,
+                        label: 'Chats',
+                        index: 0,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.work_outline_rounded,
+                        selectedIcon: Icons.work_rounded,
+                        label: 'Roles',
+                        index: 1,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.account_balance_wallet_outlined,
+                        selectedIcon: Icons.account_balance_wallet,
+                        label: 'Earnings',
+                        index: 2,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.access_time_outlined,
+                        selectedIcon: Icons.access_time,
+                        label: 'Clock In',
+                        index: 3,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.smart_toy_outlined,
+                        selectedIcon: Icons.smart_toy,
+                        label: 'AI',
+                        index: 4,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          ), // Close RepaintBoundary
         );
       },
     );
@@ -670,12 +814,31 @@ class _RootPageState extends State<RootPage> {
     required int index,
     int badgeCount = 0,
   }) {
-    final isSelected = _selectedBottomIndex == index;
+    // AI button (index 4) is never "selected" since it navigates instead of switching tabs
+    final isSelected = index != 4 && _selectedBottomIndex == index;
     return Expanded(
       child: InkWell(
         onTap: () {
+          // AI button navigates to separate screen instead of tab switch
+          if (index == 4) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const StaffAIChatScreen(),
+              ),
+            );
+            return;
+          }
+
           setState(() {
             _selectedBottomIndex = index;
+            // Reset scroll position and velocity when switching tabs
+            _lastScrollPosition = 0;
+            _lastVelocity = 0;
+            _scrollEndTimer?.cancel();
+            // Always show bottom bar when switching tabs with no animation delay
+            if (!_isBottomBarVisible) {
+              _showBottomBar();
+            }
           });
         },
         borderRadius: BorderRadius.circular(12),
@@ -1110,71 +1273,59 @@ class AppBarClipper extends CustomClipper<Path> {
 }
 
 // Shared AppBar builder for consistent styling across Clock In, Roles, and Earnings tabs
+// Fixed pinned header - always visible, doesn't collapse
 Widget buildStyledAppBar({
   required String title,
   required String subtitle,
   required Widget profileMenu,
 }) {
-  return SliverAppBar(
-    pinned: false,
-    floating: true,
-    snap: true,
-    expandedHeight: 120.0,
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    flexibleSpace: FlexibleSpaceBar(
-      background: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Purple gradient background with custom clip
-          ClipPath(
-            clipper: AppBarClipper(),
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
-                ),
+  return SliverPersistentHeader(
+    pinned: true,
+    delegate: _FixedAppBarDelegate(
+      title: title,
+      subtitle: subtitle,
+      profileMenu: profileMenu,
+    ),
+  );
+}
+
+// Delegate for fixed app bar header
+class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final String title;
+  final String subtitle;
+  final Widget profileMenu;
+
+  _FixedAppBarDelegate({
+    required this.title,
+    required this.subtitle,
+    required this.profileMenu,
+  });
+
+  @override
+  double get minExtent => 100.0;
+
+  @override
+  double get maxExtent => 100.0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF7A3AFB).withOpacity(0.75),
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.white.withOpacity(0.1),
+                width: 0.5,
               ),
             ),
           ),
-          // Decorative purple shapes layer
-          ClipPath(
-            clipper: AppBarClipper(),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: -40,
-                  right: -20,
-                  child: Container(
-                    width: 180,
-                    height: 180,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF9D7EF0).withOpacity(0.15),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 20,
-                  left: -30,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF8B5CF6).withOpacity(0.12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Title and stats with profile menu
-          SafeArea(
+          child: SafeArea(
+            bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: Row(
                 children: [
                   Expanded(
@@ -1186,16 +1337,16 @@ Widget buildStyledAppBar({
                           title,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           subtitle,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 13,
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1207,10 +1358,17 @@ Widget buildStyledAppBar({
               ),
             ),
           ),
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
+
+  @override
+  bool shouldRebuild(_FixedAppBarDelegate oldDelegate) {
+    return title != oldDelegate.title ||
+        subtitle != oldDelegate.subtitle ||
+        profileMenu != oldDelegate.profileMenu;
+  }
 }
 
 class _HomeTab extends StatefulWidget {
@@ -1220,6 +1378,8 @@ class _HomeTab extends StatefulWidget {
   final Widget profileMenu;
   final bool isRefreshing;
   final String countdownText;
+  final VoidCallback? onHideBottomBar;
+  final VoidCallback? onShowBottomBar;
   const _HomeTab({
     required this.events,
     required this.userKey,
@@ -1227,6 +1387,8 @@ class _HomeTab extends StatefulWidget {
     required this.profileMenu,
     required this.isRefreshing,
     required this.countdownText,
+    this.onHideBottomBar,
+    this.onShowBottomBar,
   });
 
   @override
@@ -2879,13 +3041,121 @@ class _HomeTabState extends State<_HomeTab> {
   }
 }
 
-// Roles section with nested tabs
+// Enum for view mode selection in roles section
+enum _ViewMode { available, myEvents, calendar }
+
+// Filter chips delegate for pinned header
+class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
+  final _ViewMode selectedView;
+  final Function(_ViewMode) onViewChanged;
+
+  _FilterChipsDelegate({
+    required this.selectedView,
+    required this.onViewChanged,
+  });
+
+  @override
+  double get minExtent => 60.0;
+
+  @override
+  double get maxExtent => 60.0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final theme = Theme.of(context);
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+        child: Container(
+          color: theme.colorScheme.surfaceContainerLowest.withOpacity(0.5),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FilterChip(
+            label: const Text('Available'),
+            avatar: const Icon(Icons.work_outline, size: 18),
+            selected: selectedView == _ViewMode.available,
+            onSelected: (selected) {
+              if (selected) onViewChanged(_ViewMode.available);
+            },
+            selectedColor: const Color(0xFF6A1B9A),
+            labelStyle: TextStyle(
+              color: selectedView == _ViewMode.available
+                  ? Colors.white
+                  : const Color(0xFF6A1B9A),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            side: BorderSide(
+              color: const Color(0xFF6A1B9A),
+              width: selectedView == _ViewMode.available ? 0 : 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('My Events'),
+            avatar: const Icon(Icons.event_available, size: 18),
+            selected: selectedView == _ViewMode.myEvents,
+            onSelected: (selected) {
+              if (selected) onViewChanged(_ViewMode.myEvents);
+            },
+            selectedColor: const Color(0xFF6A1B9A),
+            labelStyle: TextStyle(
+              color: selectedView == _ViewMode.myEvents
+                  ? Colors.white
+                  : const Color(0xFF6A1B9A),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            side: BorderSide(
+              color: const Color(0xFF6A1B9A),
+              width: selectedView == _ViewMode.myEvents ? 0 : 1,
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('Calendar'),
+            avatar: const Icon(Icons.calendar_month, size: 18),
+            selected: selectedView == _ViewMode.calendar,
+            onSelected: (selected) {
+              if (selected) onViewChanged(_ViewMode.calendar);
+            },
+            selectedColor: const Color(0xFF6A1B9A),
+            labelStyle: TextStyle(
+              color: selectedView == _ViewMode.calendar
+                  ? Colors.white
+                  : const Color(0xFF6A1B9A),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            side: BorderSide(
+              color: const Color(0xFF6A1B9A),
+              width: selectedView == _ViewMode.calendar ? 0 : 1,
+            ),
+          ),
+        ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_FilterChipsDelegate oldDelegate) {
+    return selectedView != oldDelegate.selectedView;
+  }
+}
+
+// Roles section with segmented control navigation
 class _RolesSection extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
   final List<Map<String, dynamic>> availability;
   final Widget profileMenu;
+  final VoidCallback? onHideBottomBar;
+  final VoidCallback? onShowBottomBar;
 
   const _RolesSection({
     required this.events,
@@ -2893,35 +3163,18 @@ class _RolesSection extends StatefulWidget {
     required this.loading,
     required this.availability,
     required this.profileMenu,
+    this.onHideBottomBar,
+    this.onShowBottomBar,
   });
 
   @override
   State<_RolesSection> createState() => _RolesSectionState();
 }
 
-class _RolesSectionState extends State<_RolesSection>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _currentTabIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) {
-        setState(() {
-          _currentTabIndex = _tabController.index;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _RolesSectionState extends State<_RolesSection> {
+  _ViewMode _selectedView = _ViewMode.available;
+  String? _currentWeekLabel;
+  final ScrollController _scrollController = ScrollController();
 
   bool _isAcceptedByUser(Map<String, dynamic> event, String? userKey) {
     if (userKey == null) return false;
@@ -3110,6 +3363,27 @@ class _RolesSectionState extends State<_RolesSection>
     return (totalMinutes / 60).round();
   }
 
+  String _getWeekLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final eventDate = DateTime(date.year, date.month, date.day);
+
+    final diff = eventDate.difference(today).inDays;
+
+    if (diff >= 0 && diff < 7) {
+      return 'This Week';
+    } else if (diff >= 7 && diff < 14) {
+      return 'Next Week';
+    } else if (diff >= 14 && diff < 21) {
+      return 'In 2 Weeks';
+    } else if (diff >= 21 && diff < 28) {
+      return 'In 3 Weeks';
+    } else {
+      final formatter = DateFormat('MMM d');
+      return 'Week of ${formatter.format(date)}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -3125,17 +3399,27 @@ class _RolesSectionState extends State<_RolesSection>
     final myEventsCount = myEvents.length;
     final myEventsTotalHours = _calculateTotalHours(myEvents);
 
-    // Dynamic title and subtitle based on current tab
+    // Initialize current week label from first event
+    if (myEvents.isNotEmpty && _currentWeekLabel == null) {
+      final firstEventDate = _parseDateSafe(myEvents.first['date']?.toString() ?? '');
+      if (firstEventDate != null) {
+        _currentWeekLabel = _getWeekLabel(firstEventDate);
+      } else {
+        _currentWeekLabel = 'This Week';
+      }
+    }
+
+    // Dynamic title and subtitle based on selected view
     String appBarTitle;
     String appBarSubtitle;
 
-    switch (_currentTabIndex) {
-      case 0: // Available tab
+    switch (_selectedView) {
+      case _ViewMode.available:
         appBarTitle = 'Available Roles';
         appBarSubtitle =
             '$availableCount roles • $totalPositions positions open';
         break;
-      case 1: // My Events tab
+      case _ViewMode.myEvents:
         appBarTitle = 'My Events';
         appBarSubtitle = widget.loading
             ? 'Loading events...'
@@ -3143,110 +3427,105 @@ class _RolesSectionState extends State<_RolesSection>
             ? 'No accepted events'
             : '$myEventsCount ${myEventsCount == 1 ? 'event' : 'events'} • $myEventsTotalHours hrs accepted';
         break;
-      case 2: // Calendar tab
+      case _ViewMode.calendar:
         appBarTitle = 'Calendar';
         appBarSubtitle = 'View your scheduled events';
         break;
-      default:
-        appBarTitle = 'Available Roles';
-        appBarSubtitle =
-            '$availableCount roles • $totalPositions positions open';
     }
 
-    return NestedScrollView(
-      headerSliverBuilder: (context, innerBoxIsScrolled) {
-        return [
-          buildStyledAppBar(
-            title: appBarTitle,
-            subtitle: appBarSubtitle,
-            profileMenu: widget.profileMenu,
-          ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(
-              TabBar(
-                controller: _tabController,
-                labelColor: const Color(0xFF6A1B9A),
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: const Color(0xFF6A1B9A),
-                indicatorWeight: 3,
-                labelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-                tabs: const [
-                  Tab(text: 'Available'),
-                  Tab(text: 'My Events'),
-                  Tab(text: 'Calendar'),
-                ],
+    // Build content widget based on selected view
+    Widget content;
+    switch (_selectedView) {
+      case _ViewMode.available:
+        content = _RoleList(
+          summaries: roleSummaries,
+          loading: widget.loading,
+          allEvents: widget.events,
+          userKey: widget.userKey,
+        );
+        break;
+      case _ViewMode.myEvents:
+        content = _MyEventsList(
+          events: widget.events,
+          userKey: widget.userKey,
+          loading: widget.loading,
+          onHideBottomBar: widget.onHideBottomBar,
+          onShowBottomBar: widget.onShowBottomBar,
+          onWeekChanged: (weekLabel) {
+            setState(() {
+              _currentWeekLabel = weekLabel;
+            });
+          },
+        );
+        break;
+      case _ViewMode.calendar:
+        content = _CalendarTab(
+          events: widget.events,
+          userKey: widget.userKey,
+          loading: widget.loading,
+          availability: widget.availability,
+        );
+        break;
+    }
+
+    // Calculate header heights
+    const double appBarHeight = 100.0;
+    const double chipsHeight = 60.0;
+    const double weekBannerHeight = 0.0; // Banner hidden per user request
+    final double totalHeaderHeight = appBarHeight + chipsHeight + (myEventsCount > 0 ? weekBannerHeight : 0);
+
+    return Stack(
+      children: [
+        // Full-screen scrollable content (starts from top:0 to scroll behind headers)
+        Positioned.fill(
+          child: content,
+        ),
+
+        // Floating transparent headers on top
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // App bar with blur
+              Container(
+                height: appBarHeight,
+                child: _FixedAppBarDelegate(
+                  title: appBarTitle,
+                  subtitle: appBarSubtitle,
+                  profileMenu: widget.profileMenu,
+                ).build(context, 0, false),
               ),
-              safeAreaPadding: MediaQuery.of(context).padding.top,
-            ),
+
+              // Filter chips with blur
+              Container(
+                height: chipsHeight,
+                child: _FilterChipsDelegate(
+                  selectedView: _selectedView,
+                  onViewChanged: (view) {
+                    setState(() => _selectedView = view);
+                  },
+                ).build(context, 0, false),
+              ),
+
+              // Week banner (floating chip) - HIDDEN per user request
+              // if (myEventsCount > 0 && _selectedView == _ViewMode.myEvents && _currentWeekLabel != null)
+              //   Container(
+              //     height: weekBannerHeight,
+              //     child: _TransparentWeekBannerDelegate(
+              //       weekLabel: _currentWeekLabel!,
+              //       eventCount: myEventsCount,
+              //       hours: myEventsTotalHours.toDouble(),
+              //     ).build(context, 0, false),
+              //   ),
+            ],
           ),
-        ];
-      },
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _RoleList(
-            summaries: roleSummaries,
-            loading: widget.loading,
-            allEvents: widget.events,
-            userKey: widget.userKey,
-          ),
-          _MyEventsList(
-            events: widget.events,
-            userKey: widget.userKey,
-            loading: widget.loading,
-          ),
-          _CalendarTab(
-            events: widget.events,
-            userKey: widget.userKey,
-            loading: widget.loading,
-            availability: widget.availability,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
-
-// TabBar delegate for SliverPersistentHeader
-class _TabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-  final double safeAreaPadding;
-
-  _TabBarDelegate(this.tabBar, {this.safeAreaPadding = 0.0});
-
-  @override
-  double get minExtent => tabBar.preferredSize.height + safeAreaPadding;
-
-  @override
-  double get maxExtent => tabBar.preferredSize.height + safeAreaPadding;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Material(
-      elevation: 4.0,
-      child: Container(
-        color: Colors.white,
-        child: SafeArea(bottom: false, child: tabBar),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(_TabBarDelegate oldDelegate) =>
-      safeAreaPadding != oldDelegate.safeAreaPadding;
 }
 
 // Earnings tab with approved hours breakdown
@@ -4134,70 +4413,77 @@ class _TransparentWeekBannerDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 56.0;
+  double get minExtent => 48.0; // Reduced height
 
   @override
-  double get maxExtent => 56.0;
+  double get maxExtent => 48.0; // Reduced height
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF7C3AED).withOpacity(0.75), // Purple 600 - transparent
-            const Color(0xFF6366F1).withOpacity(0.75), // Indigo 500 - transparent
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
+      color: Colors.transparent,
+      padding: const EdgeInsets.only(top: 2, bottom: 8, left: 20, right: 20), // Match card margins
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.calendar_today_rounded,
-              size: 16,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              weekLabel,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 0.3,
+              // Peach gradient with more transparency
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFFFFB088).withOpacity(0.35), // Light peach - more transparent
+                  const Color(0xFFFF9F7F).withOpacity(0.30), // Deeper peach - more transparent
+                ],
               ),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFF9F7F).withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 14, // Smaller icon
+                  color: const Color(0xFF8B4513).withOpacity(0.8), // Saddle brown
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    weekLabel,
+                    style: TextStyle(
+                      fontSize: 12, // Smaller font
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF6B3410).withOpacity(0.9), // Dark peach/brown
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$eventCount ${eventCount == 1 ? 'event' : 'events'} • ${hours.toStringAsFixed(1)} hrs',
+                  style: TextStyle(
+                    fontSize: 11, // Smaller font
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF8B4513).withOpacity(0.75), // Saddle brown
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            '$eventCount ${eventCount == 1 ? 'event' : 'events'} • ${hours.toStringAsFixed(1)} hrs',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white.withOpacity(0.95),
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -4210,30 +4496,21 @@ class _TransparentWeekBannerDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-// Data class to track week section information for scrolling banner
-class _WeekSectionInfo {
-  final String label;
-  final int eventCount;
-  final double hours;
-  final double approximateStartOffset;
-
-  const _WeekSectionInfo({
-    required this.label,
-    required this.eventCount,
-    required this.hours,
-    required this.approximateStartOffset,
-  });
-}
-
 class _MyEventsList extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
   final bool loading;
+  final Function(String)? onWeekChanged;
+  final VoidCallback? onHideBottomBar;
+  final VoidCallback? onShowBottomBar;
 
   const _MyEventsList({
     required this.events,
     required this.userKey,
     required this.loading,
+    this.onWeekChanged,
+    this.onHideBottomBar,
+    this.onShowBottomBar,
   });
 
   @override
@@ -4242,41 +4519,95 @@ class _MyEventsList extends StatefulWidget {
 
 class _MyEventsListState extends State<_MyEventsList> {
   final ScrollController _scrollController = ScrollController();
-  final List<_WeekSectionInfo> _weekSections = [];
-  String? _currentWeekLabel;
-  int _currentWeekEventCount = 0;
-  double _currentWeekHours = 0.0;
+  Map<String, List<Map<String, dynamic>>> _weekGroups = {};
+  List<String> _weekKeys = [];
+  String? _currentVisibleWeek;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _updateWeekGroups();
+  }
+
+  @override
+  void didUpdateWidget(_MyEventsList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only update if events actually changed
+    if (oldWidget.events != widget.events) {
+      _updateWeekGroups();
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onScroll() {
-    if (_weekSections.isEmpty || !_scrollController.hasClients) return;
+    if (_weekKeys.isEmpty || !_scrollController.hasClients) return;
 
+    // Calculate which week is currently visible based on scroll position
     final scrollOffset = _scrollController.offset;
 
-    // Find which week section is currently visible
-    for (int i = _weekSections.length - 1; i >= 0; i--) {
-      if (scrollOffset >= _weekSections[i].approximateStartOffset) {
-        final section = _weekSections[i];
-        if (_currentWeekLabel != section.label) {
-          setState(() {
-            _currentWeekLabel = section.label;
-            _currentWeekEventCount = section.eventCount;
-            _currentWeekHours = section.hours;
-          });
+    // Calculate positions for each week section
+    double currentPosition = 0;
+
+    for (int i = 0; i < _weekKeys.length; i++) {
+      final weekKey = _weekKeys[i];
+      final weekEvents = _weekGroups[weekKey] ?? [];
+
+      // Each week section has: header (~60px) + events (~140px each) + spacing
+      final weekHeight = 60 + (weekEvents.length * 140) + 20;
+
+      if (scrollOffset <= currentPosition + weekHeight) {
+        // This week is at the top of the visible area
+        // Only update if it's different from current
+        if (_currentVisibleWeek != weekKey) {
+          _currentVisibleWeek = weekKey;
+          widget.onWeekChanged?.call(weekKey);
         }
         break;
       }
+      currentPosition += weekHeight;
+    }
+  }
+
+  void _updateWeekGroups() {
+    final mine = _filterMyAccepted();
+    _weekGroups = _groupEventsByWeek(mine);
+
+    // Sort week keys
+    final preferredOrder = ['This Week', 'Next Week'];
+    _weekKeys = _weekGroups.keys.toList()
+      ..sort((a, b) {
+        final aIndex = preferredOrder.indexOf(a);
+        final bIndex = preferredOrder.indexOf(b);
+        if (aIndex != -1 && bIndex != -1) return aIndex.compareTo(bIndex);
+        if (aIndex != -1) return -1;
+        if (bIndex != -1) return 1;
+
+        // For date-based labels, parse and compare
+        final aEvents = _weekGroups[a]!;
+        final bEvents = _weekGroups[b]!;
+        if (aEvents.isNotEmpty && bEvents.isNotEmpty) {
+          final aDate = _parseDateSafe(aEvents.first['date']?.toString() ?? '');
+          final bDate = _parseDateSafe(bEvents.first['date']?.toString() ?? '');
+          if (aDate != null && bDate != null) {
+            return aDate.compareTo(bDate);
+          }
+        }
+        return a.compareTo(b);
+      });
+
+    // Only set initial week label if not already set
+    if (_weekKeys.isNotEmpty && _currentVisibleWeek == null) {
+      _currentVisibleWeek = _weekKeys.first;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onWeekChanged?.call(_currentVisibleWeek!);
+      });
     }
   }
 
@@ -4449,16 +4780,13 @@ class _MyEventsListState extends State<_MyEventsList> {
       child: CustomScrollView(
         controller: _scrollController,
         slivers: [
-          // Pinned transparent banner below tabs
-          if (mine.isNotEmpty && _currentWeekLabel != null)
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _TransparentWeekBannerDelegate(
-                weekLabel: _currentWeekLabel!,
-                eventCount: _currentWeekEventCount,
-                hours: _currentWeekHours,
-              ),
+          // Transparent spacer that scrolls behind headers
+          SliverToBoxAdapter(
+            child: Container(
+              height: 160, // Height to cover headers (reduced since banner is hidden)
+              color: Colors.transparent,
             ),
+          ),
           if (mine.isEmpty && !widget.loading)
             SliverToBoxAdapter(
               child: Padding(
@@ -4470,7 +4798,7 @@ class _MyEventsListState extends State<_MyEventsList> {
           // View Past Events button
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 100), // Added bottom padding for nav bar
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -4538,10 +4866,6 @@ class _MyEventsListState extends State<_MyEventsList> {
     final grouped = _groupEventsByWeek(events);
     final List<Widget> sections = [];
 
-    // Clear and reset week sections tracking
-    _weekSections.clear();
-    double currentOffset = 56.0; // Start after the pinned header
-
     // Sort events within each group by date (earliest first)
     grouped.forEach((weekLabel, weekEvents) {
       weekEvents.sort((a, b) {
@@ -4583,57 +4907,22 @@ class _MyEventsListState extends State<_MyEventsList> {
         return a.compareTo(b);
       });
 
-    for (final weekLabel in sortedKeys) {
+    for (int i = 0; i < sortedKeys.length; i++) {
+      final weekLabel = sortedKeys[i];
       final weekEvents = grouped[weekLabel]!;
-      final weekHours = _calculateTotalHours(weekEvents);
 
-      // Track section info for scroll detection
-      _weekSections.add(_WeekSectionInfo(
-        label: weekLabel,
-        eventCount: weekEvents.length,
-        hours: weekHours.toDouble(),
-        approximateStartOffset: currentOffset,
-      ));
-
-      // Update offset for next section
-      // Approximate heights: header (~52px) + events (120px each) + spacing
-      currentOffset += 52.0 + (weekEvents.length * 128.0);
-
-      // Add week header
+      // Add week header text
       sections.add(
         SliverToBoxAdapter(
           child: Container(
-            margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    weekLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${weekEvents.length} ${weekEvents.length == 1 ? 'event' : 'events'} • $weekHours hrs',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            padding: EdgeInsets.fromLTRB(20, i == 0 ? 12 : 24, 20, 8),
+            child: Text(
+              weekLabel,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
         ),
@@ -4647,29 +4936,15 @@ class _MyEventsListState extends State<_MyEventsList> {
             return Padding(
               padding: EdgeInsets.fromLTRB(
                 20,
-                8,
+                index == 0 ? 12 : 8, // Add more space for first item
                 20,
-                index == weekEvents.length - 1 ? 0 : 8,
+                index == weekEvents.length - 1 ? 12 : 8, // Add more space for last item
               ),
               child: _buildEventCard(context, theme, weekEvents[index]),
             );
           }, childCount: weekEvents.length),
         ),
       );
-    }
-
-    // Initialize current week to the first section
-    if (_weekSections.isNotEmpty && _currentWeekLabel == null) {
-      final firstSection = _weekSections.first;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _currentWeekLabel = firstSection.label;
-            _currentWeekEventCount = firstSection.eventCount;
-            _currentWeekHours = firstSection.hours;
-          });
-        }
-      });
     }
 
     return sections;
@@ -5227,7 +5502,13 @@ class _RoleList extends StatelessWidget {
       showLastRefreshTime: false,
       child: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: const SizedBox.shrink()),
+          // Transparent spacer that scrolls behind headers
+          SliverToBoxAdapter(
+            child: Container(
+              height: 160, // Height to cover headers (reduced since banner is hidden)
+              color: Colors.transparent,
+            ),
+          ),
           if (roleEventPairs.isEmpty && !loading)
             SliverToBoxAdapter(
               child: Padding(
@@ -5294,6 +5575,13 @@ class _RoleList extends StatelessWidget {
                 }, childCount: monthEvents.length + 1), // +1 for header
               );
             }).toList(),
+          // Bottom padding for navigation bar
+          SliverToBoxAdapter(
+            child: Container(
+              height: 100, // Bottom padding for nav bar
+              color: Colors.transparent,
+            ),
+          ),
         ],
       ),
     );
@@ -6140,6 +6428,13 @@ class _CalendarTabState extends State<_CalendarTab> {
                     ),
                   );
                 },
+              ),
+              // Bottom padding for navigation bar
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 100, // Bottom padding for nav bar
+                  color: Colors.transparent,
+                ),
               ),
             ],
           ),
