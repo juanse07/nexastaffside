@@ -164,21 +164,21 @@ When marking availability or accepting/declining shifts, use the appropriate res
 
         for (var event in assignedEvents) {
           buffer.writeln('Event ID: ${event['_id']}');
-          buffer.writeln('  Name: ${event['eventName']}');
-          buffer.writeln('  Client: ${event['clientName']}');
+          buffer.writeln('  Name: ${event['event_name']}');
+          buffer.writeln('  Client: ${event['client_name']}');
           buffer.writeln('  Date: ${event['date']}');
           buffer.writeln('  Your Role: ${event['userRole']}');
           if (event['userCallTime'] != null) {
             buffer.writeln('  Call Time: ${event['userCallTime']}');
           }
-          if (event['startTime'] != null) {
-            buffer.writeln('  Event Time: ${event['startTime']} - ${event['endTime']}');
+          if (event['start_time'] != null) {
+            buffer.writeln('  Event Time: ${event['start_time']} - ${event['end_time']}');
           }
-          if (event['venueName'] != null) {
-            buffer.writeln('  Venue: ${event['venueName']}');
+          if (event['venue_name'] != null) {
+            buffer.writeln('  Venue: ${event['venue_name']}');
           }
-          if (event['venueAddress'] != null) {
-            buffer.writeln('  Address: ${event['venueAddress']}');
+          if (event['venue_address'] != null) {
+            buffer.writeln('  Address: ${event['venue_address']}');
           }
           buffer.writeln('  Status: ${event['userStatus']}');
           if (event['userPayRate'] != null) {
