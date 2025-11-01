@@ -251,6 +251,24 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     );
   }
 
+  /// Build a suggestion chip for quick actions
+  Widget _buildSuggestionChip(String label, String query) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: () => _sendMessage(query),
+      backgroundColor: Colors.white,
+      side: BorderSide(color: Colors.grey.shade300, width: 1),
+      labelStyle: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        color: Color(0xFF475569),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: 0,
+      pressElevation: 2,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -368,6 +386,44 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                     },
                   ),
                 ),
+
+                // Quick action suggestion chips (zero AI cost!)
+                if (!_chatService.isLoading)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        top: BorderSide(color: Colors.grey.shade200, width: 1),
+                      ),
+                    ),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildSuggestionChip(
+                            '📅 This Week',
+                            'Show my schedule for this week',
+                          ),
+                          const SizedBox(width: 8),
+                          _buildSuggestionChip(
+                            '🔜 Next Shift',
+                            'When is my next shift?',
+                          ),
+                          const SizedBox(width: 8),
+                          _buildSuggestionChip(
+                            '💰 Earnings',
+                            'How much have I earned this month?',
+                          ),
+                          const SizedBox(width: 8),
+                          _buildSuggestionChip(
+                            '📍 Upcoming',
+                            'What are my upcoming events?',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 // Input field
                 SafeArea(
