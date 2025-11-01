@@ -195,9 +195,9 @@ class ChatMessageWidget extends StatelessWidget {
           return _buildClickableLink(line, linkMatch, isUser);
         }
 
-        // Check for address patterns: "- Lugar:" or "- Venue:"
+        // Check for address patterns: "- Lugar:" or "- Venue:" (with optional markdown bold **)
         final addressPattern = RegExp(
-          r'^[\s\-]*(?:Lugar|Venue):\s*(.+)$',
+          r'^[\s\-]*\*{0,2}(Lugar|Venue)\*{0,2}:\s*(.+)$',
           caseSensitive: false,
         );
         final addressMatch = addressPattern.firstMatch(line);
@@ -265,7 +265,7 @@ class ChatMessageWidget extends StatelessWidget {
 
   /// Build a clickable address line with maps icon
   Widget _buildAddressLine(String line, RegExpMatch match, bool isUser) {
-    final address = match.group(1)!.trim();
+    final address = match.group(2)!.trim(); // group(2) is the address text
     final prefix = line.substring(0, match.start + match.group(0)!.indexOf(':') + 1);
 
     return Padding(
