@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/staff_chat_service.dart';
 
@@ -178,33 +179,55 @@ class ChatMessageWidget extends StatelessWidget {
     );
   }
 
-  /// Build message content with support for clickable links
+  /// Build message content with support for clickable links and addresses
   Widget _buildMessageContent(bool isUser) {
     final content = message.content;
-    final linkPattern = RegExp(r'\[LINK:([^\]]+)\]');
-    final match = linkPattern.firstMatch(content);
-
-    // If no link found, return simple text
-    if (match == null) {
-      return Text(
-        content,
-        style: TextStyle(
-          color: isUser ? Colors.white : const Color(0xFF0F172A),
-          fontSize: 15,
-          height: 1.4,
-        ),
-      );
-    }
-
-    // Split content into parts: before link, link text, after link
-    final beforeLink = content.substring(0, match.start);
-    final linkText = match.group(1)!;
-    final afterLink = content.substring(match.end);
+    final lines = content.split('\n');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((line) {
+        // Check for [LINK:...] pattern
+        final linkPattern = RegExp(r'\[LINK:([^\]]+)\]');
+        final linkMatch = linkPattern.firstMatch(line);
+
+        if (linkMatch != null) {
+          return _buildClickableLink(line, linkMatch, isUser);
+        }
+
+        // Check for address patterns: "- Lugar:" or "- Venue:"
+        final addressPattern = RegExp(
+          r'^[\s\-]*(?:Lugar|Venue):\s*(.+)$',
+          caseSensitive: false,
+        );
+        final addressMatch = addressPattern.firstMatch(line);
+
+        if (addressMatch != null) {
+          return _buildAddressLine(line, addressMatch, isUser);
+        }
+
+        // Regular text line
+        return Text(
+          line,
+          style: TextStyle(
+            color: isUser ? Colors.white : const Color(0xFF0F172A),
+            fontSize: 15,
+            height: 1.4,
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Build a clickable link from [LINK:...] pattern
+  Widget _buildClickableLink(String line, RegExpMatch match, bool isUser) {
+    final beforeLink = line.substring(0, match.start);
+    final linkText = match.group(1)!;
+    final afterLink = line.substring(match.end);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Text before link
         if (beforeLink.isNotEmpty)
           Text(
             beforeLink,
@@ -214,7 +237,6 @@ class ChatMessageWidget extends StatelessWidget {
               height: 1.4,
             ),
           ),
-        // Clickable link
         GestureDetector(
           onTap: () => onLinkTap?.call(linkText),
           child: Text(
@@ -228,7 +250,6 @@ class ChatMessageWidget extends StatelessWidget {
             ),
           ),
         ),
-        // Text after link
         if (afterLink.isNotEmpty)
           Text(
             afterLink,
@@ -240,5 +261,85 @@ class ChatMessageWidget extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  /// Build a clickable address line with maps icon
+  Widget _buildAddressLine(String line, RegExpMatch match, bool isUser) {
+    final address = match.group(1)!.trim();
+    final prefix = line.substring(0, match.start + match.group(0)!.indexOf(':') + 1);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Prefix (e.g., "- Lugar:")
+          Text(
+            prefix,
+            style: TextStyle(
+              color: isUser ? Colors.white : const Color(0xFF0F172A),
+              fontSize: 15,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(width: 4),
+          // Clickable address
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _openMaps(address),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      address,
+                      style: TextStyle(
+                        color: isUser ? Colors.white : const Color(0xFF3B82F6),
+                        fontSize: 15,
+                        height: 1.4,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: isUser ? Colors.white : const Color(0xFF3B82F6),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Open Google Maps with the address
+  Future<void> _openMaps(String address) async {
+    final encodedAddress = Uri.encodeComponent(address);
+
+    // Try multiple URL schemes for best compatibility
+    final urls = [
+      // Google Maps app (if installed)
+      'comgooglemaps://?q=$encodedAddress',
+      // Apple Maps (iOS)
+      'https://maps.apple.com/?q=$encodedAddress',
+      // Google Maps web (fallback)
+      'https://www.google.com/maps/search/?api=1&query=$encodedAddress',
+    ];
+
+    for (final urlString in urls) {
+      final url = Uri.parse(urlString);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        return;
+      }
+    }
+
+    // Final fallback: Google Maps web in browser
+    final fallbackUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedAddress');
+    await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
   }
 }
