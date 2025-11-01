@@ -221,22 +221,78 @@ class ChatMessageWidget extends StatelessWidget {
         continue;
       }
 
-      // Regular text line
-      widgets.add(
-        Text(
-          line,
-          style: TextStyle(
-            color: isUser ? Colors.white : const Color(0xFF0F172A),
-            fontSize: 15,
-            height: 1.4,
-          ),
-        ),
-      );
+      // Regular text line - parse markdown for bold
+      widgets.add(_buildMarkdownText(line, isUser));
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: widgets,
+    );
+  }
+
+  /// Parse and render simple markdown (bold text with **)
+  Widget _buildMarkdownText(String text, bool isUser) {
+    final boldPattern = RegExp(r'\*\*(.+?)\*\*');
+    final matches = boldPattern.allMatches(text);
+
+    if (matches.isEmpty) {
+      // No markdown, return simple text
+      return Text(
+        text,
+        style: TextStyle(
+          color: isUser ? Colors.white : const Color(0xFF0F172A),
+          fontSize: 15,
+          height: 1.4,
+        ),
+      );
+    }
+
+    // Build TextSpans with bold sections
+    final spans = <TextSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      // Add text before the bold section
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: TextStyle(
+            color: isUser ? Colors.white : const Color(0xFF0F172A),
+            fontSize: 15,
+            height: 1.4,
+          ),
+        ));
+      }
+
+      // Add the bold text (without asterisks)
+      spans.add(TextSpan(
+        text: match.group(1)!, // The text inside **...**
+        style: TextStyle(
+          color: isUser ? Colors.white : const Color(0xFF0F172A),
+          fontSize: 15,
+          height: 1.4,
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+
+      lastEnd = match.end;
+    }
+
+    // Add remaining text after last bold section
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: TextStyle(
+          color: isUser ? Colors.white : const Color(0xFF0F172A),
+          fontSize: 15,
+          height: 1.4,
+        ),
+      ));
+    }
+
+    return RichText(
+      text: TextSpan(children: spans),
     );
   }
 
@@ -249,15 +305,7 @@ class ChatMessageWidget extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (beforeLink.isNotEmpty)
-          Text(
-            beforeLink,
-            style: TextStyle(
-              color: isUser ? Colors.white : const Color(0xFF0F172A),
-              fontSize: 15,
-              height: 1.4,
-            ),
-          ),
+        if (beforeLink.isNotEmpty) _buildMarkdownText(beforeLink, isUser),
         GestureDetector(
           onTap: () => onLinkTap?.call(linkText),
           child: Text(
@@ -271,15 +319,7 @@ class ChatMessageWidget extends StatelessWidget {
             ),
           ),
         ),
-        if (afterLink.isNotEmpty)
-          Text(
-            afterLink,
-            style: TextStyle(
-              color: isUser ? Colors.white : const Color(0xFF0F172A),
-              fontSize: 15,
-              height: 1.4,
-            ),
-          ),
+        if (afterLink.isNotEmpty) _buildMarkdownText(afterLink, isUser),
       ],
     );
   }
@@ -294,15 +334,8 @@ class ChatMessageWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Prefix (e.g., "- Lugar:")
-          Text(
-            prefix,
-            style: TextStyle(
-              color: isUser ? Colors.white : const Color(0xFF0F172A),
-              fontSize: 15,
-              height: 1.4,
-            ),
-          ),
+          // Prefix (e.g., "- Lugar:" or "- **Venue:**") - render with markdown
+          _buildMarkdownText(prefix, isUser),
           const SizedBox(width: 4),
           // Clickable address
           Expanded(
