@@ -31,7 +31,7 @@ class ChatMessage {
 /// Handles AI interactions for staff members
 class StaffChatService {
   final List<ChatMessage> _conversationHistory = [];
-  AIProvider _selectedProvider = AIProvider.claude; // Default to Claude
+  AIProvider _selectedProvider = AIProvider.openai; // Default to ChatGPT
   bool _isLoading = false;
 
   // Staff-specific context
@@ -200,6 +200,23 @@ When marking availability or accepting/declining shifts, use the appropriate res
         buffer.writeln();
       }
 
+      // Availability History
+      final availabilityHistory = context['availabilityHistory'] as List?;
+      if (availabilityHistory != null && availabilityHistory.isNotEmpty) {
+        buffer.writeln('**Your Availability History (last 90 days):**');
+        buffer.writeln();
+
+        for (var record in availabilityHistory) {
+          buffer.writeln('Date: ${record['date']}');
+          buffer.writeln('  Status: ${record['status']}');
+          buffer.writeln('  Time: ${record['timeRange']}');
+          buffer.writeln();
+        }
+      } else {
+        buffer.writeln('**Your Availability History:** None marked yet');
+        buffer.writeln();
+      }
+
       // Team info
       final teamInfo = context['teamInfo'];
       if (teamInfo != null) {
@@ -219,7 +236,7 @@ When marking availability or accepting/declining shifts, use the appropriate res
   }
 
   /// Send a message to the AI
-  Future<ChatMessage?> sendMessage(String userMessage) async {
+  Future<ChatMessage?> sendMessage(String userMessage, {String? modelPreference}) async {
     try {
       _isLoading = true;
 
@@ -256,7 +273,20 @@ When marking availability or accepting/declining shifts, use the appropriate res
       final fullUrl = '$baseUrl$endpoint';
       final uri = Uri.parse(fullUrl);
 
-      print('[StaffChatService] Sending message to: $fullUrl (${_selectedProvider.name})');
+      print('[StaffChatService] Sending message to: $fullUrl (${_selectedProvider.name}, model: ${modelPreference ?? "auto"})');
+
+      // Build request body
+      final requestBody = {
+        'messages': messages,
+        'temperature': 0.7,
+        'maxTokens': 500,
+        'provider': _selectedProvider.name,
+      };
+
+      // Add model preference if specified (for testing Nano vs Mini)
+      if (modelPreference != null) {
+        requestBody['modelPreference'] = modelPreference;
+      }
 
       final response = await http.post(
         uri,
@@ -264,15 +294,28 @@ When marking availability or accepting/declining shifts, use the appropriate res
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'messages': messages,
-          'temperature': 0.7,
-          'maxTokens': 500,
-          'provider': _selectedProvider.name,
-        }),
+        body: jsonEncode(requestBody),
       ).timeout(const Duration(seconds: 30));
 
       _isLoading = false;
+
+      // Handle 402 Payment Required (message limit reached)
+      if (response.statusCode == 402) {
+        final errorData = jsonDecode(response.body);
+        final message = errorData['message'] ?? 'Message limit reached. Upgrade to Pro for unlimited messages.';
+        final usage = errorData['usage'];
+
+        print('[StaffChatService] Message limit reached: $message');
+
+        // Add system message showing upgrade prompt
+        final upgradeMessage = ChatMessage(
+          role: 'system',
+          content: '⚠️ $message\n\nTap the usage indicator above to upgrade to Pro!',
+        );
+        _conversationHistory.add(upgradeMessage);
+
+        return upgradeMessage;
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
