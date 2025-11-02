@@ -37,7 +37,7 @@ class StaffChatService {
   // Staff-specific context
   Map<String, dynamic>? _staffContext;
   DateTime? _contextLoadedAt;
-  static const _contextCacheDuration = Duration(minutes: 5);
+  static const _contextCacheDuration = Duration(minutes: 30); // Extended for better performance
 
   // System instructions (loaded from markdown asset)
   String? _systemInstructions;
