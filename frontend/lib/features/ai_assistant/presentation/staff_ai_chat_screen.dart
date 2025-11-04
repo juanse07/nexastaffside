@@ -5,6 +5,7 @@ import '../widgets/chat_message_widget.dart';
 import '../widgets/chat_input_widget.dart';
 import '../widgets/availability_confirmation_card.dart';
 import '../widgets/shift_action_card.dart';
+import '../../../services/subscription_service.dart';
 
 /// Staff AI Assistant Chat Screen
 /// Main interface for staff to interact with AI assistant
@@ -18,13 +19,19 @@ class StaffAIChatScreen extends StatefulWidget {
 class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   final StaffChatService _chatService = StaffChatService();
   final ScrollController _scrollController = ScrollController();
+  final SubscriptionService _subscriptionService = SubscriptionService();
 
   bool _isInitialized = false;
+  String _subscriptionTier = 'free';
+  int _aiMessagesUsed = 0;
+  int _aiMessagesLimit = 50;
+  String _selectedModel = 'llama'; // 'llama' (default) or 'gpt-oss'
 
   @override
   void initState() {
     super.initState();
     _initializeChat();
+    _loadSubscriptionStatus();
   }
 
   @override
@@ -60,10 +67,13 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // Clear old pending actions
     setState(() {});
 
-    final response = await _chatService.sendMessage(message);
+    // Pass model preference to chat service (always pass the selected model)
+    final response = await _chatService.sendMessage(message, modelPreference: _selectedModel);
     if (response != null) {
       setState(() {});
       _scrollToBottom();
+      // Refresh usage stats after sending message
+      _loadSubscriptionStatus();
     } else {
       // Show error
       if (mounted) {
@@ -87,6 +97,26 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
         );
       }
     });
+  }
+
+  /// Load subscription status and usage statistics
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      await _subscriptionService.initialize();
+
+      final status = await _subscriptionService.getBackendStatus();
+      final usage = await _subscriptionService.getUsageStats();
+
+      if (mounted) {
+        setState(() {
+          _subscriptionTier = status['tier'] ?? 'free';
+          _aiMessagesUsed = usage['used'] ?? 0;
+          _aiMessagesLimit = usage['limit'] ?? 50;
+        });
+      }
+    } catch (e) {
+      print('[StaffAIChatScreen] Failed to load subscription status: $e');
+    }
   }
 
   /// Handle availability confirmation
@@ -184,73 +214,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     );
   }
 
-  /// Change AI provider
-  void _changeProvider() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Choose AI Provider'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '🤖',
-                  style: TextStyle(fontSize: 20),
-                ),
-              ),
-              title: const Text('Claude Sonnet 4.5'),
-              subtitle: const Text('Fast, efficient, with prompt caching'),
-              trailing: _chatService.selectedProvider == AIProvider.claude
-                  ? const Icon(Icons.check_circle, color: Colors.green)
-                  : null,
-              onTap: () {
-                _chatService.setProvider(AIProvider.claude);
-                Navigator.pop(context);
-                setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Switched to Claude Sonnet')),
-                );
-              },
-            ),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '🧠',
-                  style: TextStyle(fontSize: 20),
-                ),
-              ),
-              title: const Text('GPT-4o'),
-              subtitle: const Text('OpenAI\'s latest model'),
-              trailing: _chatService.selectedProvider == AIProvider.openai
-                  ? const Icon(Icons.check_circle, color: Colors.green)
-                  : null,
-              onTap: () {
-                _chatService.setProvider(AIProvider.openai);
-                Navigator.pop(context);
-                setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Switched to GPT-4o')),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// Build a suggestion chip for quick actions
   Widget _buildSuggestionChip(String label, String query) {
     return ActionChip(
@@ -271,6 +234,21 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Detect keyboard and auto-scroll when it opens
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    if (keyboardHeight > 0) {
+      // Keyboard is open, scroll to bottom
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -279,48 +257,154 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
         foregroundColor: Colors.black,
         elevation: 0,
         actions: [
-          // AI Provider selector
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: InkWell(
-              onTap: _changeProvider,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _chatService.selectedProvider == AIProvider.claude
-                      ? Colors.orange.shade100
-                      : Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _chatService.selectedProvider == AIProvider.claude
-                          ? 'Claude'
-                          : 'GPT-4',
-                      style: TextStyle(
-                        color: _chatService.selectedProvider == AIProvider.claude
+          // Usage indicator for free tier
+          if (_subscriptionTier == 'free')
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: GestureDetector(
+                onTap: () {
+                  // TODO: Navigate to upgrade screen
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Upgrade to Pro for unlimited AI messages!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _aiMessagesUsed >= 40
+                        ? Colors.orange.shade100
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _aiMessagesUsed >= 40
+                          ? Colors.orange.shade300
+                          : Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 14,
+                        color: _aiMessagesUsed >= 40
                             ? Colors.orange.shade900
-                            : Colors.blue.shade900,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
+                            : Colors.grey.shade700,
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.arrow_drop_down,
-                      size: 18,
-                      color: _chatService.selectedProvider == AIProvider.claude
-                          ? Colors.orange.shade900
-                          : Colors.blue.shade900,
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        '$_aiMessagesUsed/$_aiMessagesLimit',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _aiMessagesUsed >= 40
+                              ? Colors.orange.shade900
+                              : Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+
+          // Model selector (llama vs gpt-oss)
+          PopupMenuButton<String>(
+            icon: Icon(
+              _selectedModel == 'llama' ? Icons.bolt : Icons.speed,
+              color: const Color(0xFF6366F1),
+            ),
+            tooltip: 'Select AI Model',
+            onSelected: (String value) {
+              setState(() {
+                _selectedModel = value;
+              });
+              // Show snackbar with model info
+              String modelInfo;
+              if (value == 'llama') {
+                modelInfo = 'Llama 3.1 8B: Fast & economical (560 T/sec)';
+              } else {
+                modelInfo = 'GPT-OSS 20B: More capable (1000 T/sec)';
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(modelInfo),
+                  duration: const Duration(seconds: 2),
+                  backgroundColor: const Color(0xFF6366F1),
+                ),
+              );
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'llama',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.bolt,
+                      size: 20,
+                      color: _selectedModel == 'llama' ? const Color(0xFF6366F1) : Colors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Llama 3.1 8B',
+                          style: TextStyle(
+                            fontWeight: _selectedModel == 'llama' ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        Text(
+                          'Fast & economical',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    if (_selectedModel == 'llama')
+                      const Icon(Icons.check, size: 16, color: Color(0xFF6366F1)),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
+                value: 'gpt-oss',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.speed,
+                      size: 20,
+                      color: _selectedModel == 'gpt-oss' ? const Color(0xFF6366F1) : Colors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'GPT-OSS 20B',
+                          style: TextStyle(
+                            fontWeight: _selectedModel == 'gpt-oss' ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                        Text(
+                          'More powerful',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    if (_selectedModel == 'gpt-oss')
+                      const Icon(Icons.check, size: 16, color: Color(0xFF6366F1)),
+                  ],
+                ),
+              ),
+            ],
           ),
+
           // Clear conversation
           IconButton(
             icon: const Icon(Icons.delete_outline),
