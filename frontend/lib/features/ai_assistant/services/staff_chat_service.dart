@@ -5,7 +5,7 @@ import '../../../auth_service.dart';
 import '../config/app_config.dart';
 
 /// AI Provider enum
-enum AIProvider { openai, claude }
+enum AIProvider { openai, claude, groq }
 
 /// Chat message model
 class ChatMessage {
@@ -31,7 +31,7 @@ class ChatMessage {
 /// Handles AI interactions for staff members
 class StaffChatService {
   final List<ChatMessage> _conversationHistory = [];
-  AIProvider _selectedProvider = AIProvider.openai; // Default to ChatGPT
+  AIProvider _selectedProvider = AIProvider.groq; // Always use Groq (LLAMA/GPT-OSS)
   bool _isLoading = false;
 
   // Staff-specific context
@@ -273,19 +273,31 @@ When marking availability or accepting/declining shifts, use the appropriate res
       final fullUrl = '$baseUrl$endpoint';
       final uri = Uri.parse(fullUrl);
 
-      print('[StaffChatService] Sending message to: $fullUrl (${_selectedProvider.name}, model: ${modelPreference ?? "auto"})');
+      // Map UI model names to Groq API model names
+      String? groqModel;
+      if (modelPreference != null) {
+        if (modelPreference == 'llama') {
+          groqModel = 'llama-3.1-8b-instant';
+        } else if (modelPreference == 'gpt-oss') {
+          groqModel = 'openai/gpt-oss-20b';
+        } else {
+          groqModel = modelPreference; // Pass through if already full name
+        }
+      }
+
+      print('[StaffChatService] Sending message to: $fullUrl (${_selectedProvider.name}, model: ${groqModel ?? "default"})');
 
       // Build request body
       final requestBody = {
         'messages': messages,
         'temperature': 0.7,
         'maxTokens': 500,
-        'provider': _selectedProvider.name,
+        'provider': _selectedProvider.name, // Always 'groq'
       };
 
-      // Add model preference if specified (for testing Nano vs Mini)
-      if (modelPreference != null) {
-        requestBody['modelPreference'] = modelPreference;
+      // Add model if specified
+      if (groqModel != null) {
+        requestBody['model'] = groqModel;
       }
 
       final response = await http.post(
@@ -332,7 +344,11 @@ When marking availability or accepting/declining shifts, use the appropriate res
           final aiMessage = ChatMessage(
             role: 'assistant',
             content: content,
-            provider: provider == 'claude' ? AIProvider.claude : AIProvider.openai,
+            provider: provider == 'claude'
+                ? AIProvider.claude
+                : provider == 'groq'
+                    ? AIProvider.groq
+                    : AIProvider.openai,
           );
           _conversationHistory.add(aiMessage);
 

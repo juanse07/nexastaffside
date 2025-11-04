@@ -110,52 +110,109 @@ class EventInvitationCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // DATE & TIME - Highlighted prominently at top
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date - Large and prominent
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 20,
+                        color: Color(0xFF7C3AED),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('d MMM').format(startDate), // "3 Nov" format
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateFormat('(EEEE)').format(startDate), // "(Monday)"
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Time - Prominent
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.access_time,
+                        size: 18,
+                        color: Color(0xFF7C3AED),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${DateFormat('h:mm a').format(startDate)} — ${DateFormat('h:mm a').format(endDate)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 12),
 
-            // Venue
-            if (venueName != null) ...[
-              Row(
+            // Client name - Highlighted
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
                 children: [
                   const Icon(
-                    Icons.location_on_outlined,
+                    Icons.business,
                     size: 16,
-                    color: Color(0xFF6B7280),
+                    color: Color(0xFF7C3AED),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      venueName!,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937),
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                          fontFamily: 'Roboto',
+                        ),
+                        children: [
+                          const TextSpan(text: 'Client: '),
+                          TextSpan(
+                            text: clientName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-            ],
-
-            // Date and time
-            Row(
-              children: [
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 16,
-                  color: Color(0xFF6B7280),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    '${DateFormat('EEE. MMM d').format(startDate)} · ${DateFormat('h:mm a').format(startDate)} — ${DateFormat('h:mm a').format(endDate)} ${startDate.timeZoneName}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: 8),
 
@@ -169,28 +226,40 @@ class EventInvitationCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
-                        fontFamily: 'Roboto',
-                      ),
-                      children: [
-                        const TextSpan(text: 'Event for: '),
-                        TextSpan(
-                          text: clientName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                      ],
+                  child: Text(
+                    eventName,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6B7280),
                     ),
                   ),
                 ),
               ],
             ),
+
+            // Venue
+            if (venueName != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 16,
+                    color: Color(0xFF6B7280),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      venueName!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
 
             // Accept/Decline buttons for pending invitations
             if (isPending) ...[

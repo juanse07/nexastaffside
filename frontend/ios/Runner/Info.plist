@@ -62,5 +62,7 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location is required to verify you are at the event venue when clocking in.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access is needed for voice input with the AI assistant.</string>
 </dict>
 </plist>

@@ -255,7 +255,7 @@ String _formatEventDateTimeLabel({
 
   if (date == null) return '';
   final left =
-      '${weekdayShort(date.weekday)} ${monthShort(date.month)} ${date.day}';
+      '${date.day} ${monthShort(date.month)}'; // Changed format to "3 Nov"
   String right = '';
   if (start != null && end != null) {
     right =
@@ -303,7 +303,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
     // Initialize bottom bar animation - Optimized for performance
     _bottomBarAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 300), // Smooth animation
+      duration: const Duration(milliseconds: 100), // Smooth animation
       vsync: this,
     );
     _bottomBarAnimation = Tween<Offset>(
@@ -5265,59 +5265,78 @@ class _MyEventsListState extends State<_MyEventsList> {
                       ),
                     ],
                     if (date.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(6),
+                      const SizedBox(height: 12),
+                      // DATE & TIME - Highlighted prominently
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: Colors.blue.shade600,
                             ),
-                            child: Icon(
-                              Icons.calendar_today_outlined,
-                              size: 12,
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.6,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _formatEventDateTimeLabel(
+                                  dateStr: date,
+                                  startTimeStr: e['start_time']?.toString(),
+                                  endTimeStr: e['end_time']?.toString(),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              _formatEventDateTimeLabel(
-                                dateStr: date,
-                                startTimeStr: e['start_time']?.toString(),
-                                endTimeStr: e['end_time']?.toString(),
-                              ),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                     if (clientName.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      RichText(
-                        text: TextSpan(
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                              0.6,
-                            ),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w400,
-                          ),
+                      // Client name - Highlighted
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
                           children: [
-                            const TextSpan(text: 'Event for: '),
-                            TextSpan(
-                              text: clientName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
+                            Icon(
+                              Icons.business,
+                              size: 14,
+                              color: Colors.blue.shade600,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  children: [
+                                    const TextSpan(text: 'Client: '),
+                                    TextSpan(
+                                      text: clientName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        color: Color(0xFF1F2937),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -5893,59 +5912,78 @@ class _RoleList extends StatelessWidget {
                       ),
                     ],
                     if (date.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest
-                                  .withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(6),
+                      const SizedBox(height: 12),
+                      // DATE & TIME - Highlighted prominently
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: Colors.blue.shade600,
                             ),
-                            child: Icon(
-                              Icons.calendar_today_outlined,
-                              size: 12,
-                              color: theme.colorScheme.onSurface.withOpacity(
-                                0.6,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _formatEventDateTimeLabel(
+                                  dateStr: date,
+                                  startTimeStr: e['start_time']?.toString(),
+                                  endTimeStr: e['end_time']?.toString(),
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              _formatEventDateTimeLabel(
-                                dateStr: date,
-                                startTimeStr: e['start_time']?.toString(),
-                                endTimeStr: e['end_time']?.toString(),
-                              ),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                     if (clientName.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      RichText(
-                        text: TextSpan(
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                              0.6,
-                            ),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w400,
-                          ),
+                      // Client name - Highlighted
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
                           children: [
-                            const TextSpan(text: 'Event for: '),
-                            TextSpan(
-                              text: clientName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
+                            Icon(
+                              Icons.business,
+                              size: 14,
+                              color: Colors.blue.shade600,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  children: [
+                                    const TextSpan(text: 'Client: '),
+                                    TextSpan(
+                                      text: clientName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                        color: Color(0xFF1F2937),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

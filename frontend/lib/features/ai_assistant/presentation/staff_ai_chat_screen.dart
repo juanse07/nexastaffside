@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/staff_chat_service.dart';
 import '../widgets/chat_message_widget.dart';
@@ -440,9 +441,20 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
 
                         return ChatMessageWidget(
                           message: message,
-                          onLinkTap: (linkText) {
-                            // Handle link taps (e.g., navigate to schedule)
-                            print('Link tapped: $linkText');
+                          onLinkTap: (linkText) async {
+                            // Open venue in Google Maps
+                            final encodedAddress = Uri.encodeComponent(linkText);
+                            final mapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedAddress');
+
+                            try {
+                              if (await canLaunchUrl(mapsUrl)) {
+                                await launchUrl(mapsUrl, mode: LaunchMode.externalApplication);
+                              } else {
+                                print('Could not launch maps for: $linkText');
+                              }
+                            } catch (e) {
+                              print('Error opening maps: $e');
+                            }
                           },
                         );
                       }
@@ -486,13 +498,18 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                       child: Row(
                         children: [
                           _buildSuggestionChip(
-                            '📅 This Week',
-                            'Show my schedule for this week',
+                            '📋 Next 7 Jobs',
+                            'Show my next 7 jobs',
                           ),
                           const SizedBox(width: 8),
                           _buildSuggestionChip(
                             '🔜 Next Shift',
                             'When is my next shift?',
+                          ),
+                          const SizedBox(width: 8),
+                          _buildSuggestionChip(
+                            '📅 Last Month',
+                            'Show all my shifts from last month',
                           ),
                           const SizedBox(width: 8),
                           _buildSuggestionChip(
