@@ -113,17 +113,23 @@ class ChatMessageWidget extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: message.provider == AIProvider.claude
                               ? Colors.orange.shade100
-                              : Colors.blue.shade100,
+                              : message.provider == AIProvider.groq
+                                  ? Colors.purple.shade100
+                                  : Colors.blue.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           message.provider == AIProvider.claude
                               ? 'Claude'
-                              : 'GPT-4',
+                              : message.provider == AIProvider.groq
+                                  ? 'Valerio'
+                                  : 'GPT-4',
                           style: TextStyle(
                             color: message.provider == AIProvider.claude
                                 ? Colors.orange.shade900
-                                : Colors.blue.shade900,
+                                : message.provider == AIProvider.groq
+                                    ? Colors.purple.shade900
+                                    : Colors.blue.shade900,
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
                           ),
