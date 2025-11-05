@@ -696,9 +696,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
             child: IndexedStack(
               index: _selectedBottomIndex,
               children: [
-              ConversationsPage(
-                profileMenu: _buildProfileMenu(context, pendingInvites),
-              ), // Chats tab (index 0) - Now default/first
               _RolesSection(
                 events: dataService.events,
                 userKey: _userKey,
@@ -707,7 +704,10 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 profileMenu: _buildProfileMenu(context, pendingInvites),
                 onHideBottomBar: _hideBottomBar,
                 onShowBottomBar: _showBottomBar,
-              ),
+              ), // Roles tab (index 0) - Default/first tab for better UX
+              ConversationsPage(
+                profileMenu: _buildProfileMenu(context, pendingInvites),
+              ), // Chats tab (index 1)
               _EarningsTab(
                 events: dataService.events,
                 userKey: _userKey,
@@ -766,15 +766,15 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildNavItem(
-                        icon: Icons.chat_bubble_outline,
-                        selectedIcon: Icons.chat_bubble,
-                        label: 'Chats',
-                        index: 0,
-                      ),
-                      _buildNavItem(
                         icon: Icons.work_outline_rounded,
                         selectedIcon: Icons.work_rounded,
                         label: 'Roles',
+                        index: 0,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.chat_bubble_outline,
+                        selectedIcon: Icons.chat_bubble,
+                        label: 'Chats',
                         index: 1,
                       ),
                       _buildNavItem(
@@ -1137,9 +1137,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               RadioListTile<int>(
                 title: const Row(
                   children: [
-                    Icon(Icons.chat_bubble, size: 20),
+                    Icon(Icons.work_rounded, size: 20),
                     SizedBox(width: 12),
-                    Text('Chats'),
+                    Text('Roles'),
                   ],
                 ),
                 value: 0,
@@ -1153,9 +1153,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               RadioListTile<int>(
                 title: const Row(
                   children: [
-                    Icon(Icons.work_rounded, size: 20),
+                    Icon(Icons.chat_bubble, size: 20),
                     SizedBox(width: 12),
-                    Text('Roles'),
+                    Text('Chats'),
                   ],
                 ),
                 value: 1,
@@ -3523,6 +3523,28 @@ class _RolesSectionState extends State<_RolesSection> {
             ],
           ),
         ),
+
+        // Floating "Ask Valerio" button for contextual help with roles
+        if (_selectedView == _ViewMode.available && availableCount > 0)
+          Positioned(
+            right: 16,
+            bottom: 80, // Position above bottom nav bar
+            child: FloatingActionButton.extended(
+              onPressed: () {
+                // Navigate to AI Assistant - user can ask about roles
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const StaffAIChatScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.smart_toy),
+              label: const Text('Ask Valerio'),
+              backgroundColor: const Color(0xFF6B46C1),
+              foregroundColor: Colors.white,
+              elevation: 4,
+            ),
+          ),
       ],
     );
   }
