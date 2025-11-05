@@ -295,6 +295,11 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   double _velocityThreshold = 120.0; // Velocity-based hiding
   double _lastVelocity = 0;
 
+  // FAB "Ask V" state for Gmail-style scroll behavior
+  late AnimationController _fabController;
+  late Animation<double> _fabAnimation;
+  bool _isFabExpanded = true;
+
   @override
   void initState() {
     super.initState();
@@ -314,6 +319,24 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
       curve: Curves.easeOutCubic, // Snappy curve with smooth deceleration
       reverseCurve: Curves.easeOutCubic,
     ));
+
+    // Initialize FAB animation controller
+    _fabController = AnimationController(
+      duration: const Duration(milliseconds: 250),
+      vsync: this,
+    );
+
+    _fabAnimation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(
+      parent: _fabController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    ));
+
+    // Start with FAB expanded
+    _fabController.forward();
   }
 
   Future<void> _loadDefaultTab() async {
@@ -374,6 +397,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   void dispose() {
     _scrollEndTimer?.cancel();
     _bottomBarAnimationController.dispose();
+    _fabController.dispose();
     super.dispose();
   }
 
@@ -397,12 +421,34 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     }
   }
 
+  void _collapseFab() {
+    if (_isFabExpanded) {
+      setState(() {
+        _isFabExpanded = false;
+      });
+      _fabController.reverse();
+    }
+  }
+
+  void _expandFab() {
+    if (!_isFabExpanded) {
+      setState(() {
+        _isFabExpanded = true;
+      });
+      _fabController.forward();
+    }
+  }
+
   // Optimized scroll-end detection for auto-showing bottom bar
   void _handleScrollEnd() {
     _scrollEndTimer?.cancel();
     _scrollEndTimer = Timer(const Duration(milliseconds: 15000), () {
       if (!_isBottomBarVisible && _lastVelocity.abs() < 50) {
         _showBottomBar();
+      }
+      // Auto-expand FAB after scroll stops
+      if (!_isFabExpanded) {
+        _expandFab();
       }
     });
   }
@@ -625,6 +671,106 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     return '$weekday, $month ${eventDt.day}';
   }
 
+  /// Builds Gmail-style FAB that shows "Ask V" text and shrinks to icon when scrolling
+  Widget _buildAskValerioFAB() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 70), // Position above bottom bar (48px bar + 22px margin)
+      child: AnimatedBuilder(
+        animation: _fabAnimation,
+        builder: (context, child) {
+          return FloatingActionButton.extended(
+            onPressed: () {
+              // Navigate to AI Chat screen
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const StaffAIChatScreen(),
+                ),
+              );
+            },
+            backgroundColor: Colors.white.withOpacity(0.92),
+            foregroundColor: const Color(0xFF7A3AFB),
+            elevation: 4,
+            icon: SizedBox(
+              width: 24,
+              height: 24,
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer circle shape
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFF7A3AFB).withOpacity(0.4),
+                          width: 1,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    // Inner diamond shape
+                    Transform.rotate(
+                      angle: 0.785398, // 45 degrees
+                      child: Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Connecting lines
+                    Positioned(
+                      top: 5,
+                      child: Container(
+                        width: 0.8,
+                        height: 3.5,
+                        color: const Color(0xFF7A3AFB).withOpacity(0.6),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 5,
+                      child: Container(
+                        width: 0.8,
+                        height: 3.5,
+                        color: const Color(0xFF7A3AFB).withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            label: AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOutCubic,
+              child: _isFabExpanded
+                  ? const Text(
+                      'Ask V',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -645,6 +791,8 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
           backgroundColor: theme.colorScheme.surfaceContainerLowest,
           extendBody: true,
           extendBodyBehindAppBar: true,
+          floatingActionButton: _buildAskValerioFAB(),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           body: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               // Optimized scroll detection with velocity tracking
@@ -677,11 +825,13 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 else if ((scrollDiff > _scrollThreshold && currentScroll > 100) ||
                          (_lastVelocity < -_velocityThreshold && currentScroll > 100)) {
                   _hideBottomBar();
+                  _collapseFab();
                   _handleScrollEnd();
                 }
                 // Show on upward scroll or fast upward flick
                 else if (scrollDiff < -_scrollThreshold || _lastVelocity > _velocityThreshold) {
                   _showBottomBar();
+                  _expandFab();
                   _scrollEndTimer?.cancel();
                 }
 
