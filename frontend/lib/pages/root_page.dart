@@ -689,7 +689,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
             },
             backgroundColor: Colors.white.withOpacity(0.80), // More transparent
             foregroundColor: const Color(0xFF7A3AFB),
-            elevation: 4,
+            elevation: 1, // Reduced from 4 to 1 for subtle shadow
             icon: Container(
               width: 32,
               height: 32,
