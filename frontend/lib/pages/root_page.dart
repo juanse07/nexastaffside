@@ -671,10 +671,10 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     return '$weekday, $month ${eventDt.day}';
   }
 
-  /// Builds Gmail-style FAB that shows "Ask V" text and shrinks to icon when scrolling
+  /// Builds Gmail-style FAB with diamond icon in purple circle
   Widget _buildAskValerioFAB() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 70), // Position above bottom bar (48px bar + 22px margin)
+      padding: const EdgeInsets.only(bottom: 16), // Lowered - closer to bottom bar
       child: AnimatedBuilder(
         animation: _fabAnimation,
         builder: (context, child) {
@@ -687,67 +687,69 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 ),
               );
             },
-            backgroundColor: Colors.white.withOpacity(0.92),
+            backgroundColor: Colors.white.withOpacity(0.80), // More transparent
             foregroundColor: const Color(0xFF7A3AFB),
             elevation: 4,
-            icon: SizedBox(
-              width: 24,
-              height: 24,
+            icon: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFF7A3AFB).withOpacity(0.15), // Purple transparent circle
+                shape: BoxShape.circle,
+              ),
               child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Outer circle shape
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0xFF7A3AFB).withOpacity(0.4),
-                          width: 1,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    // Inner diamond shape
-                    Transform.rotate(
-                      angle: 0.785398, // 45 degrees
-                      child: Container(
-                        width: 7,
-                        height: 7,
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer circle shape
+                      Container(
+                        width: 10,
+                        height: 10,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                          border: Border.all(
+                            color: const Color(0xFF7A3AFB).withOpacity(0.5),
+                            width: 0.8,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 1,
-                            ),
-                          ],
+                          shape: BoxShape.circle,
                         ),
                       ),
-                    ),
-                    // Connecting lines
-                    Positioned(
-                      top: 5,
-                      child: Container(
-                        width: 0.8,
-                        height: 3.5,
-                        color: const Color(0xFF7A3AFB).withOpacity(0.6),
+                      // Inner diamond shape
+                      Transform.rotate(
+                        angle: 0.785398, // 45 degrees
+                        child: Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 5,
-                      child: Container(
-                        width: 0.8,
-                        height: 3.5,
-                        color: const Color(0xFF7A3AFB).withOpacity(0.6),
+                      // Connecting lines
+                      Positioned(
+                        top: 3,
+                        child: Container(
+                          width: 0.6,
+                          height: 2.5,
+                          color: const Color(0xFF7A3AFB).withOpacity(0.7),
+                        ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        bottom: 3,
+                        child: Container(
+                          width: 0.6,
+                          height: 2.5,
+                          color: const Color(0xFF7A3AFB).withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -756,7 +758,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               curve: Curves.easeInOutCubic,
               child: _isFabExpanded
                   ? const Text(
-                      'Ask V',
+                      'Ask', // Changed from "Ask V" to just "Ask"
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -3674,27 +3676,7 @@ class _RolesSectionState extends State<_RolesSection> {
           ),
         ),
 
-        // Floating "Ask Valerio" button for contextual help with roles
-        if (_selectedView == _ViewMode.available && availableCount > 0)
-          Positioned(
-            right: 16,
-            bottom: 80, // Position above bottom nav bar
-            child: FloatingActionButton.extended(
-              onPressed: () {
-                // Navigate to AI Assistant - user can ask about roles
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const StaffAIChatScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.smart_toy),
-              label: const Text('Ask Valerio'),
-              backgroundColor: const Color(0xFF6B46C1),
-              foregroundColor: Colors.white,
-              elevation: 4,
-            ),
-          ),
+        // Removed purple "Ask Valerio" button - replaced with white transparent FAB in Scaffold
       ],
     );
   }
