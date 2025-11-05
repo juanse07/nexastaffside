@@ -704,40 +704,42 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      // Outer circle shape
+                      // Outer circle shape - more opaque
                       Container(
                         width: 10,
                         height: 10,
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: const Color(0xFF7A3AFB).withOpacity(0.5),
+                            color: Colors.white.withOpacity(0.9), // White border like chat
                             width: 0.8,
                           ),
                           shape: BoxShape.circle,
                         ),
                       ),
-                      // Inner diamond shape
+                      // Inner diamond shape - solid gradient like chat
                       Transform.rotate(
                         angle: 0.785398, // 45 degrees
                         child: Container(
                           width: 5,
                           height: 5,
                           decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+                            color: Colors.white, // Solid white like chat
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 1,
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      // Connecting lines
+                      // Connecting lines - white and opaque like chat
                       Positioned(
                         top: 3,
                         child: Container(
                           width: 0.6,
                           height: 2.5,
-                          color: const Color(0xFF7A3AFB).withOpacity(0.7),
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                       Positioned(
@@ -745,7 +747,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                         child: Container(
                           width: 0.6,
                           height: 2.5,
-                          color: const Color(0xFF7A3AFB).withOpacity(0.7),
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                     ],
