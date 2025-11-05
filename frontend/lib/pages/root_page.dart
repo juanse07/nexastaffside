@@ -689,7 +689,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
             },
             backgroundColor: Colors.white.withOpacity(0.80), // Button background
             foregroundColor: Colors.grey.shade700, // Grey text instead of purple
-            elevation: 1, // Reduced from 4 to 1 for subtle shadow
+            elevation: 0, // No elevation/shadow
             icon: Container(
               width: 32,
               height: 32,
