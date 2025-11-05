@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../models/conversation.dart';
 import '../services/chat_service.dart';
 import 'chat_page.dart';
+import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 
 class ConversationsPage extends StatefulWidget {
   final Widget profileMenu;
@@ -122,25 +123,38 @@ class _ConversationsPageState extends State<ConversationsPage> {
     }
 
     if (_conversations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      // Still show Valerio Assistant even when empty
+      return RefreshIndicator(
+        onRefresh: _loadConversations,
+        child: ListView(
           children: <Widget>[
-            Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: 16),
-            Text(
-              'No conversations yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
-              ),
+            _ValerioAssistantTile(
+              onTap: () => _openAIChat(),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Your manager will appear here when they message you',
-              style: TextStyle(color: Colors.grey[500]),
-              textAlign: TextAlign.center,
+            const Divider(height: 1),
+            const SizedBox(height: 100),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No conversations yet',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your manager will appear here when they message you',
+                    style: TextStyle(color: Colors.grey[500]),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -150,10 +164,18 @@ class _ConversationsPageState extends State<ConversationsPage> {
     return RefreshIndicator(
       onRefresh: _loadConversations,
       child: ListView.separated(
-        itemCount: _conversations.length,
+        itemCount: _conversations.length + 1, // +1 for Valerio Assistant
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          final conversation = _conversations[index];
+          // First item is always the pinned Valerio Assistant
+          if (index == 0) {
+            return _ValerioAssistantTile(
+              onTap: () => _openAIChat(),
+            );
+          }
+
+          // All other items are regular conversations (offset by -1)
+          final conversation = _conversations[index - 1];
           return _ConversationTile(
             conversation: conversation,
             onTap: () => _openChat(conversation),
@@ -191,6 +213,14 @@ class _ConversationsPageState extends State<ConversationsPage> {
           ),
         )
         .then((_) => _loadConversations());
+  }
+
+  void _openAIChat() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => const StaffAIChatScreen(),
+      ),
+    );
   }
 }
 
@@ -325,5 +355,150 @@ class _ConversationTile extends StatelessWidget {
       return parts[0].substring(0, 1).toUpperCase();
     }
     return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+  }
+}
+
+/// Pinned Valerio Assistant chat tile
+class _ValerioAssistantTile extends StatelessWidget {
+  const _ValerioAssistantTile({
+    required this.onTap,
+  });
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF7A3AFB).withOpacity(0.08),
+              const Color(0xFF5B27D8).withOpacity(0.08),
+            ],
+          ),
+        ),
+        child: Row(
+          children: <Widget>[
+            // Valerio Avatar with custom geometric icon
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7A3AFB).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer circle shape
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.4),
+                          width: 1.5,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    // Inner diamond shape
+                    Transform.rotate(
+                      angle: 0.785398, // 45 degrees
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Connecting lines
+                    Positioned(
+                      top: 10,
+                      child: Container(
+                        width: 1,
+                        height: 6,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 10,
+                      child: Container(
+                        width: 1,
+                        height: 6,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Text content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      const Text(
+                        'Valerio Assistant',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Pin icon
+                      Icon(
+                        Icons.push_pin,
+                        size: 16,
+                        color: const Color(0xFF7A3AFB).withOpacity(0.7),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Get help with shifts, check your schedule, and more',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

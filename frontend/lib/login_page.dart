@@ -23,10 +23,16 @@ class _LoginPageState extends State<LoginPage> {
     });
     String? err;
     final ok = await AuthService.signInWithGoogle(onError: (m) => err = m);
+    if (!mounted) return;
+
     setState(() {
       _loadingGoogle = false;
-      if (!ok) _error = err ?? 'Google sign-in failed';
+      if (!ok) {
+        final errorMsg = err?.trim() ?? 'Google sign-in failed';
+        _error = errorMsg.isEmpty ? 'Google sign-in failed' : errorMsg;
+      }
     });
+
     if (ok && mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const StaffOnboardingGate()),
@@ -255,18 +261,18 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         child: Column(
                           children: [
-                            if (_error != null) ...[
+                            if (_error != null && _error!.trim().isNotEmpty) ...[
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.errorContainer,
+                                  color: Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
                                       Icons.error_outline,
-                                      color: theme.colorScheme.error,
+                                      color: Colors.red.shade700,
                                       size: 20,
                                     ),
                                     const SizedBox(width: 8),
@@ -274,7 +280,7 @@ class _LoginPageState extends State<LoginPage> {
                                       child: Text(
                                         _error!,
                                         style: TextStyle(
-                                          color: theme.colorScheme.error,
+                                          color: Colors.red.shade700,
                                           fontSize: 14,
                                         ),
                                       ),
