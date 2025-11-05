@@ -3623,7 +3623,7 @@ class _RolesSectionState extends State<_RolesSection> {
     }
 
     // Calculate header heights
-    const double appBarHeight = 100.0;
+    const double appBarHeight = 140.0; // Must match _FixedAppBarDelegate minExtent/maxExtent
     const double chipsHeight = 60.0;
     const double weekBannerHeight = 0.0; // Banner hidden per user request
     final double totalHeaderHeight = appBarHeight + chipsHeight + (myEventsCount > 0 ? weekBannerHeight : 0);
