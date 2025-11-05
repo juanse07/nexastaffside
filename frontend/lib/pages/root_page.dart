@@ -1456,10 +1456,10 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 120.0; // Increased from 100 to fix overflow on iPhone 16 Pro
+  double get minExtent => 140.0; // Increased to 140 to fully fix overflow on iPhone 16 Pro
 
   @override
-  double get maxExtent => 120.0;
+  double get maxExtent => 140.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
