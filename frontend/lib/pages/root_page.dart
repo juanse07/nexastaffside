@@ -687,14 +687,14 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 ),
               );
             },
-            backgroundColor: Colors.white.withOpacity(0.75), // 75% opacity
+            backgroundColor: Colors.white.withOpacity(0.80), // Button background
             foregroundColor: const Color(0xFF7A3AFB),
             elevation: 1, // Reduced from 4 to 1 for subtle shadow
             icon: Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFF7A3AFB).withOpacity(0.15), // Purple transparent circle
+                color: const Color(0xFF7A3AFB).withOpacity(0.75), // Purple circle 75% opacity
                 shape: BoxShape.circle,
               ),
               child: Center(
