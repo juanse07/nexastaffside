@@ -432,7 +432,14 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                         runSpacing: 8,
                         children: [
                           ChoiceChip(
-                            label: const Text('Clock In'),
+                            label: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('Roles'),
+                                SizedBox(width: 4),
+                                Icon(Icons.star, size: 14, color: Colors.amber),
+                              ],
+                            ),
                             selected: _selectedDefaultTab == 0,
                             onSelected: (selected) {
                               if (selected) {
@@ -441,7 +448,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                             },
                           ),
                           ChoiceChip(
-                            label: const Text('Roles'),
+                            label: const Text('Chat'),
                             selected: _selectedDefaultTab == 1,
                             onSelected: (selected) {
                               if (selected) {
@@ -459,7 +466,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                             },
                           ),
                           ChoiceChip(
-                            label: const Text('Chat'),
+                            label: const Text('Clock In'),
                             selected: _selectedDefaultTab == 3,
                             onSelected: (selected) {
                               if (selected) {
