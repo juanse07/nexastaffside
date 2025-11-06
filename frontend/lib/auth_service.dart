@@ -273,8 +273,9 @@ class AuthService {
   }
 
   /// Responds to an event with the given response and optional role
+  /// Returns a map with 'success' (bool) and optional 'message' (String)
   /// Throws [InvalidTokenException] if not authenticated
-  static Future<bool> respondToEvent({
+  static Future<Map<String, dynamic>> respondToEvent({
     required String eventId,
     required String response,
     String? role,
@@ -301,10 +302,36 @@ class AuthService {
         ),
         operation: 'Respond to event',
       );
-      return resp.statusCode == 200;
+
+      if (resp.statusCode == 200) {
+        return {'success': true};
+      } else if (resp.statusCode == 409) {
+        // Parse error message from response
+        try {
+          final body = json.decode(resp.body) as Map<String, dynamic>;
+          final message = body['message'] as String?;
+          return {
+            'success': false,
+            'message': message ?? 'This shift is no longer available',
+          };
+        } catch (_) {
+          return {
+            'success': false,
+            'message': 'This shift is no longer available',
+          };
+        }
+      } else {
+        return {
+          'success': false,
+          'message': 'Failed to $response event',
+        };
+      }
     } catch (e) {
       _log('Failed to respond to event: $e', isError: true);
-      return false;
+      return {
+        'success': false,
+        'message': 'Failed to $response event',
+      };
     }
   }
 

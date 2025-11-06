@@ -14,7 +14,7 @@ import '../services/data_service.dart';
 import '../utils/id.dart';
 import 'event_team_chat_page.dart';
 
-class EventDetailPage extends StatelessWidget {
+class EventDetailPage extends StatefulWidget {
   final Map<String, dynamic> event;
   final String? roleName;
   final bool showRespondActions;
@@ -27,6 +27,19 @@ class EventDetailPage extends StatelessWidget {
     this.showRespondActions = true,
     this.acceptedEvents = const [],
   });
+
+  @override
+  State<EventDetailPage> createState() => _EventDetailPageState();
+}
+
+class _EventDetailPageState extends State<EventDetailPage> {
+  bool _isResponding = false;
+
+  // Convenience getters to access widget properties
+  Map<String, dynamic> get event => widget.event;
+  String? get roleName => widget.roleName;
+  bool get showRespondActions => widget.showRespondActions;
+  List<Map<String, dynamic>> get acceptedEvents => widget.acceptedEvents;
 
   // Copied helpers from root to make this page self-sufficient
   List<Uri> _mapUriCandidates(String raw) {
@@ -748,7 +761,9 @@ class EventDetailPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: FilledButton.tonal(
-                        onPressed: () => _respond(context, theme, 'decline'),
+                        onPressed: _isResponding
+                            ? null
+                            : () => _respond(context, theme, 'decline'),
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.errorContainer,
                           foregroundColor: theme.colorScheme.onErrorContainer,
@@ -757,13 +772,19 @@ class EventDetailPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text('DECLINE'),
+                        child: _isResponding
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('DECLINE'),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: FilledButton(
-                        onPressed: (isRoleFull || hasConflict)
+                        onPressed: (_isResponding || isRoleFull || hasConflict)
                             ? null
                             : () => _respond(context, theme, 'accept'),
                         style: FilledButton.styleFrom(
@@ -774,11 +795,17 @@ class EventDetailPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(
-                          isRoleFull
-                              ? 'FULL'
-                              : (hasConflict ? 'CONFLICT' : 'ACCEPT'),
-                        ),
+                        child: _isResponding
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Text(
+                                isRoleFull
+                                    ? 'FULL'
+                                    : (hasConflict ? 'CONFLICT' : 'ACCEPT'),
+                              ),
                       ),
                     ),
                   ],
@@ -938,6 +965,12 @@ class EventDetailPage extends StatelessWidget {
     ThemeData theme,
     String response,
   ) async {
+    // Prevent duplicate submissions
+    if (_isResponding) {
+      debugPrint('⚠️ Response already in progress, ignoring duplicate click');
+      return;
+    }
+
     if (response == 'accept' &&
         _hasTimeConflictWithAccepted(event, acceptedEvents)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -949,33 +982,59 @@ class EventDetailPage extends StatelessWidget {
       );
       return;
     }
+
     final id = resolveEventId(event);
     if (id == null) return;
-    final ok = await AuthService.respondToEvent(
-      eventId: id,
-      response: response,
-      role: roleName?.trim().isEmpty == true ? null : roleName,
-    );
 
-    // Invalidate cache and force refresh to sync the event changes immediately
-    if (ok) {
-      final dataService = context.read<DataService>();
-      debugPrint('🎯 Event $response successful, invalidating cache and refreshing...');
-      await dataService.invalidateEventsCache();
-      // Force refresh to fetch updated events immediately
-      await dataService.forceRefresh();
-      debugPrint('🎯 Refresh complete after event $response');
+    // Set loading state
+    setState(() {
+      _isResponding = true;
+    });
+
+    try {
+      final result = await AuthService.respondToEvent(
+        eventId: id,
+        response: response,
+        role: roleName?.trim().isEmpty == true ? null : roleName,
+      );
+
+      final success = result['success'] as bool;
+      final errorMessage = result['message'] as String?;
+
+      // Invalidate cache and force refresh to sync the event changes immediately
+      if (success && mounted) {
+        final dataService = context.read<DataService>();
+        debugPrint('🎯 Event $response successful, invalidating cache and refreshing...');
+        await dataService.invalidateEventsCache();
+        // Force refresh to fetch updated events immediately
+        await dataService.forceRefresh();
+        debugPrint('🎯 Refresh complete after event $response');
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Event ${response}ed'
+                  : errorMessage ?? 'Failed to $response event',
+            ),
+            backgroundColor: success
+                ? (response == 'accept' ? Colors.green : Colors.orange)
+                : theme.colorScheme.error,
+            duration: success ? const Duration(seconds: 2) : const Duration(seconds: 4),
+          ),
+        );
+        if (success) Navigator.of(context).pop(true);
+      }
+    } finally {
+      // Always clear loading state
+      if (mounted) {
+        setState(() {
+          _isResponding = false;
+        });
+      }
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(ok ? 'Event $response' : 'Failed to $response event'),
-        backgroundColor: ok
-            ? (response == 'accept' ? Colors.green : Colors.orange)
-            : theme.colorScheme.error,
-      ),
-    );
-    if (ok) Navigator.of(context).pop(true);
   }
 
   Future<void> _confirmCancellation(
