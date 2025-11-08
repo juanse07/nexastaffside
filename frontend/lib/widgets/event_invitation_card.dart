@@ -125,10 +125,12 @@ class EventInvitationCard extends StatelessWidget {
                   // Date - Large and prominent
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.calendar_today,
                         size: 20,
-                        color: Color(0xFF7C3AED),
+                        color: isAccepted
+                            ? const Color(0xFF16A34A).withOpacity(0.5) // Subtle green for accepted
+                            : const Color(0xFF7C3AED), // Purple for invitations
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -153,10 +155,12 @@ class EventInvitationCard extends StatelessWidget {
                   // Time - Prominent
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.access_time,
                         size: 18,
-                        color: Color(0xFF7C3AED),
+                        color: isAccepted
+                            ? const Color(0xFF16A34A).withOpacity(0.5) // Subtle green for accepted
+                            : const Color(0xFF7C3AED), // Purple for invitations
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -178,15 +182,19 @@ class EventInvitationCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFEEF2FF),
+                color: isAccepted
+                    ? const Color(0xFFF0FDF4).withOpacity(0.5) // Very soft green for accepted
+                    : const Color(0xFFEEF2FF), // Light blue for invitations
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.business,
                     size: 16,
-                    color: Color(0xFF7C3AED),
+                    color: isAccepted
+                        ? const Color(0xFF16A34A).withOpacity(0.5) // Subtle green for accepted
+                        : const Color(0xFF7C3AED), // Purple for invitations
                   ),
                   const SizedBox(width: 8),
                   Expanded(

@@ -370,6 +370,9 @@ class AuthService {
   static Future<Map<String, dynamic>?> clockIn({
     required String eventId,
     String? role,
+    double? latitude,
+    double? longitude,
+    String? locationSource,
   }) async {
     if (eventId.isEmpty) {
       throw ArgumentError('eventId cannot be empty');
@@ -379,6 +382,12 @@ class AuthService {
     if (token == null) return null;
 
     try {
+      final body = <String, dynamic>{};
+      if (role != null) body['role'] = role;
+      if (latitude != null) body['latitude'] = latitude;
+      if (longitude != null) body['longitude'] = longitude;
+      if (locationSource != null) body['locationSource'] = locationSource;
+
       final resp = await _makeRequest(
         request: () => http.post(
           Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/$eventId/clock-in'),
@@ -386,7 +395,7 @@ class AuthService {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
-          body: jsonEncode({if (role != null) 'role': role}),
+          body: jsonEncode(body),
         ),
         operation: 'Clock in',
       );

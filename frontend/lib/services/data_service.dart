@@ -299,13 +299,37 @@ class DataService extends ChangeNotifier {
         }
 
         debugPrint('[DATA_SERVICE] Before filter: ${_eventsRaw.length} events (userKey=$userKey)');
-        _events = _filterEventsForAudience(_eventsRaw, userKey);
-        debugPrint('[DATA_SERVICE] After filter: ${_events.length} events');
 
-        // Debug: Check if any events have this user in accepted_staff
+        // Enhanced debug: Check accepted_staff BEFORE filtering
         if (userKey != null) {
           int acceptedCount = 0;
           for (final evt in _eventsRaw) {
+            final accepted = evt['accepted_staff'] as List?;
+            if (accepted != null) {
+              for (final entry in accepted) {
+                String? entryKey;
+                if (entry is String) {
+                  entryKey = entry;
+                } else if (entry is Map) {
+                  entryKey = entry['userKey']?.toString();
+                }
+                if (entryKey == userKey) {
+                  acceptedCount++;
+                  debugPrint('✅ [MY_EVENTS_DEBUG] Found accepted event BEFORE filter: ${evt['_id']} - ${evt['event_name']}');
+                }
+              }
+            }
+          }
+          debugPrint('✅ [MY_EVENTS_DEBUG] Total events with user in accepted_staff BEFORE filter: $acceptedCount');
+        }
+
+        _events = _filterEventsForAudience(_eventsRaw, userKey);
+        debugPrint('[DATA_SERVICE] After filter: ${_events.length} events');
+
+        // Enhanced debug: Check accepted_staff AFTER filtering
+        if (userKey != null) {
+          int acceptedCount = 0;
+          for (final evt in _events) {
             final accepted = evt['accepted_staff'] as List?;
             if (accepted != null) {
               for (final entry in accepted) {

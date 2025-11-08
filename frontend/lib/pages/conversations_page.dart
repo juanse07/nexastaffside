@@ -484,7 +484,7 @@ class _ValerioAssistantTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Get help with shifts, check your schedule, and more',
+                    'Get help with shifts 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, check your schedule 📅, and more ✨',
                     style: TextStyle(
                       fontSize: 14,
                       color: Color(0xFF6B7280),

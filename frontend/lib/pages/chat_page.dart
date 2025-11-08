@@ -1,13 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../auth_service.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import '../services/data_service.dart';
+import '../widgets/ai_message_composer.dart';
 import '../widgets/event_invitation_card.dart';
 
 // Global cache to persist event data across widget rebuilds
@@ -200,6 +203,54 @@ class _ChatPageState extends State<ChatPage> {
         setState(() {
           _sending = false;
         });
+      }
+    }
+  }
+
+  /// Show the AI message composer bottom sheet
+  Future<void> _showAiComposer() async {
+    // Haptic feedback to indicate long-press was detected
+    HapticFeedback.mediumImpact();
+
+    try {
+      final token = await AuthService.getJwt();
+      if (token == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please log in to use AI message composer'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!mounted) return;
+
+      AiMessageComposer.show(
+        context: context,
+        authToken: token,
+        initialText: _messageController.text.trim(),
+        onMessageComposed: (composedMessage) {
+          // Insert the AI-composed message into the text field
+          setState(() {
+            _messageController.text = composedMessage;
+            // Move cursor to end
+            _messageController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _messageController.text.length),
+            );
+          });
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open AI composer: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -841,7 +892,13 @@ class _ChatPageState extends State<ChatPage> {
         debugPrint('[INVITATION_ANALYTICS] refreshing events after accept');
         try {
           final dataService = context.read<DataService>();
-          debugPrint('🎯 Event accepted, invalidating cache and refreshing...');
+          debugPrint('🎯 Event accepted, waiting for DB commit...');
+
+          // Wait 1.5 seconds for MongoDB to commit the write transaction
+          // This prevents race condition where we fetch before the update is visible
+          await Future.delayed(const Duration(milliseconds: 1500));
+
+          debugPrint('🎯 Invalidating cache and refreshing...');
           await dataService.invalidateEventsCache();
           await dataService.forceRefresh();
           debugPrint('🎯 Refresh complete after event accept');
@@ -895,10 +952,21 @@ class _ChatPageState extends State<ChatPage> {
                 ),
                 child: TextField(
                   controller: _messageController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Type a message...',
+                    hintStyle: TextStyle(color: Colors.grey[500]),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        Icons.edit_outlined,
+                        size: 20,
+                        color: Colors.grey[400],
+                      ),
+                      tooltip: 'AI Message Assistant',
+                      onPressed: _showAiComposer,
+                      padding: const EdgeInsets.all(8),
+                    ),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 12,
                     ),

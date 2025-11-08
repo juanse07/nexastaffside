@@ -62,6 +62,16 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location is required to verify you are at the event venue when clocking in.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Location access is needed to automatically clock you in when you arrive at your event venue, even when the app is in the background.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Location access is needed to automatically clock you in when you arrive at your event venue, even when the app is in the background.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+		<string>processing</string>
+	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is needed for voice input with the AI assistant.</string>
 </dict>
