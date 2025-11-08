@@ -18,6 +18,7 @@ import '../services/data_service.dart';
 import '../services/user_service.dart';
 import '../services/offline_service.dart';
 import '../services/sync_service.dart';
+import '../services/geofence_service.dart';
 import '../models/pending_clock_action.dart';
 import '../utils/id.dart';
 import '../utils/jwt.dart';
@@ -300,6 +301,10 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   late Animation<double> _fabAnimation;
   bool _isFabExpanded = true;
 
+  // Geofencing for auto clock-in
+  final GeofenceService _geofenceService = GeofenceService();
+  StreamSubscription<String>? _autoClockInSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -337,6 +342,52 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
     // Start with FAB expanded
     _fabController.forward();
+
+    // Initialize geofence service for auto clock-in
+    _initializeGeofenceService();
+  }
+
+  Future<void> _initializeGeofenceService() async {
+    try {
+      await _geofenceService.initialize();
+
+      // Listen for auto clock-in events
+      _autoClockInSubscription = _geofenceService.onAutoClockIn.listen((eventId) {
+        debugPrint('Auto clocked in to event: $eventId');
+        // Refresh data to show updated clock-in status
+        if (mounted) {
+          context.read<DataService>().loadInitialData();
+        }
+      });
+
+      // Listen to data service events and register geofences
+      context.read<DataService>().addListener(_updateGeofences);
+    } catch (e) {
+      debugPrint('Error initializing geofence service: $e');
+    }
+  }
+
+  void _updateGeofences() {
+    final dataService = context.read<DataService>();
+    final events = dataService.events;
+
+    // Filter for accepted events only
+    if (_userKey != null && events.isNotEmpty) {
+      final acceptedEvents = events.where((e) {
+        final accepted = e['accepted_staff'];
+        if (accepted is List) {
+          return accepted.any((a) {
+            if (a is String) return a == _userKey;
+            if (a is Map) return a['userKey'] == _userKey;
+            return false;
+          });
+        }
+        return false;
+      }).toList();
+
+      // Register geofences for accepted events
+      _geofenceService.registerEventGeofences(acceptedEvents);
+    }
   }
 
   Future<void> _loadDefaultTab() async {
@@ -398,6 +449,8 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     _scrollEndTimer?.cancel();
     _bottomBarAnimationController.dispose();
     _fabController.dispose();
+    _autoClockInSubscription?.cancel();
+    _geofenceService.stopMonitoring();
     super.dispose();
   }
 
@@ -687,31 +740,34 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 ),
               );
             },
-            backgroundColor: Colors.white.withOpacity(0.80), // Button background
-            foregroundColor: Colors.grey.shade700, // Grey text instead of purple
+            backgroundColor: const Color(0xFFF2F2F2).withOpacity(0.85), // Very light gray, almost white
+            foregroundColor: const Color(0xFF2C2C2C), // Dark gray text for contrast
             elevation: 0, // No elevation/shadow
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28), // More rounded edges
+            ),
             icon: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300.withOpacity(0.6), // Grey circle instead of purple
+              width: 28,
+              height: 28,
+              decoration: const BoxDecoration(
+                color: Color(0xFF7A3AFB), // Purple circle
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 18,
+                  height: 18,
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
                       // Outer circle shape - more opaque
                       Container(
-                        width: 10,
-                        height: 10,
+                        width: 11,
+                        height: 11,
                         decoration: BoxDecoration(
                           border: Border.all(
                             color: Colors.white.withOpacity(0.9), // White border like chat
-                            width: 0.8,
+                            width: 0.9,
                           ),
                           shape: BoxShape.circle,
                         ),
@@ -720,8 +776,8 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                       Transform.rotate(
                         angle: 0.785398, // 45 degrees
                         child: Container(
-                          width: 5,
-                          height: 5,
+                          width: 5.5,
+                          height: 5.5,
                           decoration: const BoxDecoration(
                             color: Colors.white, // Solid white like chat
                             boxShadow: [
@@ -735,18 +791,18 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                       ),
                       // Connecting lines - white and opaque like chat
                       Positioned(
-                        top: 3,
+                        top: 3.5,
                         child: Container(
-                          width: 0.6,
-                          height: 2.5,
+                          width: 0.7,
+                          height: 3,
                           color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                       Positioned(
-                        bottom: 3,
+                        bottom: 3.5,
                         child: Container(
-                          width: 0.6,
-                          height: 2.5,
+                          width: 0.7,
+                          height: 3,
                           color: Colors.white.withOpacity(0.9),
                         ),
                       ),
@@ -762,7 +818,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                   ? const Text(
                       'Ask', // Changed from "Ask V" to just "Ask"
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.2,
                       ),
@@ -878,7 +934,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 onHideBottomBar: _hideBottomBar,
                 onShowBottomBar: _showBottomBar,
               ),
-              // AI Assistant (index 4) - Now navigates to separate screen, not a tab
             ],
             ),
           ),
@@ -943,12 +998,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                         label: 'Clock In',
                         index: 3,
                       ),
-                      _buildNavItem(
-                        icon: Icons.smart_toy_outlined,
-                        selectedIcon: Icons.smart_toy,
-                        label: 'AI',
-                        index: 4,
-                      ),
                     ],
                   ),
                 ),
@@ -968,20 +1017,10 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     required int index,
     int badgeCount = 0,
   }) {
-    // AI button (index 4) is never "selected" since it navigates instead of switching tabs
-    final isSelected = index != 4 && _selectedBottomIndex == index;
+    final isSelected = _selectedBottomIndex == index;
     return Expanded(
       child: InkWell(
         onTap: () {
-          // AI button navigates to separate screen instead of tab switch
-          if (index == 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const StaffAIChatScreen(),
-              ),
-            );
-            return;
-          }
 
           setState(() {
             _selectedBottomIndex = index;
@@ -1448,11 +1487,13 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   final String title;
   final String subtitle;
   final Widget profileMenu;
+  final Widget? bottomWidget; // Optional widget at bottom (e.g., filter toggle)
 
   _FixedAppBarDelegate({
     required this.title,
     required this.subtitle,
     required this.profileMenu,
+    this.bottomWidget,
   });
 
   @override
@@ -1504,6 +1545,13 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
+                        if (bottomWidget != null) ...[
+                          const SizedBox(height: 8),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 200),
+                            child: bottomWidget!,
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1521,7 +1569,8 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_FixedAppBarDelegate oldDelegate) {
     return title != oldDelegate.title ||
         subtitle != oldDelegate.subtitle ||
-        profileMenu != oldDelegate.profileMenu;
+        profileMenu != oldDelegate.profileMenu ||
+        bottomWidget != oldDelegate.bottomWidget;
   }
 }
 
@@ -1900,7 +1949,12 @@ class _HomeTabState extends State<_HomeTab> {
       // Online: Try API call
       try {
         print('[CLOCK-IN] Calling API with eventId: $id');
-        final res = await AuthService.clockIn(eventId: id);
+        final res = await AuthService.clockIn(
+          eventId: id,
+          latitude: currentPosition?.latitude,
+          longitude: currentPosition?.longitude,
+          locationSource: 'live',
+        );
         print('[CLOCK-IN] API response: $res');
 
         // Check if already clocked in
@@ -3223,9 +3277,11 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
         child: Container(
           color: theme.colorScheme.surfaceContainerLowest.withOpacity(0.5),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+          child: Center(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
               FilterChip(
             label: const Text('Available'),
             avatar: const Icon(Icons.work_outline, size: 18),
@@ -3289,6 +3345,8 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
         ],
+              ),
+            ),
           ),
         ),
       ),
@@ -3329,6 +3387,28 @@ class _RolesSectionState extends State<_RolesSection> {
   _ViewMode _selectedView = _ViewMode.available;
   String? _currentWeekLabel;
   final ScrollController _scrollController = ScrollController();
+  bool _hideUnavailableDates = true; // Default: hide unavailable dates
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFilterPreference();
+  }
+
+  Future<void> _loadFilterPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hideUnavailable = prefs.getBool('filter_unavailable_dates') ?? true;
+    if (mounted) {
+      setState(() {
+        _hideUnavailableDates = hideUnavailable;
+      });
+    }
+  }
+
+  Future<void> _saveFilterPreference(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('filter_unavailable_dates', value);
+  }
 
   bool _isAcceptedByUser(Map<String, dynamic> event, String? userKey) {
     if (userKey == null) return false;
@@ -3340,6 +3420,79 @@ class _RolesSectionState extends State<_RolesSection> {
       }
     }
     return false;
+  }
+
+  // Check if an event conflicts with user's unavailability
+  bool _hasAvailabilityConflict(Map<String, dynamic> event, String? userKey) {
+    if (userKey == null || widget.availability.isEmpty) return false;
+
+    // Get event date (YYYY-MM-DD format)
+    final eventDateStr = event['date']?.toString();
+    if (eventDateStr == null || eventDateStr.isEmpty) return false;
+
+    // Parse event date to ensure it's in YYYY-MM-DD format
+    final eventDate = _parseDateSafe(eventDateStr);
+    if (eventDate == null) return false;
+    final eventDateFormatted = '${eventDate.year.toString().padLeft(4, '0')}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}';
+
+    // Find unavailability records for this date
+    final unavailableForDay = widget.availability.where((avail) {
+      return avail['date'] == eventDateFormatted &&
+             avail['status'] == 'unavailable';
+    }).toList();
+
+    if (unavailableForDay.isEmpty) return false; // No unavailability = no conflict
+
+    // Get event time range if it exists
+    final eventStartTime = event['start_time']?.toString();
+    final eventEndTime = event['end_time']?.toString();
+
+    // If event doesn't have specific times, check for full-day unavailability
+    if (eventStartTime == null || eventEndTime == null ||
+        eventStartTime.isEmpty || eventEndTime.isEmpty) {
+      // Event has no time specified, any unavailability on this day is a conflict
+      return true;
+    }
+
+    // Check time overlap with each unavailability period
+    for (final avail in unavailableForDay) {
+      final availStart = avail['startTime']?.toString();
+      final availEnd = avail['endTime']?.toString();
+
+      if (availStart != null && availEnd != null &&
+          availStart.isNotEmpty && availEnd.isNotEmpty) {
+        if (_checkTimeOverlap(eventStartTime, eventEndTime, availStart, availEnd)) {
+          return true; // Found a time conflict
+        }
+      }
+    }
+
+    return false; // No time conflicts found
+  }
+
+  // Check if two time ranges overlap (HH:mm format)
+  bool _checkTimeOverlap(String start1, String end1, String start2, String end2) {
+    try {
+      // Convert HH:mm to minutes since midnight for easier comparison
+      int timeToMinutes(String time) {
+        final parts = time.split(':');
+        if (parts.length != 2) return 0;
+        final hours = int.tryParse(parts[0]) ?? 0;
+        final minutes = int.tryParse(parts[1]) ?? 0;
+        return hours * 60 + minutes;
+      }
+
+      final start1Min = timeToMinutes(start1);
+      final end1Min = timeToMinutes(end1);
+      final start2Min = timeToMinutes(start2);
+      final end2Min = timeToMinutes(end2);
+
+      // Check for overlap: ranges overlap if start1 < end2 AND start2 < end1
+      return start1Min < end2Min && start2Min < end1Min;
+    } catch (e) {
+      debugPrint('Error checking time overlap: $e');
+      return true; // On error, assume conflict to be safe
+    }
   }
 
   DateTime? _parseDateSafe(String input) {
@@ -3392,10 +3545,14 @@ class _RolesSectionState extends State<_RolesSection> {
           return false; // Exclude past events
         }
       }
+      // Filter out events on unavailable dates (if toggle is ON)
+      if (_hideUnavailableDates && _hasAvailabilityConflict(e, widget.userKey)) {
+        return false; // Exclude events that conflict with unavailability
+      }
       return true;
     });
     debugPrint(
-      '📋 Computing role summaries: ${widget.events.length} total events, ${sourceEvents.length} available (filtered out accepted and past)',
+      '📋 Computing role summaries: ${widget.events.length} total events, ${sourceEvents.length} available (filtered out accepted, past${_hideUnavailableDates ? ', and unavailable dates' : ''})',
     );
     for (final e in sourceEvents) {
       final stats = e['role_stats'];
@@ -3450,18 +3607,27 @@ class _RolesSectionState extends State<_RolesSection> {
     final today = DateTime(now.year, now.month, now.day);
 
     debugPrint('[MY_EVENTS] Filtering ${widget.events.length} events for user ${widget.userKey}');
+    debugPrint('[MY_EVENTS] Today date: $today');
 
     for (final e in widget.events) {
+      final eventId = e['_id'] ?? e['id'];
+      final eventName = e['event_name'] ?? e['title'] ?? 'Unknown';
       final accepted = e['accepted_staff'];
+
+      // Debug: Log every event being processed
+      debugPrint('[MY_EVENTS] Processing event: $eventId - $eventName (has accepted_staff: ${accepted != null && accepted is List})');
+
       if (accepted is List) {
         bool isAccepted = false;
         for (final a in accepted) {
           if (a is String && a == widget.userKey) {
             isAccepted = true;
+            debugPrint('[MY_EVENTS] ✅ User found in accepted_staff (String format) for event $eventId');
             break;
           }
           if (a is Map && a['userKey'] == widget.userKey) {
             isAccepted = true;
+            debugPrint('[MY_EVENTS] ✅ User found in accepted_staff (Map format) for event $eventId');
             break;
           }
         }
@@ -3650,6 +3816,37 @@ class _RolesSectionState extends State<_RolesSection> {
                   title: appBarTitle,
                   subtitle: appBarSubtitle,
                   profileMenu: widget.profileMenu,
+                  bottomWidget: _selectedView == _ViewMode.available
+                      ? GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _hideUnavailableDates = !_hideUnavailableDates;
+                            });
+                            _saveFilterPreference(_hideUnavailableDates);
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                _hideUnavailableDates
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white.withOpacity(0.9),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Unavailable dates',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : null,
                 ).build(context, 0, false),
               ),
 
@@ -5434,7 +5631,9 @@ class _MyEventsListState extends State<_MyEventsList> {
                             Icon(
                               Icons.calendar_today,
                               size: 16,
-                              color: Colors.blue.shade600,
+                              color: isConfirmed
+                                  ? Colors.green.shade600.withOpacity(0.5) // Subtle green for confirmed
+                                  : Colors.blue.shade600, // Blue for pending
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -5462,7 +5661,9 @@ class _MyEventsListState extends State<_MyEventsList> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
+                          color: isConfirmed
+                              ? Colors.green.shade50.withOpacity(0.5) // Very soft green for confirmed
+                              : const Color(0xFFEEF2FF), // Light blue for pending
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -5470,7 +5671,9 @@ class _MyEventsListState extends State<_MyEventsList> {
                             Icon(
                               Icons.business,
                               size: 14,
-                              color: Colors.blue.shade600,
+                              color: isConfirmed
+                                  ? Colors.green.shade600.withOpacity(0.5) // Subtle green for confirmed
+                                  : Colors.blue.shade600, // Blue for pending
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -6081,7 +6284,7 @@ class _RoleList extends StatelessWidget {
                             Icon(
                               Icons.calendar_today,
                               size: 16,
-                              color: Colors.blue.shade600,
+                              color: Colors.blue.shade600, // Blue for available roles
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -6109,7 +6312,7 @@ class _RoleList extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF),
+                          color: const Color(0xFFEEF2FF), // Light blue for available roles
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -6117,7 +6320,7 @@ class _RoleList extends StatelessWidget {
                             Icon(
                               Icons.business,
                               size: 14,
-                              color: Colors.blue.shade600,
+                              color: Colors.blue.shade600, // Blue for available roles
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -6252,6 +6455,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                   : SliverToBoxAdapter(
                       child: Column(
                         children: [
+                          const SizedBox(height: 200), // Space for app bar and filter chips (140 + 60)
                           Container(
                             color: theme.colorScheme.surface,
                             padding: const EdgeInsets.symmetric(horizontal: 8),
