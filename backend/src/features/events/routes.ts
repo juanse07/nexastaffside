@@ -261,7 +261,7 @@ router.get('/:id/attendance/me', requireAuth, async (req, res) => {
 router.post('/:id/clock-in', requireAuth, async (req, res) => {
   try {
     const eventId = req.params.id ?? '';
-    const { role } = req.body ?? {};
+    const { role, latitude, longitude, locationSource } = req.body ?? {};
     if (!ObjectId.isValid(eventId)) {
       return res.status(400).json({ message: 'Invalid event id' });
     }
@@ -300,6 +300,14 @@ router.post('/:id/clock-in', requireAuth, async (req, res) => {
       return res.status(409).json({ message: 'Already clocked in', record: mapAttendance(existingOpen) });
     }
 
+    // Location validation (if location provided and venue has address)
+    const venueAddress = (eventDoc as any).venue_address?.trim();
+    if (latitude !== undefined && longitude !== undefined && venueAddress) {
+      // For production, implement reverse geocoding or distance calculation here
+      // For now, we'll store the location and validate on frontend
+      // Future: Add server-side distance validation using a geocoding service
+    }
+
     const now = new Date();
     const record = {
       eventId: new ObjectId(eventId),
@@ -310,6 +318,9 @@ router.post('/:id/clock-in', requireAuth, async (req, res) => {
       name: req.user!.name,
       picture: req.user!.picture,
       role: typeof role === 'string' && role.trim() ? String(role).trim() : undefined,
+      latitude: typeof latitude === 'number' ? latitude : undefined,
+      longitude: typeof longitude === 'number' ? longitude : undefined,
+      locationSource: typeof locationSource === 'string' ? locationSource : undefined,
       clockInAt: now,
       createdAt: now,
     } as const;
