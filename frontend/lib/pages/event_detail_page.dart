@@ -19,6 +19,7 @@ class EventDetailPage extends StatefulWidget {
   final String? roleName;
   final bool showRespondActions;
   final List<Map<String, dynamic>> acceptedEvents;
+  final List<Map<String, dynamic>> availability;
 
   const EventDetailPage({
     super.key,
@@ -26,6 +27,7 @@ class EventDetailPage extends StatefulWidget {
     this.roleName,
     this.showRespondActions = true,
     this.acceptedEvents = const [],
+    this.availability = const [],
   });
 
   @override
@@ -40,6 +42,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   String? get roleName => widget.roleName;
   bool get showRespondActions => widget.showRespondActions;
   List<Map<String, dynamic>> get acceptedEvents => widget.acceptedEvents;
+  List<Map<String, dynamic>> get availability => widget.availability;
 
   // Copied helpers from root to make this page self-sufficient
   List<Uri> _mapUriCandidates(String raw) {
@@ -983,6 +986,16 @@ class _EventDetailPageState extends State<EventDetailPage> {
       return;
     }
 
+    // Check for unavailability conflicts before accepting
+    if (response == 'accept' && _hasAvailabilityConflict(event)) {
+      final confirmed = await _showUnavailabilityWarningDialog(context, theme);
+      if (confirmed != true) {
+        // User canceled, don't proceed with acceptance
+        return;
+      }
+      // User confirmed "Accept Anyway", continue with acceptance below
+    }
+
     final id = resolveEventId(event);
     if (id == null) return;
 
@@ -1068,6 +1081,148 @@ class _EventDetailPageState extends State<EventDetailPage> {
     if (confirmed == true) {
       await _respond(context, theme, 'decline');
     }
+  }
+
+  Future<bool?> _showUnavailabilityWarningDialog(
+    BuildContext context,
+    ThemeData theme,
+  ) async {
+    // Get conflict details for display
+    final conflictingAvail = _getConflictingAvailability(event);
+
+    // Format event date and time for display
+    String formatEventTime() {
+      final eventDate = _parseDate(event['date']?.toString());
+      if (eventDate == null) return 'this event';
+
+      final weekday = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][eventDate.weekday - 1];
+      final month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][eventDate.month - 1];
+      final day = eventDate.day;
+
+      final startTime = event['start_time']?.toString();
+      final endTime = event['end_time']?.toString();
+
+      String dateStr = '$weekday, $month $day';
+
+      if (startTime != null && endTime != null && startTime.isNotEmpty && endTime.isNotEmpty) {
+        return '$dateStr • $startTime — $endTime';
+      }
+      return dateStr;
+    }
+
+    // Format unavailability time for display
+    String formatUnavailTime() {
+      if (conflictingAvail == null) return 'All day';
+
+      final startTime = conflictingAvail['startTime']?.toString();
+      final endTime = conflictingAvail['endTime']?.toString();
+
+      if (startTime != null && endTime != null && startTime.isNotEmpty && endTime.isNotEmpty) {
+        return '$startTime — $endTime';
+      }
+      return 'All day';
+    }
+
+    return await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: theme.colorScheme.error,
+          size: 48,
+        ),
+        title: const Text('Unavailability Conflict'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'You have marked yourself as unavailable during this event:',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: theme.colorScheme.error.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.event,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Event:',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24, top: 4),
+                    child: Text(
+                      formatEventTime(),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.block,
+                        size: 16,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Unavailable:',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24, top: 4),
+                    child: Text(
+                      formatUnavailTime(),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Are you sure you want to accept this event?',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.errorContainer,
+              foregroundColor: theme.colorScheme.onErrorContainer,
+            ),
+            child: const Text('ACCEPT ANYWAY'),
+          ),
+        ],
+      ),
+    );
   }
 
   bool _hasTimeConflictWithAccepted(
@@ -1158,5 +1313,121 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
     if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
     return hour * 60 + minute;
+  }
+
+  // Check if an event conflicts with user's unavailability
+  bool _hasAvailabilityConflict(Map<String, dynamic> event) {
+    if (availability.isEmpty) return false;
+
+    // Get event date (YYYY-MM-DD format)
+    final eventDateStr = event['date']?.toString();
+    if (eventDateStr == null || eventDateStr.isEmpty) return false;
+
+    // Parse event date to ensure it's in YYYY-MM-DD format
+    final eventDate = _parseDate(eventDateStr);
+    if (eventDate == null) return false;
+    final eventDateFormatted = '${eventDate.year.toString().padLeft(4, '0')}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}';
+
+    // Find unavailability records for this date
+    final unavailableForDay = availability.where((avail) {
+      return avail['date'] == eventDateFormatted &&
+             avail['status'] == 'unavailable';
+    }).toList();
+
+    if (unavailableForDay.isEmpty) return false; // No unavailability = no conflict
+
+    // Get event time range if it exists
+    final eventStartTime = event['start_time']?.toString();
+    final eventEndTime = event['end_time']?.toString();
+
+    // If event doesn't have specific times, check for full-day unavailability
+    if (eventStartTime == null || eventEndTime == null ||
+        eventStartTime.isEmpty || eventEndTime.isEmpty) {
+      // Event has no time specified, any unavailability on this day is a conflict
+      return true;
+    }
+
+    // Check time overlap with each unavailability period
+    for (final avail in unavailableForDay) {
+      final availStart = avail['startTime']?.toString();
+      final availEnd = avail['endTime']?.toString();
+
+      if (availStart != null && availEnd != null &&
+          availStart.isNotEmpty && availEnd.isNotEmpty) {
+        if (_checkTimeOverlapWithAvailability(eventStartTime, eventEndTime, availStart, availEnd)) {
+          return true; // Found a time conflict
+        }
+      }
+    }
+
+    return false; // No time conflicts found
+  }
+
+  // Check if two time ranges overlap (HH:mm format)
+  bool _checkTimeOverlapWithAvailability(String start1, String end1, String start2, String end2) {
+    try {
+      // Convert HH:mm to minutes since midnight for easier comparison
+      int timeToMinutes(String time) {
+        final parts = time.split(':');
+        if (parts.length != 2) return 0;
+        final hours = int.tryParse(parts[0]) ?? 0;
+        final minutes = int.tryParse(parts[1]) ?? 0;
+        return hours * 60 + minutes;
+      }
+
+      final start1Min = timeToMinutes(start1);
+      final end1Min = timeToMinutes(end1);
+      final start2Min = timeToMinutes(start2);
+      final end2Min = timeToMinutes(end2);
+
+      // Check for overlap: ranges overlap if start1 < end2 AND start2 < end1
+      return start1Min < end2Min && start2Min < end1Min;
+    } catch (e) {
+      debugPrint('Error checking time overlap: $e');
+      return true; // On error, assume conflict to be safe
+    }
+  }
+
+  // Get conflicting unavailability details for display in dialog
+  Map<String, dynamic>? _getConflictingAvailability(Map<String, dynamic> event) {
+    if (availability.isEmpty) return null;
+
+    final eventDateStr = event['date']?.toString();
+    if (eventDateStr == null || eventDateStr.isEmpty) return null;
+
+    final eventDate = _parseDate(eventDateStr);
+    if (eventDate == null) return null;
+    final eventDateFormatted = '${eventDate.year.toString().padLeft(4, '0')}-${eventDate.month.toString().padLeft(2, '0')}-${eventDate.day.toString().padLeft(2, '0')}';
+
+    final unavailableForDay = availability.where((avail) {
+      return avail['date'] == eventDateFormatted &&
+             avail['status'] == 'unavailable';
+    }).toList();
+
+    if (unavailableForDay.isEmpty) return null;
+
+    final eventStartTime = event['start_time']?.toString();
+    final eventEndTime = event['end_time']?.toString();
+
+    // If event has no specific times, return the first unavailability
+    if (eventStartTime == null || eventEndTime == null ||
+        eventStartTime.isEmpty || eventEndTime.isEmpty) {
+      return unavailableForDay.first;
+    }
+
+    // Find the first conflicting time period
+    for (final avail in unavailableForDay) {
+      final availStart = avail['startTime']?.toString();
+      final availEnd = avail['endTime']?.toString();
+
+      if (availStart != null && availEnd != null &&
+          availStart.isNotEmpty && availEnd.isNotEmpty) {
+        if (_checkTimeOverlapWithAvailability(eventStartTime, eventEndTime, availStart, availEnd)) {
+          return avail;
+        }
+      }
+    }
+
+    return null;
   }
 }

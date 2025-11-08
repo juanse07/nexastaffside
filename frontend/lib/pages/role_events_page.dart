@@ -7,12 +7,14 @@ class RoleEventsPage extends StatelessWidget {
   final String roleName;
   final List<Map<String, dynamic>> events;
   final String? userKey;
+  final List<Map<String, dynamic>> availability;
 
   const RoleEventsPage({
     super.key,
     required this.roleName,
     required this.events,
     this.userKey,
+    this.availability = const [],
   });
 
   @override
@@ -195,8 +197,11 @@ class RoleEventsPage extends StatelessWidget {
                     onTap: () async {
                       final accepted = await Navigator.of(context).push<bool>(
                         MaterialPageRoute(
-                          builder: (_) =>
-                              EventDetailPage(event: event, roleName: roleName),
+                          builder: (_) => EventDetailPage(
+                            event: event,
+                            roleName: roleName,
+                            availability: availability,
+                          ),
                         ),
                       );
                       // If event was accepted/declined, pop back to root to show updated data

@@ -3762,6 +3762,7 @@ class _RolesSectionState extends State<_RolesSection> {
           loading: widget.loading,
           allEvents: widget.events,
           userKey: widget.userKey,
+          availability: widget.availability,
         );
         break;
       case _ViewMode.myEvents:
@@ -3771,6 +3772,7 @@ class _RolesSectionState extends State<_RolesSection> {
           loading: widget.loading,
           onHideBottomBar: widget.onHideBottomBar,
           onShowBottomBar: widget.onShowBottomBar,
+          availability: widget.availability,
           onWeekChanged: (weekLabel) {
             setState(() {
               _currentWeekLabel = weekLabel;
@@ -4856,6 +4858,7 @@ class _MyEventsList extends StatefulWidget {
   final Function(String)? onWeekChanged;
   final VoidCallback? onHideBottomBar;
   final VoidCallback? onShowBottomBar;
+  final List<Map<String, dynamic>> availability;
 
   const _MyEventsList({
     required this.events,
@@ -4864,6 +4867,7 @@ class _MyEventsList extends StatefulWidget {
     this.onWeekChanged,
     this.onHideBottomBar,
     this.onShowBottomBar,
+    this.availability = const [],
   });
 
   @override
@@ -5423,6 +5427,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                       roleName: role,
                       showRespondActions: false,
                       acceptedEvents: _filterMyAccepted(),
+                      availability: widget.availability,
                     ),
                   ),
                 );
@@ -5762,12 +5767,14 @@ class _RoleList extends StatelessWidget {
   final bool loading;
   final List<Map<String, dynamic>> allEvents;
   final String? userKey;
+  final List<Map<String, dynamic>> availability;
 
   const _RoleList({
     required this.summaries,
     required this.loading,
     required this.allEvents,
     required this.userKey,
+    this.availability = const [],
   });
 
   List<Map<String, dynamic>> _acceptedEventsForUser(
@@ -6094,6 +6101,7 @@ class _RoleList extends StatelessWidget {
                         allEvents,
                         userKey,
                       ),
+                      availability: availability,
                     ),
                   ),
                 );
@@ -6987,6 +6995,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                     widget.events,
                     widget.userKey,
                   ),
+                  availability: widget.availability,
                 ),
               ),
             );
