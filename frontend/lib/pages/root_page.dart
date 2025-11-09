@@ -6167,6 +6167,29 @@ class _RoleList extends StatelessWidget {
       }
     }
 
+    // Check if event is private
+    final visibilityType = e['visibilityType']?.toString() ?? '';
+    final isPrivate = visibilityType == 'private';
+
+    // Purple theme for private invitations, default for public
+    final cardGradient = isPrivate
+        ? [
+            const Color(0xFF9333EA).withOpacity(0.15),  // Purple for private
+            const Color(0xFF7E22CE).withOpacity(0.20),
+          ]
+        : [
+            theme.colorScheme.surface,
+            theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
+          ];
+
+    final borderColor = isPrivate
+        ? const Color(0xFF9333EA).withOpacity(0.4)  // Brighter purple border for private
+        : const Color(0xFF8B5CF6).withOpacity(0.2);
+
+    final shadowColor = isPrivate
+        ? const Color(0xFF9333EA).withOpacity(0.15)  // Stronger shadow for private
+        : const Color(0xFF8B5CF6).withOpacity(0.08);
+
     return Stack(
       children: [
         Container(
@@ -6175,19 +6198,16 @@ class _RoleList extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.surface,
-                theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
-              ],
+              colors: cardGradient,
             ),
             border: Border.all(
-              color: const Color(0xFF8B5CF6).withOpacity(0.2),
-              width: 1,
+              color: borderColor,
+              width: isPrivate ? 1.5 : 1,  // Thicker border for private
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6).withOpacity(0.08),
-                blurRadius: 16,
+                color: shadowColor,
+                blurRadius: isPrivate ? 20 : 16,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -6246,15 +6266,54 @@ class _RoleList extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            (role != null && role.isNotEmpty)
-                                ? role
-                                : (clientName.isNotEmpty
-                                      ? clientName
-                                      : eventName),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  (role != null && role.isNotEmpty)
+                                      ? role
+                                      : (clientName.isNotEmpty
+                                            ? clientName
+                                            : eventName),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              if (isPrivate) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF9333EA).withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: const Color(0xFF9333EA).withOpacity(0.5),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.lock,
+                                        size: 10,
+                                        color: const Color(0xFF9333EA),
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'Private',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF9333EA),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         Container(
