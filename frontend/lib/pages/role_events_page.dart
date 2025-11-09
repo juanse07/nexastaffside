@@ -101,42 +101,8 @@ class RoleEventsPage extends StatelessWidget {
             } else if (event['third_party_company_name'] != null) {
               companyName = event['third_party_company_name'].toString();
             }
-            String? remainingLabel;
-            int? remInt;
-            int? capInt;
-            final stats = event['role_stats'];
-            if (stats is List) {
-              for (final s in stats) {
-                if (s is Map && (s['role']?.toString() ?? '') == roleName) {
-                  capInt = int.tryParse(s['capacity']?.toString() ?? '');
-                  remInt = int.tryParse(s['remaining']?.toString() ?? '');
-                }
-              }
-            }
-            if (remInt == null || capInt == null) {
-              // Fallback compute from roles and accepted_staff
-              final roles = event['roles'];
-              if (roles is List) {
-                for (final r in roles) {
-                  if (r is Map && (r['role']?.toString() ?? '') == roleName) {
-                    capInt = int.tryParse(r['count']?.toString() ?? '');
-                  }
-                }
-              }
-              int taken = 0;
-              final accepted = event['accepted_staff'];
-              if (accepted is List) {
-                for (final a in accepted) {
-                  if (a is Map && (a['role']?.toString() ?? '') == roleName) {
-                    taken += 1;
-                  }
-                }
-              }
-              if (capInt != null) remInt = (capInt - taken).clamp(0, 1 << 30);
-            }
-            if (remInt != null && capInt != null) {
-              remainingLabel = 'Remaining: $remInt / $capInt';
-            }
+            // Capacity display removed - staff should not see "X/Y remaining"
+            // This improves UX by removing decision paralysis
             // Compose header: time and company shown prominently when present
             final List<String> headerParts = [];
             if (timeLabel != null && timeLabel.isNotEmpty) {
@@ -188,9 +154,7 @@ class RoleEventsPage extends StatelessWidget {
                           ),
                         if (clientName.isNotEmpty) const SizedBox(height: 4),
                         Text(
-                          (remainingLabel?.isNotEmpty == true)
-                              ? remainingLabel!
-                              : (headerTitle ?? venueName),
+                          headerTitle ?? venueName,
                         ),
                       ],
                     ),

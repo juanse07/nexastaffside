@@ -462,8 +462,42 @@ class DataService extends ChangeNotifier {
         unawaited(_fetchMyInvites(silent: true));
       }
 
-      void refreshEvents() {
-        unawaited(_fetchEvents(silent: true));
+      void refreshEvents({bool force = false}) {
+        // force=true: Manual pull-to-refresh (full sync)
+        // force=false: Socket event (use delta sync if available)
+        unawaited(_fetchEvents(silent: true, forceFullSync: force));
+      }
+
+      // Real-time event removal handlers
+      void _handleEventFulfilled(dynamic data) {
+        if (data == null || data is! Map<String, dynamic>) return;
+        final eventId = data['eventId']?.toString();
+        if (eventId == null) return;
+
+        // Remove from Available events (staff can no longer accept)
+        _events.removeWhere((e) => (e['id'] ?? e['_id']).toString() == eventId);
+        _eventsRaw.removeWhere((e) => (e['id'] ?? e['_id']).toString() == eventId);
+
+        notifyListeners();
+        debugPrint('✅ [REAL-TIME] Shift $eventId is now full - removed from Available');
+      }
+
+      void _handleEventDeleted(dynamic data) {
+        if (data == null || data is! Map<String, dynamic>) return;
+        final eventId = data['id']?.toString();
+        if (eventId == null) return;
+
+        _events.removeWhere((e) => (e['id'] ?? e['_id']).toString() == eventId);
+        _eventsRaw.removeWhere((e) => (e['id'] ?? e['_id']).toString() == eventId);
+
+        notifyListeners();
+        debugPrint('🗑️ [REAL-TIME] Shift $eventId deleted - removed from Available');
+      }
+
+      void _handleEventCanceled(dynamic data) {
+        // Same behavior as deleted for staff perspective
+        _handleEventDeleted(data);
+        debugPrint('❌ [REAL-TIME] Shift canceled - removed from Available');
       }
 
       socket.onConnect((_) {
@@ -490,6 +524,11 @@ class DataService extends ChangeNotifier {
 
       socket.on('event:created', (_) => refreshEvents());
       socket.on('event:updated', (_) => refreshEvents());
+
+      // Real-time shift removal when full, deleted, or canceled
+      socket.on('event:fulfilled', (data) => _handleEventFulfilled(data));
+      socket.on('event:deleted', (data) => _handleEventDeleted(data));
+      socket.on('event:canceled', (data) => _handleEventCanceled(data));
 
       // Chat message listener
       socket.on('chat:message', (data) {
