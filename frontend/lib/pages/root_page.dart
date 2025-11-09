@@ -6339,7 +6339,7 @@ class _RoleList extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                'Available',
+                                isPrivate ? 'Invitation' : 'Available',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: Colors.blue.shade700,
                                   fontWeight: FontWeight.w600,
