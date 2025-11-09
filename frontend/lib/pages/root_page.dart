@@ -5390,6 +5390,35 @@ class _MyEventsListState extends State<_MyEventsList> {
       }
     }
 
+    // Calculate estimated earnings
+    String? estimatedPay;
+    final start = e['start_time']?.toString() ?? '';
+    final end = e['end_time']?.toString() ?? '';
+    final startMins = _parseTimeMinutes(start);
+    final endMins = _parseTimeMinutes(end);
+
+    if (role != null && role.isNotEmpty && startMins > 0 && endMins > startMins) {
+      final roles = e['roles'];
+      if (roles is List) {
+        for (final r in roles) {
+          if (r is Map && (r['role']?.toString() ?? '') == role) {
+            final tariff = r['tariff'];
+            if (tariff is Map) {
+              final rate = tariff['rate']?.toString();
+              final currency = tariff['currency']?.toString() ?? '\$';
+              final rateValue = double.tryParse(rate ?? '');
+              if (rateValue != null) {
+                final hours = (endMins - startMins) / 60.0;
+                final total = hours * rateValue;
+                estimatedPay = '$currency${total.toStringAsFixed(0)}';
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
     return Stack(
       children: [
         Container(
@@ -5433,7 +5462,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -5623,10 +5652,10 @@ class _MyEventsListState extends State<_MyEventsList> {
                       ),
                     ],
                     if (date.isNotEmpty) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       // DATE & TIME - Highlighted prominently
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF3F4F6),
                           borderRadius: BorderRadius.circular(8),
@@ -5661,10 +5690,10 @@ class _MyEventsListState extends State<_MyEventsList> {
                       ),
                     ],
                     if (clientName.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       // Client name - Highlighted
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           color: isConfirmed
                               ? Colors.green.shade50.withOpacity(0.5) // Very soft green for confirmed
@@ -5703,6 +5732,28 @@ class _MyEventsListState extends State<_MyEventsList> {
                                 ),
                               ),
                             ),
+                            if (estimatedPay != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isConfirmed
+                                      ? Colors.green.shade100
+                                      : Colors.blue.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  estimatedPay,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    color: isConfirmed
+                                        ? Colors.green.shade700
+                                        : Colors.blue.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -6062,6 +6113,60 @@ class _RoleList extends StatelessWidget {
     // Show blue indicator for unconfirmed roles (when user hasn't accepted yet)
     final showBlueIndicator = !isUserAccepted;
 
+    // Calculate estimated earnings
+    String? estimatedPay;
+    final start = e['start_time']?.toString() ?? '';
+    final end = e['end_time']?.toString() ?? '';
+    int? startMins;
+    int? endMins;
+
+    // Parse times using simple regex since _parseTimeMinutes is not accessible here
+    int? parseTime(String? raw) {
+      if (raw == null) return null;
+      final s = raw.trim();
+      if (s.isEmpty) return null;
+      final m = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])?$').firstMatch(s);
+      if (m == null) return null;
+      int hour = int.tryParse(m.group(1) ?? '0') ?? 0;
+      final minute = int.tryParse(m.group(2) ?? '0') ?? 0;
+      final ampm = m.group(3);
+      if (ampm != null) {
+        final u = ampm.toUpperCase();
+        if (u == 'AM') {
+          if (hour == 12) hour = 0;
+        } else if (u == 'PM') {
+          if (hour != 12) hour += 12;
+        }
+      }
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+      return hour * 60 + minute;
+    }
+
+    startMins = parseTime(start);
+    endMins = parseTime(end);
+
+    if (role != null && role.isNotEmpty && startMins != null && endMins != null && startMins > 0 && endMins > startMins) {
+      final roles = e['roles'];
+      if (roles is List) {
+        for (final r in roles) {
+          if (r is Map && (r['role']?.toString() ?? '') == role) {
+            final tariff = r['tariff'];
+            if (tariff is Map) {
+              final rate = tariff['rate']?.toString();
+              final currency = tariff['currency']?.toString() ?? '\$';
+              final rateValue = double.tryParse(rate ?? '');
+              if (rateValue != null) {
+                final hours = (endMins - startMins) / 60.0;
+                final total = hours * rateValue;
+                estimatedPay = '$currency${total.toStringAsFixed(0)}';
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
     return Stack(
       children: [
         Container(
@@ -6109,7 +6214,7 @@ class _RoleList extends StatelessWidget {
                 // which triggers Consumer<DataService> to rebuild automatically
               },
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -6279,10 +6384,10 @@ class _RoleList extends StatelessWidget {
                       ),
                     ],
                     if (date.isNotEmpty) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       // DATE & TIME - Highlighted prominently
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF3F4F6),
                           borderRadius: BorderRadius.circular(8),
@@ -6315,10 +6420,10 @@ class _RoleList extends StatelessWidget {
                       ),
                     ],
                     if (clientName.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       // Client name - Highlighted
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           color: const Color(0xFFEEF2FF), // Light blue for available roles
                           borderRadius: BorderRadius.circular(6),
@@ -6353,6 +6458,24 @@ class _RoleList extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            if (estimatedPay != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  estimatedPay,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

@@ -77,7 +77,7 @@ class RoleEventsPage extends StatelessWidget {
           itemBuilder: (context, index) {
             final event = filtered[index];
             final eventName =
-                event['shift_name']?.toString() ?? 'Untitled Event';
+                event['event_name']?.toString() ?? 'Untitled Event';
             final clientName = event['client_name']?.toString() ?? '';
             final venueName = event['venue_name']?.toString() ?? '';
             // Build time label from start/end times if present

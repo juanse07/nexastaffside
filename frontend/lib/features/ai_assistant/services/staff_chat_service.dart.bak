@@ -164,7 +164,7 @@ When marking availability or accepting/declining shifts, use the appropriate res
 
         for (var event in assignedEvents) {
           buffer.writeln('Event ID: ${event['_id']}');
-          buffer.writeln('  Name: ${event['shift_name']}');
+          buffer.writeln('  Name: ${event['event_name']}');
           buffer.writeln('  Client: ${event['client_name']}');
           buffer.writeln('  Date: ${event['date']}');
           buffer.writeln('  Your Role: ${event['userRole']}');

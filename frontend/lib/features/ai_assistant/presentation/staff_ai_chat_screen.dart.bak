@@ -144,7 +144,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // TODO: Call shift accept/decline API endpoint
     final shiftAction = _chatService.pendingShiftAction!;
     final action = shiftAction['action'] as String;
-    final eventName = shiftAction['shift_name'] as String;
+    final eventName = shiftAction['event_name'] as String;
 
     // For now, just show confirmation
     ScaffoldMessenger.of(context).showSnackBar(

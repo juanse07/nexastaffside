@@ -736,7 +736,7 @@ class _ChatPageState extends State<ChatPage> {
       orElse: () => <String, dynamic>{},
     );
 
-    final eventName = eventData['title'] as String? ?? eventData['shift_name'] as String? ?? 'Event';
+    final eventName = eventData['title'] as String? ?? eventData['event_name'] as String? ?? 'Event';
     final roleName = role['role_name'] as String? ?? role['role'] as String? ?? 'Role';
     final clientName = eventData['client_name'] as String? ?? 'Client';
     final venueName = eventData['venue_name'] as String? ?? eventData['venue_address'] as String?;
