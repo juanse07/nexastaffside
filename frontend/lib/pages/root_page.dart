@@ -1467,17 +1467,33 @@ class AppBarClipper extends CustomClipper<Path> {
 
 // Shared AppBar builder for consistent styling across Clock In, Roles, and Earnings tabs
 // Fixed pinned header - always visible, doesn't collapse
+// Note: Subtitle is deprecated for Shifts section (kept for backward compatibility with other sections)
 Widget buildStyledAppBar({
   required String title,
-  required String subtitle,
   required Widget profileMenu,
+  String? subtitle, // Optional subtitle (deprecated for Shifts, still used by Clock In/Earnings)
+  Widget? bottomWidget,
 }) {
+  // If subtitle is provided, create a Text widget for bottomWidget
+  // This maintains backward compatibility with sections still using subtitle
+  Widget? effectiveBottomWidget = bottomWidget;
+  if (subtitle != null && bottomWidget == null) {
+    effectiveBottomWidget = Text(
+      subtitle,
+      style: TextStyle(
+        color: Colors.white.withOpacity(0.85),
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
+
   return SliverPersistentHeader(
     pinned: true,
     delegate: _FixedAppBarDelegate(
       title: title,
-      subtitle: subtitle,
       profileMenu: profileMenu,
+      bottomWidget: effectiveBottomWidget,
     ),
   );
 }
@@ -1485,22 +1501,20 @@ Widget buildStyledAppBar({
 // Delegate for fixed app bar header
 class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   final String title;
-  final String subtitle;
   final Widget profileMenu;
   final Widget? bottomWidget; // Optional widget at bottom (e.g., filter toggle)
 
   _FixedAppBarDelegate({
     required this.title,
-    required this.subtitle,
     required this.profileMenu,
     this.bottomWidget,
   });
 
   @override
-  double get minExtent => 140.0; // Increased to 140 to fully fix overflow on iPhone 16 Pro
+  double get minExtent => 90.0; // Compact AppBar height
 
   @override
-  double get maxExtent => 140.0;
+  double get maxExtent => 90.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -1520,41 +1534,23 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (bottomWidget != null) ...[
-                          const SizedBox(height: 8),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 200),
-                            child: bottomWidget!,
-                          ),
-                        ],
-                      ],
+                  // Title
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  // Eye icon toggle (for Available view)
+                  if (bottomWidget != null) bottomWidget!,
+                  const Spacer(),
+                  // Profile menu
                   profileMenu,
                 ],
               ),
@@ -1568,7 +1564,6 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_FixedAppBarDelegate oldDelegate) {
     return title != oldDelegate.title ||
-        subtitle != oldDelegate.subtitle ||
         profileMenu != oldDelegate.profileMenu ||
         bottomWidget != oldDelegate.bottomWidget;
   }
@@ -2599,6 +2594,10 @@ class _HomeTabState extends State<_HomeTab> {
     final end = e['end_time']?.toString() ?? '';
     final clientName = e['client_name']?.toString() ?? '';
 
+    // Check if event is private
+    final visibilityType = e['visibilityType']?.toString() ?? '';
+    final isPrivate = visibilityType == 'private';
+
     // Calculate shift duration
     String? durationLabel;
     final startMins = _parseTimeMinutes(start);
@@ -2954,32 +2953,46 @@ class _HomeTabState extends State<_HomeTab> {
                           horizontal: 12,
                         ),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
-                          ),
+                          gradient: isPrivate
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFF3E8FF), Color(0xFFFAF5FF)],
+                                )
+                              : const LinearGradient(
+                                  colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                                ),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.shade200),
+                          border: Border.all(
+                            color: isPrivate
+                                ? const Color(0xFF9333EA).withOpacity(0.3)
+                                : Colors.green.shade200,
+                          ),
                         ),
                         child: Column(
                           children: [
                             Icon(
                               Icons.payments_rounded,
                               size: 20,
-                              color: Colors.green.shade700,
+                              color: isPrivate
+                                  ? const Color(0xFF9333EA)
+                                  : Colors.green.shade700,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               estimatedPay,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: Colors.green.shade800,
+                                color: isPrivate
+                                    ? const Color(0xFF9333EA)
+                                    : Colors.green.shade800,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Estimated',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.green.shade700,
+                                color: isPrivate
+                                    ? const Color(0xFF9333EA)
+                                    : Colors.green.shade700,
                                 fontSize: 11,
                               ),
                             ),
@@ -3359,6 +3372,54 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
+// Week banner delegate for simple date display
+class _WeekBannerDelegate extends SliverPersistentHeaderDelegate {
+  final String weekLabel;
+  final ThemeData theme;
+
+  _WeekBannerDelegate({
+    required this.weekLabel,
+    required this.theme,
+  });
+
+  @override
+  double get minExtent => 40.0;
+
+  @override
+  double get maxExtent => 40.0;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.transparent,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          alignment: Alignment.center,
+          child: Text(
+            weekLabel,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_WeekBannerDelegate oldDelegate) {
+    return weekLabel != oldDelegate.weekLabel;
+  }
+}
+
 // Roles section with segmented control navigation
 class _RolesSection extends StatefulWidget {
   final List<Map<String, dynamic>> events;
@@ -3386,6 +3447,7 @@ class _RolesSection extends StatefulWidget {
 class _RolesSectionState extends State<_RolesSection> {
   _ViewMode _selectedView = _ViewMode.available;
   String? _currentWeekLabel;
+  DateTime _selectedWeekStart = DateTime.now();
   final ScrollController _scrollController = ScrollController();
   bool _hideUnavailableDates = true; // Default: hide unavailable dates
 
@@ -3393,6 +3455,51 @@ class _RolesSectionState extends State<_RolesSection> {
   void initState() {
     super.initState();
     _loadFilterPreference();
+    _updateWeekLabel();
+  }
+
+  // Get the start of the week (Monday) for a given date
+  DateTime _getWeekStart(DateTime date) {
+    final weekday = date.weekday; // Monday = 1, Sunday = 7
+    return date.subtract(Duration(days: weekday - 1));
+  }
+
+  // Format week label for navigation banner based on selected week
+  String _getWeekNavigationLabel(DateTime weekStart) {
+    final now = DateTime.now();
+    final currentWeekStart = _getWeekStart(now);
+
+    // Compare dates (ignoring time)
+    final weekStartDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
+    final currentWeekDate = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day);
+
+    if (weekStartDate == currentWeekDate) {
+      return 'This Week';
+    } else if (weekStartDate == currentWeekDate.add(const Duration(days: 7))) {
+      return 'Next Week';
+    } else if (weekStartDate == currentWeekDate.subtract(const Duration(days: 7))) {
+      return 'Last Week';
+    } else {
+      // Format as "Jan 6-12, 2025"
+      final weekEnd = weekStart.add(const Duration(days: 6));
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final startMonth = months[weekStart.month - 1];
+      final endMonth = months[weekEnd.month - 1];
+
+      if (weekStart.month == weekEnd.month) {
+        return '$startMonth ${weekStart.day}-${weekEnd.day}, ${weekStart.year}';
+      } else {
+        return '$startMonth ${weekStart.day}-$endMonth ${weekEnd.day}, ${weekStart.year}';
+      }
+    }
+  }
+
+  // Update the week label
+  void _updateWeekLabel() {
+    setState(() {
+      _selectedWeekStart = _getWeekStart(_selectedWeekStart);
+      _currentWeekLabel = _getWeekNavigationLabel(_selectedWeekStart);
+    });
   }
 
   Future<void> _loadFilterPreference() async {
@@ -3729,29 +3836,8 @@ class _RolesSectionState extends State<_RolesSection> {
       }
     }
 
-    // Dynamic title and subtitle based on selected view
-    String appBarTitle;
-    String appBarSubtitle;
-
-    switch (_selectedView) {
-      case _ViewMode.available:
-        appBarTitle = 'Available Roles';
-        appBarSubtitle =
-            '$availableCount roles • $totalPositions positions open';
-        break;
-      case _ViewMode.myEvents:
-        appBarTitle = 'My Events';
-        appBarSubtitle = widget.loading
-            ? 'Loading events...'
-            : myEventsCount == 0
-            ? 'No accepted events'
-            : '$myEventsCount ${myEventsCount == 1 ? 'event' : 'events'} • $myEventsTotalHours hrs accepted';
-        break;
-      case _ViewMode.calendar:
-        appBarTitle = 'Calendar';
-        appBarSubtitle = 'View your scheduled events';
-        break;
-    }
+    // Dynamic title based on selected view (no subtitle in new compact design)
+    const String appBarTitle = 'Shifts';
 
     // Build content widget based on selected view
     Widget content;
@@ -3791,10 +3877,12 @@ class _RolesSectionState extends State<_RolesSection> {
     }
 
     // Calculate header heights
-    const double appBarHeight = 140.0; // Must match _FixedAppBarDelegate minExtent/maxExtent
+    const double appBarHeight = 90.0; // Compact AppBar height (matches _FixedAppBarDelegate minExtent/maxExtent)
     const double chipsHeight = 60.0;
-    const double weekBannerHeight = 0.0; // Banner hidden per user request
-    final double totalHeaderHeight = appBarHeight + chipsHeight + (myEventsCount > 0 ? weekBannerHeight : 0);
+    const double weekBannerHeight = 40.0; // Week display banner (simpler, no navigation)
+    // Show week banner in My Events and Calendar views
+    final bool showWeekBanner = _selectedView == _ViewMode.myEvents || _selectedView == _ViewMode.calendar;
+    final double totalHeaderHeight = appBarHeight + chipsHeight + (showWeekBanner ? weekBannerHeight : 0);
 
     return Stack(
       children: [
@@ -3811,12 +3899,11 @@ class _RolesSectionState extends State<_RolesSection> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // App bar with blur
+              // Compact app bar with blur
               Container(
                 height: appBarHeight,
                 child: _FixedAppBarDelegate(
                   title: appBarTitle,
-                  subtitle: appBarSubtitle,
                   profileMenu: widget.profileMenu,
                   bottomWidget: _selectedView == _ViewMode.available
                       ? GestureDetector(
@@ -3863,16 +3950,15 @@ class _RolesSectionState extends State<_RolesSection> {
                 ).build(context, 0, false),
               ),
 
-              // Week banner (floating chip) - HIDDEN per user request
-              // if (myEventsCount > 0 && _selectedView == _ViewMode.myEvents && _currentWeekLabel != null)
-              //   Container(
-              //     height: weekBannerHeight,
-              //     child: _TransparentWeekBannerDelegate(
-              //       weekLabel: _currentWeekLabel!,
-              //       eventCount: myEventsCount,
-              //       hours: myEventsTotalHours.toDouble(),
-              //     ).build(context, 0, false),
-              //   ),
+              // Week display banner (conditionally shown in My Events and Calendar views)
+              if (showWeekBanner && _currentWeekLabel != null)
+                Container(
+                  height: weekBannerHeight,
+                  child: _WeekBannerDelegate(
+                    weekLabel: _currentWeekLabel!,
+                    theme: Theme.of(context),
+                  ).build(context, 0, false),
+                ),
             ],
           ),
         ),
@@ -4755,102 +4841,6 @@ class _EventStat extends StatelessWidget {
   }
 }
 
-// Transparent pinned header delegate for week banner
-class _TransparentWeekBannerDelegate extends SliverPersistentHeaderDelegate {
-  final String weekLabel;
-  final int eventCount;
-  final double hours;
-
-  _TransparentWeekBannerDelegate({
-    required this.weekLabel,
-    required this.eventCount,
-    required this.hours,
-  });
-
-  @override
-  double get minExtent => 48.0; // Reduced height
-
-  @override
-  double get maxExtent => 48.0; // Reduced height
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Colors.transparent,
-      padding: const EdgeInsets.only(top: 2, bottom: 8, left: 20, right: 20), // Match card margins
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              // Peach gradient with more transparency
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFFFFB088).withOpacity(0.35), // Light peach - more transparent
-                  const Color(0xFFFF9F7F).withOpacity(0.30), // Deeper peach - more transparent
-                ],
-              ),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.15),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFF9F7F).withOpacity(0.08),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_rounded,
-                  size: 14, // Smaller icon
-                  color: const Color(0xFF8B4513).withOpacity(0.8), // Saddle brown
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    weekLabel,
-                    style: TextStyle(
-                      fontSize: 12, // Smaller font
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6B3410).withOpacity(0.9), // Dark peach/brown
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ),
-                Text(
-                  '$eventCount ${eventCount == 1 ? 'event' : 'events'} • ${hours.toStringAsFixed(1)} hrs',
-                  style: TextStyle(
-                    fontSize: 11, // Smaller font
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF8B4513).withOpacity(0.75), // Saddle brown
-                    letterSpacing: 0.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _TransparentWeekBannerDelegate oldDelegate) {
-    return weekLabel != oldDelegate.weekLabel ||
-        eventCount != oldDelegate.eventCount ||
-        hours != oldDelegate.hours;
-  }
-}
-
 class _MyEventsList extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
@@ -5140,7 +5130,7 @@ class _MyEventsListState extends State<_MyEventsList> {
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
             child: Container(
-              height: 160, // Height to cover headers (reduced since banner is hidden)
+              height: 190, // AppBar (90) + Chips (60) + Week Banner (40)
               color: Colors.transparent,
             ),
           ),
@@ -5390,6 +5380,10 @@ class _MyEventsListState extends State<_MyEventsList> {
       }
     }
 
+    // Check if event is private (invitation)
+    final visibilityType = e['visibilityType']?.toString() ?? '';
+    final isPrivate = visibilityType == 'private';
+
     // Calculate estimated earnings
     String? estimatedPay;
     final start = e['start_time']?.toString() ?? '';
@@ -5478,10 +5472,15 @@ class _MyEventsListState extends State<_MyEventsList> {
                                       Colors.green.shade400,
                                       Colors.green.shade600,
                                     ]
-                                  : [
-                                      const Color(0xFF8B5CF6),
-                                      const Color(0xFFEC4899),
-                                    ],
+                                  : (isPrivate
+                                      ? [
+                                          const Color(0xFF9333EA),
+                                          const Color(0xFF7E22CE),
+                                        ]
+                                      : [
+                                          const Color(0xFF8B5CF6),
+                                          const Color(0xFFEC4899),
+                                        ]),
                             ),
                             shape: BoxShape.circle,
                             boxShadow: isConfirmed
@@ -5492,7 +5491,15 @@ class _MyEventsListState extends State<_MyEventsList> {
                                       spreadRadius: 2,
                                     ),
                                   ]
-                                : null,
+                                : (isPrivate
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(0xFF9333EA).withOpacity(0.5),
+                                          blurRadius: 8,
+                                          spreadRadius: 2,
+                                        ),
+                                      ]
+                                    : null),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -5666,8 +5673,10 @@ class _MyEventsListState extends State<_MyEventsList> {
                               Icons.calendar_today,
                               size: 16,
                               color: isConfirmed
-                                  ? Colors.green.shade600.withOpacity(0.5) // Subtle green for confirmed
-                                  : Colors.blue.shade600, // Blue for pending
+                                  ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
+                                  : (isPrivate
+                                      ? const Color(0xFF9333EA) // Purple for invitations
+                                      : Colors.blue.shade600), // Blue for available
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -5696,8 +5705,10 @@ class _MyEventsListState extends State<_MyEventsList> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           color: isConfirmed
-                              ? Colors.green.shade50.withOpacity(0.5) // Very soft green for confirmed
-                              : const Color(0xFFEEF2FF), // Light blue for pending
+                              ? Colors.green.shade50.withOpacity(0.5) // Soft green for confirmed
+                              : (isPrivate
+                                  ? const Color(0xFFF3E8FF) // Soft purple for invitations
+                                  : const Color(0xFFEEF2FF)), // Light blue for available
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -5706,8 +5717,10 @@ class _MyEventsListState extends State<_MyEventsList> {
                               Icons.business,
                               size: 14,
                               color: isConfirmed
-                                  ? Colors.green.shade600.withOpacity(0.5) // Subtle green for confirmed
-                                  : Colors.blue.shade600, // Blue for pending
+                                  ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
+                                  : (isPrivate
+                                      ? const Color(0xFF9333EA) // Purple for invitations
+                                      : Colors.blue.shade600), // Blue for available
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -5738,8 +5751,10 @@ class _MyEventsListState extends State<_MyEventsList> {
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: isConfirmed
-                                      ? Colors.green.shade100
-                                      : Colors.blue.shade100,
+                                      ? Colors.green.shade100 // Green for confirmed
+                                      : (isPrivate
+                                          ? const Color(0xFFF3E8FF) // Purple for invitations
+                                          : Colors.blue.shade100), // Blue for available
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -5748,8 +5763,10 @@ class _MyEventsListState extends State<_MyEventsList> {
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
                                     color: isConfirmed
-                                        ? Colors.green.shade700
-                                        : Colors.blue.shade700,
+                                        ? Colors.green.shade700 // Green for confirmed
+                                        : (isPrivate
+                                            ? const Color(0xFF9333EA) // Purple for invitations
+                                            : Colors.blue.shade700), // Blue for available
                                   ),
                                 ),
                               ),
@@ -5941,7 +5958,7 @@ class _RoleList extends StatelessWidget {
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
             child: Container(
-              height: 160, // Height to cover headers (reduced since banner is hidden)
+              height: 190, // AppBar (90) + Chips (60) + Week Banner (40)
               color: Colors.transparent,
             ),
           ),
@@ -6171,23 +6188,18 @@ class _RoleList extends StatelessWidget {
     final visibilityType = e['visibilityType']?.toString() ?? '';
     final isPrivate = visibilityType == 'private';
 
-    // Purple theme for private invitations, default for public
-    final cardGradient = isPrivate
-        ? [
-            const Color(0xFF9333EA).withOpacity(0.15),  // Purple for private
-            const Color(0xFF7E22CE).withOpacity(0.20),
-          ]
-        : [
-            theme.colorScheme.surface,
-            theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
-          ];
+    // White background for both cards, purple borders for invitations
+    final cardGradient = [
+        theme.colorScheme.surface,
+        theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
+      ];
 
     final borderColor = isPrivate
-        ? const Color(0xFF9333EA).withOpacity(0.4)  // Brighter purple border for private
+        ? const Color(0xFF9333EA).withOpacity(0.4)  // Purple border for private
         : const Color(0xFF8B5CF6).withOpacity(0.2);
 
     final shadowColor = isPrivate
-        ? const Color(0xFF9333EA).withOpacity(0.15)  // Stronger shadow for private
+        ? const Color(0xFF9333EA).withOpacity(0.15)  // Purple shadow for private
         : const Color(0xFF8B5CF6).withOpacity(0.08);
 
     return Stack(
@@ -6244,19 +6256,18 @@ class _RoleList extends StatelessWidget {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: showBlueIndicator
-                                  ? [Colors.blue.shade400, Colors.blue.shade600]
-                                  : [
-                                      const Color(0xFF8B5CF6),
-                                      const Color(0xFFEC4899),
-                                    ],
-                            ),
+                            color: showBlueIndicator
+                                ? (isPrivate
+                                    ? const Color(0xFF9333EA)  // Pure purple for invitations
+                                    : Colors.blue.shade500)
+                                : const Color(0xFFEC4899),
                             shape: BoxShape.circle,
                             boxShadow: showBlueIndicator
                                 ? [
                                     BoxShadow(
-                                      color: Colors.blue.withOpacity(0.5),
+                                      color: (isPrivate
+                                          ? const Color(0xFF9333EA)
+                                          : Colors.blue).withOpacity(0.5),
                                       blurRadius: 8,
                                       spreadRadius: 2,
                                     ),
@@ -6322,10 +6333,14 @@ class _RoleList extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: isPrivate
+                                ? Colors.white
+                                : Colors.blue.shade50,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Colors.blue.shade200,
+                              color: isPrivate
+                                  ? const Color(0xFF9333EA).withOpacity(0.3)
+                                  : Colors.blue.shade200,
                               width: 1,
                             ),
                           ),
@@ -6333,15 +6348,19 @@ class _RoleList extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.schedule,
+                                isPrivate ? Icons.mail_outline : Icons.schedule,
                                 size: 14,
-                                color: Colors.blue.shade700,
+                                color: isPrivate
+                                    ? const Color(0xFF9333EA)
+                                    : Colors.blue.shade700,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 isPrivate ? 'Invitation' : 'Available',
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: Colors.blue.shade700,
+                                  color: isPrivate
+                                      ? const Color(0xFF9333EA)
+                                      : Colors.blue.shade700,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 11,
                                 ),
@@ -6456,7 +6475,9 @@ class _RoleList extends StatelessWidget {
                             Icon(
                               Icons.calendar_today,
                               size: 16,
-                              color: Colors.blue.shade600, // Blue for available roles
+                              color: isPrivate
+                                  ? const Color(0xFF9333EA)  // Pure purple for invitations
+                                  : Colors.blue.shade600,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -6484,7 +6505,9 @@ class _RoleList extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF2FF), // Light blue for available roles
+                          color: isPrivate
+                              ? const Color(0xFFF3E8FF)  // Soft purple for invitations
+                              : const Color(0xFFEEF2FF),  // Light blue for available
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -6492,7 +6515,9 @@ class _RoleList extends StatelessWidget {
                             Icon(
                               Icons.business,
                               size: 14,
-                              color: Colors.blue.shade600, // Blue for available roles
+                              color: isPrivate
+                                  ? const Color(0xFF9333EA)  // Purple for invitations
+                                  : Colors.blue.shade600,  // Blue for available
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -6522,7 +6547,9 @@ class _RoleList extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.shade100,
+                                  color: isPrivate
+                                      ? const Color(0xFFF3E8FF)  // Light purple for invitations
+                                      : Colors.blue.shade100,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -6530,7 +6557,9 @@ class _RoleList extends StatelessWidget {
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
-                                    color: Colors.blue.shade700,
+                                    color: isPrivate
+                                        ? const Color(0xFF9333EA)  // Purple for invitations
+                                        : Colors.blue.shade700,
                                   ),
                                 ),
                               ),
@@ -6556,7 +6585,9 @@ class _RoleList extends StatelessWidget {
             child: CustomPaint(
               size: const Size(40, 40),
               painter: _TrianglePainter(
-                color: Colors.blue.shade100.withOpacity(0.6),
+                color: isPrivate
+                    ? const Color(0xFF9333EA).withOpacity(0.15)  // Purple for invitations
+                    : Colors.blue.shade100.withOpacity(0.6),
               ),
             ),
           ),

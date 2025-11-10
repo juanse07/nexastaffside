@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' show ImageFilter;
 import 'event_detail_page.dart';
 
-class PastEventsPage extends StatelessWidget {
+class PastEventsPage extends StatefulWidget {
   final List<Map<String, dynamic>> events;
   final String? userKey;
 
@@ -12,22 +12,73 @@ class PastEventsPage extends StatelessWidget {
     required this.userKey,
   });
 
+  @override
+  State<PastEventsPage> createState() => _PastEventsPageState();
+}
+
+class _PastEventsPageState extends State<PastEventsPage> {
+  final ScrollController _scrollController = ScrollController();
+  double _headerOpacity = 1.0;
+
+  // Fade threshold: header starts fading after scrolling this many pixels
+  static const double _fadeStartOffset = 50.0;
+  // Fade distance: distance over which the fade completes
+  static const double _fadeDistance = 100.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final offset = _scrollController.offset;
+
+    // Calculate opacity based on scroll position
+    double newOpacity;
+    if (offset <= _fadeStartOffset) {
+      // Not scrolled far enough - fully visible
+      newOpacity = 1.0;
+    } else if (offset >= _fadeStartOffset + _fadeDistance) {
+      // Scrolled past fade distance - fully invisible
+      newOpacity = 0.0;
+    } else {
+      // In fade zone - calculate proportional opacity
+      final fadeProgress = (offset - _fadeStartOffset) / _fadeDistance;
+      newOpacity = 1.0 - fadeProgress;
+    }
+
+    // Only update if opacity changed significantly (reduces rebuilds)
+    if ((newOpacity - _headerOpacity).abs() > 0.01) {
+      setState(() {
+        _headerOpacity = newOpacity;
+      });
+    }
+  }
+
   List<Map<String, dynamic>> _filterPastAccepted() {
-    if (userKey == null) return const [];
+    if (widget.userKey == null) return const [];
     final List<Map<String, dynamic>> pastEvents = [];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    for (final e in events) {
+    for (final e in widget.events) {
       final accepted = e['accepted_staff'];
       if (accepted is List) {
         bool isAccepted = false;
         for (final a in accepted) {
-          if (a is String && a == userKey) {
+          if (a is String && a == widget.userKey) {
             isAccepted = true;
             break;
           }
-          if (a is Map && a['userKey'] == userKey) {
+          if (a is Map && a['userKey'] == widget.userKey) {
             isAccepted = true;
             break;
           }
@@ -112,7 +163,7 @@ class PastEventsPage extends StatelessWidget {
     final acc = event['accepted_staff'];
     if (acc is List) {
       for (final a in acc) {
-        if (a is Map && a['userKey'] == userKey) {
+        if (a is Map && a['userKey'] == widget.userKey) {
           final role = a['role']?.toString();
           if (role != null && role.isNotEmpty) {
             return role;
@@ -265,262 +316,208 @@ class PastEventsPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: false,
-            floating: true,
-            snap: true,
-            expandedHeight: 120.0,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Purple gradient background with custom clip
-                  ClipPath(
-                    clipper: AppBarClipper(),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFF7A3AFB),
-                            Color(0xFF5B27D8),
-                          ],
-                        ),
+      body: Stack(
+        children: [
+          // Main scrollable content
+          CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // Top padding for safe area
+              SliverToBoxAdapter(
+                child: SizedBox(height: MediaQuery.of(context).padding.top),
+              ),
+              // Animated fading header
+              SliverToBoxAdapter(
+                child: AnimatedOpacity(
+                  opacity: _headerOpacity,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF6B7280), // Gray
+                          Color(0xFF4B5563), // Darker gray
+                        ],
                       ),
-                    ),
-                  ),
-                  // Decorative purple shapes layer
-                  ClipPath(
-                    clipper: AppBarClipper(),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          top: -40,
-                          right: -20,
-                          child: Container(
-                            width: 180,
-                            height: 180,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF9D7EF0).withOpacity(0.15),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 20,
-                          left: -30,
-                          child: Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF8B5CF6).withOpacity(0.12),
-                            ),
-                          ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6B7280).withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                  ),
-                  // Title and stats
-                  SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.end,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Stack(
                         children: [
-                          Text(
-                            'Past Events',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
+                          // Decorative elements
+                          Positioned(
+                            top: -30,
+                            right: -30,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.1),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            pastEvents.isEmpty
-                                ? 'No past events'
-                                : '${pastEvents.length} ${pastEvents.length == 1 ? 'event' : 'events'} completed',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
+                          Positioned(
+                            bottom: -40,
+                            left: -40,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.06),
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Header
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF6B7280), // Gray
-                    Color(0xFF4B5563), // Darker gray
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF6B7280).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Stack(
-                  children: [
-                    // Decorative elements
-                    Positioned(
-                      top: -30,
-                      right: -30,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -40,
-                      left: -40,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.06),
-                        ),
-                      ),
-                    ),
-                    // Content
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
+                          // Content
+                          Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Row(
                               children: [
-                                Text(
-                                  'Past Events',
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: -0.5,
-                                    fontSize: 22,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Past Events',
+                                        style: theme.textTheme.titleLarge?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -0.5,
+                                          fontSize: 22,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        pastEvents.isEmpty
+                                            ? 'No past events'
+                                            : '${pastEvents.length} ${pastEvents.length == 1 ? 'event' : 'events'} completed',
+                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                          color: Colors.white.withOpacity(0.9),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  pastEvents.isEmpty
-                                      ? 'No past events'
-                                      : '${pastEvents.length} ${pastEvents.length == 1 ? 'event' : 'events'} completed',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 14,
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.history_rounded,
+                                    color: Colors.white,
+                                    size: 24,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.history_rounded,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
                         ],
                       ),
                     ),
+                  ),
+                ),
+              ),
+              // Empty state or event list
+              if (pastEvents.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(32),
+                                ),
+                                child: Icon(
+                                  Icons.history_rounded,
+                                  size: 32,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No past events',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Your completed events will appear here',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (pastEvents.isNotEmpty)
+                ..._buildMonthlySections(theme, pastEvents),
+              // Bottom padding
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 40),
+              ),
+            ],
+          ),
+          // Fixed back button overlay
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ),
             ),
           ),
-          // Empty state or event list
-          if (pastEvents.isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(40),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(32),
-                            ),
-                            child: Icon(
-                              Icons.history_rounded,
-                              size: 32,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No past events',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Your completed events will appear here',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (pastEvents.isNotEmpty)
-            ..._buildMonthlySections(theme, pastEvents),
         ],
       ),
     );
@@ -664,41 +661,4 @@ class PastEventsPage extends StatelessWidget {
       ),
     );
   }
-}
-
-// Custom clipper for beautiful curved appbar shape with smooth elliptical bottom-right corner
-class AppBarClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    final width = size.width;
-    final height = size.height;
-
-    // Start from top-left corner
-    path.moveTo(0, 0);
-
-    // Top edge - straight across
-    path.lineTo(width, 0);
-
-    // Right edge - go down but stop before the corner for the curve
-    path.lineTo(width, height - 60);
-
-    // Beautiful elliptical rounded bottom-right corner
-    // Using cubicTo for ultra-smooth curve
-    path.cubicTo(
-      width, height - 30,           // First control point - ease out from vertical
-      width - 30, height,            // Second control point - ease into horizontal
-      width - 60, height,            // End point - curved inward
-    );
-
-    // Bottom edge - straight across to left
-    path.lineTo(0, height);
-
-    // Close the path back to top-left
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
