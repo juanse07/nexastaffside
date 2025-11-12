@@ -4175,6 +4175,7 @@ class _EarningsTab extends StatelessWidget {
 
         final yearTotal = data['yearTotal'] as double;
         final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
+        final now = DateTime.now();
 
         return EnhancedRefreshIndicator(
           showLastRefreshTime: false,
