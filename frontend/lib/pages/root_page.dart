@@ -4093,89 +4093,56 @@ class _EarningsTab extends StatelessWidget {
       );
     }
 
-    print('[EARNINGS] Starting FutureBuilder with ${events.length} events');
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _calculateEarnings(events, userKey!),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return CustomScrollView(
-            slivers: [
-              buildStyledAppBar(
-                title: 'My Earnings',
-                profileMenu: profileMenu,
-              ),
-              const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ],
-          );
-        }
+    print('[EARNINGS] Starting calculation with ${events.length} events');
 
-        if (snapshot.hasError) {
-          return CustomScrollView(
-            slivers: [
-              buildStyledAppBar(
-                title: 'My Earnings',
-                profileMenu: profileMenu,
-              ),
-              SliverFillRemaining(
-                child: Center(
-                  child: Text(
-                    'Error loading earnings',
-                    style: theme.textTheme.bodyLarge,
+    // Calculate earnings synchronously to avoid FutureBuilder rebuild loop
+    final data = _calculateEarnings(events, userKey!);
+
+    print('[EARNINGS] Calculation completed - data: $data');
+    if (data['yearTotal'] == 0.0) {
+      print('[EARNINGS] No earnings (yearTotal=0), showing empty state');
+      return CustomScrollView(
+        slivers: [
+          buildStyledAppBar(
+            title: 'My Earnings',
+            profileMenu: profileMenu,
+          ),
+          SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet_outlined,
+                    size: 80,
+                    color: theme.colorScheme.primary.withOpacity(0.3),
                   ),
-                ),
-              ),
-            ],
-          );
-        }
-
-        final data = snapshot.data;
-        print('[EARNINGS] FutureBuilder completed - data: $data');
-        if (data == null || data['yearTotal'] == 0.0) {
-          print('[EARNINGS] No earnings (yearTotal=0 or data=null), showing empty state');
-          return CustomScrollView(
-            slivers: [
-              buildStyledAppBar(
-                title: 'My Earnings',
-                profileMenu: profileMenu,
-              ),
-              SliverFillRemaining(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 80,
-                        color: theme.colorScheme.primary.withOpacity(0.3),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'No Earnings Yet',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Complete events to see your earnings here',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                  const SizedBox(height: 24),
+                  Text(
+                    'No Earnings Yet',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Complete events to see your earnings here',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-            ],
-          );
-        }
+            ),
+          ),
+        ],
+      );
+    }
 
-        final yearTotal = data['yearTotal'] as double;
-        final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
-        final now = DateTime.now();
+    final yearTotal = data['yearTotal'] as double;
+    final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
+    final now = DateTime.now();
 
         return EnhancedRefreshIndicator(
           showLastRefreshTime: false,
@@ -4354,14 +4321,12 @@ class _EarningsTab extends StatelessWidget {
           ],
         ),
       );
-      },
-    );
   }
 
-  Future<Map<String, dynamic>> _calculateEarnings(
+  Map<String, dynamic> _calculateEarnings(
     List<Map<String, dynamic>> events,
     String userKey,
-  ) async {
+  ) {
     print('[EARNINGS-CALC] Starting calculation for ${events.length} events, userKey: $userKey');
     double yearTotal = 0.0;
     final Map<String, Map<String, dynamic>> monthlyMap = {}; // Changed to String key for year-month
