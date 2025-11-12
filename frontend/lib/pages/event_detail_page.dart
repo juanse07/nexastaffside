@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../auth_service.dart';
 import '../services/data_service.dart';
 import '../utils/id.dart';
+import '../l10n/app_localizations.dart';
 import 'event_team_chat_page.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -192,6 +193,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     required String? dateStr,
     required String? startTimeStr,
     required String? endTimeStr,
+    required AppLocalizations l10n,
   }) {
     DateTime? parseDateSafe(String input) {
       try {
@@ -262,14 +264,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
     }
 
     String weekdayShort(int weekday) {
-      const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final names = [l10n.mon, l10n.tue, l10n.wed, l10n.thu, l10n.fri, l10n.sat, l10n.sun];
       return '${names[(weekday - 1).clamp(0, 6)]}.';
     }
 
     String monthShort(int month) {
-      const names = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      final names = [
+        l10n.jan, l10n.feb, l10n.mar, l10n.apr, l10n.may, l10n.jun,
+        l10n.jul, l10n.aug, l10n.sep, l10n.oct, l10n.nov, l10n.dec,
       ];
       return names[(month - 1).clamp(0, 11)];
     }
@@ -303,13 +305,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final venue = event['venue_name']?.toString() ?? '';
     final venueAddress = event['venue_address']?.toString() ?? '';
     double? lat = double.tryParse(event['venue_latitude']?.toString() ?? '');
     double? lng = double.tryParse(event['venue_longitude']?.toString() ?? '');
     bool hasCoords = lat != null && lng != null;
 
-    final eventName = event['event_name']?.toString() ?? 'Untitled Event';
+    final eventName = event['event_name']?.toString() ?? l10n.untitledEvent;
     final clientName = event['client_name']?.toString() ?? '';
     final headcount = event['headcount_total']?.toString() ?? '0';
     final dateStr = event['date']?.toString();
@@ -376,7 +379,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       ),
                     );
                   },
-                  tooltip: 'Team Chat',
+                  tooltip: l10n.teamChat,
                 ),
               ]
             : null,
@@ -423,6 +426,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       dateStr: dateStr,
                       startTimeStr: startTimeStr,
                       endTimeStr: endTimeStr,
+                      l10n: l10n,
                     );
 
                     return Card(
@@ -508,7 +512,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ],
                   if (venue.isNotEmpty || venueAddress.isNotEmpty) ...[
                     Text(
-                      venue.isNotEmpty ? venue : 'Venue',
+                      venue.isNotEmpty ? venue : l10n.venue,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -528,7 +532,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           }
                         },
                         icon: const Icon(Icons.directions, color: Colors.white),
-                        label: const Text('Follow route in Maps'),
+                        label: Text(l10n.followRouteInMaps),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -581,7 +585,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         style: theme.textTheme.titleLarge
                       ),
                       subtitle: Text(eventName),
-                      trailing: Text('Guests: $headcount'),
+                      trailing: Text(l10n.guestsCount(headcount)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -631,7 +635,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             ),
                             child: ListTile(
                               leading: const Icon(Icons.attach_money),
-                              title: const Text('Shift Pay'),
+                              title: Text(l10n.shiftPay),
                               subtitle: Text(payLabel),
                             ),
                           );
@@ -648,7 +652,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () {
-                          _showTariffDetails(context, theme, tariffData!, roleName ?? '');
+                          _showTariffDetails(context, theme, tariffData!, roleName ?? '', l10n);
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16),
@@ -673,14 +677,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Shift Pay',
+                                      l10n.shiftPay,
                                       style: theme.textTheme.titleMedium?.copyWith(
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Tap to view rate details',
+                                      l10n.tapToViewRateDetails,
                                       style: theme.textTheme.bodySmall?.copyWith(
                                         color: Colors.deepPurple.withOpacity(0.8),
                                       ),
@@ -721,7 +725,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       ),
                       child: ListTile(
                         leading: const Icon(Icons.checkroom_outlined),
-                        title: const Text('Uniform Requirements'),
+                        title: Text(l10n.uniformRequirements),
                         subtitle: Text(uniform),
                       ),
                     );
@@ -737,7 +741,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       ),
                       child: ListTile(
                         leading: const Icon(Icons.local_parking_outlined),
-                        title: const Text('Parking Instructions'),
+                        title: Text(l10n.parkingInstructions),
                         subtitle: Text(parking),
                       ),
                     );
@@ -781,7 +785,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 width: 20,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Text('DECLINE'),
+                            : Text(l10n.decline),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -806,8 +810,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               )
                             : Text(
                                 isRoleFull
-                                    ? 'FULL'
-                                    : (hasConflict ? 'CONFLICT' : 'ACCEPT'),
+                                    ? l10n.full
+                                    : (hasConflict ? l10n.conflict : l10n.accept),
                               ),
                       ),
                     ),
@@ -838,7 +842,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           ? () => _confirmCancellation(context, theme)
                           : null,
                       icon: const Icon(Icons.cancel_schedule_send_outlined, size: 18),
-                      label: const Text('Request cancellation'),
+                      label: Text(l10n.requestCancellation),
                       style: ButtonStyle(
                         alignment: Alignment.centerLeft,
                         padding: MaterialStateProperty.all(
@@ -886,6 +890,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     ThemeData theme,
     Map<String, dynamic> tariff,
     String role,
+    AppLocalizations l10n,
   ) {
     final rate = tariff['rate']?.toString() ?? 'N/A';
     final currency = tariff['currency']?.toString() ?? 'USD';
@@ -908,7 +913,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Shift Pay - $role'),
+        title: Text(l10n.shiftPayRole(role)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -930,7 +935,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               const Divider(),
               const SizedBox(height: 8),
               Text(
-                'Estimated Total',
+                l10n.estimatedTotal,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.6),
                 ),
@@ -945,7 +950,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Based on scheduled shift duration',
+                l10n.basedOnScheduledDuration,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.5),
                 ),
@@ -956,7 +961,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('CLOSE'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -1054,17 +1059,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
     BuildContext context,
     ThemeData theme,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Request cancellation?'),
+        title: Text(l10n.requestCancellationQuestion),
         content: const Text(
           'We\'ll let the scheduling team know you can no longer make this event.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('KEEP EVENT'),
+            child: Text(l10n.keepEvent),
           ),
           FilledButton.tonal(
             onPressed: () => Navigator.of(dialogContext).pop(true),
@@ -1072,7 +1078,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               backgroundColor: theme.colorScheme.errorContainer,
               foregroundColor: theme.colorScheme.onErrorContainer,
             ),
-            child: const Text('REQUEST CANCELLATION'),
+            child: Text(l10n.requestCancellationCaps),
           ),
         ],
       ),

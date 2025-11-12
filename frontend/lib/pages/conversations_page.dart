@@ -3,6 +3,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../models/conversation.dart';
 import '../services/chat_service.dart';
+import '../l10n/app_localizations.dart';
 import 'chat_page.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 
@@ -65,6 +66,8 @@ class _ConversationsPageState extends State<ConversationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -75,7 +78,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
               child: Row(
                 children: [
                   Text(
-                    'Chats',
+                    l10n.chats,
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -97,6 +100,8 @@ class _ConversationsPageState extends State<ConversationsPage> {
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -109,13 +114,13 @@ class _ConversationsPageState extends State<ConversationsPage> {
             Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Failed to load conversations',
+              l10n.failedToLoadConversations,
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: _loadConversations,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -140,7 +145,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                   Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
                   Text(
-                    'No conversations yet',
+                    l10n.noConversationsYet,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -149,7 +154,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Your manager will appear here when they message you',
+                    l10n.yourManagerWillAppearHere,
                     style: TextStyle(color: Colors.grey[500]),
                     textAlign: TextAlign.center,
                   ),
@@ -193,8 +198,8 @@ class _ConversationsPageState extends State<ConversationsPage> {
 
     if (conversation.managerId == null || conversation.managerId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: Manager ID is missing'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorManagerIdMissing),
           backgroundColor: Colors.red,
         ),
       );
@@ -329,7 +334,7 @@ class _ConversationTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    conversation.lastMessagePreview ?? 'No messages yet',
+                    conversation.lastMessagePreview ?? AppLocalizations.of(context)!.noMessagesYet,
                     style: TextStyle(
                       fontSize: 14,
                       color: hasUnread ? Colors.black87 : Colors.grey[600],
@@ -368,6 +373,8 @@ class _ValerioAssistantTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -465,9 +472,9 @@ class _ValerioAssistantTile extends StatelessWidget {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      const Text(
-                        'Valerio Assistant',
-                        style: TextStyle(
+                      Text(
+                        l10n.valerioAssistant,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1F2937),
@@ -483,9 +490,9 @@ class _ValerioAssistantTile extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Get help with shifts 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, check your schedule 📅, and more ✨',
-                    style: TextStyle(
+                  Text(
+                    l10n.valerioAssistantDescription,
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF6B7280),
                       fontWeight: FontWeight.w500,

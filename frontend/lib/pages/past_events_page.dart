@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' show ImageFilter;
 import 'event_detail_page.dart';
 import '../utils/accepted_staff.dart';
+import '../l10n/app_localizations.dart';
 
 class PastEventsPage extends StatefulWidget {
   final List<Map<String, dynamic>> events; // Now contains shifts data
@@ -25,6 +26,10 @@ class _PastEventsPageState extends State<PastEventsPage> {
   static const double _fadeStartOffset = 50.0;
   // Fade distance: distance over which the fade completes
   static const double _fadeDistance = 100.0;
+
+  // Pagination state
+  int _displayCount = 20;
+  static const int _pageSize = 20;
 
   @override
   void initState() {
@@ -62,6 +67,12 @@ class _PastEventsPageState extends State<PastEventsPage> {
         _headerOpacity = newOpacity;
       });
     }
+  }
+
+  void _loadMoreEvents() {
+    setState(() {
+      _displayCount += _pageSize;
+    });
   }
 
   List<Map<String, dynamic>> _filterPastAccepted() {
@@ -154,7 +165,8 @@ class _PastEventsPageState extends State<PastEventsPage> {
     return null;
   }
 
-  String _formatEventDateLabel(String? dateStr) {
+  String _formatEventDateLabel(BuildContext context, String? dateStr) {
+    final l10n = AppLocalizations.of(context)!;
     final date = _parseDateSafe(dateStr ?? '');
     if (date == null) return '';
 
@@ -162,15 +174,15 @@ class _PastEventsPageState extends State<PastEventsPage> {
     final today = DateTime(now.year, now.month, now.day);
     final diff = today.difference(date).inDays;
 
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Yesterday';
-    if (diff < 7) return '$diff days ago';
+    if (diff == 0) return l10n.today;
+    if (diff == 1) return l10n.yesterday;
+    if (diff < 7) return l10n.daysAgo(diff);
     if (diff < 30) {
       final weeks = (diff / 7).floor();
-      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
+      return weeks == 1 ? l10n.weekAgo : l10n.weeksAgo(weeks);
     }
 
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [l10n.jan, l10n.feb, l10n.mar, l10n.apr, l10n.may, l10n.jun, l10n.jul, l10n.aug, l10n.sep, l10n.oct, l10n.nov, l10n.dec];
     final month = months[(date.month - 1).clamp(0, 11)];
     return '$month ${date.day}, ${date.year}';
   }
@@ -192,7 +204,8 @@ class _PastEventsPageState extends State<PastEventsPage> {
     return '';
   }
 
-  Map<String, List<Map<String, dynamic>>> _groupEventsByMonth(List<Map<String, dynamic>> events) {
+  Map<String, List<Map<String, dynamic>>> _groupEventsByMonth(BuildContext context, List<Map<String, dynamic>> events) {
+    final l10n = AppLocalizations.of(context)!;
     final Map<String, List<Map<String, dynamic>>> grouped = {};
     final now = DateTime.now();
     final currentYear = now.year;
@@ -207,12 +220,12 @@ class _PastEventsPageState extends State<PastEventsPage> {
 
       // Create month label
       String monthLabel;
-      final months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      final months = [l10n.january, l10n.february, l10n.march, l10n.april, l10n.mayFull, l10n.june, l10n.july, l10n.august, l10n.september, l10n.october, l10n.november, l10n.december];
 
       if (eventDate.year == currentYear && eventDate.month == currentMonth) {
-        monthLabel = 'This Month';
+        monthLabel = l10n.thisMonth;
       } else if (eventDate.year == currentYear && eventDate.month == currentMonth - 1) {
-        monthLabel = 'Last Month';
+        monthLabel = l10n.lastMonth;
       } else {
         final month = months[(eventDate.month - 1).clamp(0, 11)];
         if (eventDate.year == currentYear) {
@@ -229,8 +242,9 @@ class _PastEventsPageState extends State<PastEventsPage> {
     return grouped;
   }
 
-  List<Widget> _buildMonthlySections(ThemeData theme, List<Map<String, dynamic>> events) {
-    final grouped = _groupEventsByMonth(events);
+  List<Widget> _buildMonthlySections(BuildContext context, ThemeData theme, List<Map<String, dynamic>> events) {
+    final l10n = AppLocalizations.of(context)!;
+    final grouped = _groupEventsByMonth(context, events);
     final sections = <Widget>[];
 
     // Sort events within each group by date (most recent first)
@@ -289,7 +303,9 @@ class _PastEventsPageState extends State<PastEventsPage> {
                   ),
                 ),
                 Text(
-                  '${monthEvents.length} ${monthEvents.length == 1 ? 'event' : 'events'}',
+                  monthEvents.length == 1
+                      ? l10n.eventAccepted(monthEvents.length)
+                      : '${monthEvents.length} ${l10n.events}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
                     fontWeight: FontWeight.w500,
@@ -330,11 +346,14 @@ class _PastEventsPageState extends State<PastEventsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     debugPrint('🔍 [PAST_EVENTS] Building with ${widget.events.length} events');
     debugPrint('🔍 [PAST_EVENTS] UserKey: ${widget.userKey}');
 
-    final pastEvents = _filterPastAccepted();
+    final allPastEvents = _filterPastAccepted();
+    final displayedEvents = allPastEvents.take(_displayCount).toList();
+    final hasMoreEvents = allPastEvents.length > _displayCount;
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
@@ -414,7 +433,7 @@ class _PastEventsPageState extends State<PastEventsPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        'My Events',
+                                        l10n.myEvents,
                                         style: theme.textTheme.titleLarge?.copyWith(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
@@ -424,9 +443,11 @@ class _PastEventsPageState extends State<PastEventsPage> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        pastEvents.isEmpty
-                                            ? 'No accepted events'
-                                            : '${pastEvents.length} ${pastEvents.length == 1 ? 'event' : 'events'} accepted',
+                                        allPastEvents.isEmpty
+                                            ? l10n.noAcceptedEvents
+                                            : (allPastEvents.length == 1
+                                                ? l10n.eventAccepted(allPastEvents.length)
+                                                : l10n.eventsAccepted(allPastEvents.length)),
                                         style: theme.textTheme.bodyMedium?.copyWith(
                                           color: Colors.white.withOpacity(0.9),
                                           fontSize: 14,
@@ -458,7 +479,7 @@ class _PastEventsPageState extends State<PastEventsPage> {
                 ),
               ),
               // Empty state or event list
-              if (pastEvents.isEmpty)
+              if (allPastEvents.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(40),
@@ -487,14 +508,14 @@ class _PastEventsPageState extends State<PastEventsPage> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No past events',
+                                l10n.noPastEvents,
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Your completed events will appear here',
+                                l10n.completedEventsWillAppearHere,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
@@ -507,8 +528,37 @@ class _PastEventsPageState extends State<PastEventsPage> {
                     ),
                   ),
                 ),
-              if (pastEvents.isNotEmpty)
-                ..._buildMonthlySections(theme, pastEvents),
+              if (allPastEvents.isNotEmpty)
+                ..._buildMonthlySections(context, theme, displayedEvents),
+              // Load More button
+              if (hasMoreEvents)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    child: Center(
+                      child: OutlinedButton.icon(
+                        onPressed: _loadMoreEvents,
+                        icon: const Icon(Icons.expand_more, size: 20),
+                        label: Text(
+                          l10n.loadMoreEvents((allPastEvents.length - _displayCount).clamp(0, _pageSize)),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          side: BorderSide(
+                            color: theme.colorScheme.outline.withOpacity(0.5),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               // Bottom padding
               const SliverToBoxAdapter(
                 child: SizedBox(height: 40),
@@ -550,7 +600,8 @@ class _PastEventsPageState extends State<PastEventsPage> {
     ThemeData theme,
     Map<String, dynamic> e,
   ) {
-    final eventName = e['shift_name']?.toString() ?? e['event_name']?.toString() ?? 'Untitled Event';
+    final l10n = AppLocalizations.of(context)!;
+    final eventName = e['shift_name']?.toString() ?? e['event_name']?.toString() ?? l10n.untitledEvent;
     final clientName = e['client_name']?.toString() ?? '';
     final venue = e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
@@ -615,7 +666,7 @@ class _PastEventsPageState extends State<PastEventsPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _formatEventDateLabel(date),
+                        _formatEventDateLabel(context, date),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w600,

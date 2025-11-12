@@ -1,0 +1,458 @@
+{
+  "@@locale": "en",
+
+  "@@ Profile Page": {},
+  "myProfile": "My Profile",
+  "save": "Save",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "phoneNumber": "Phone number",
+  "phoneHint": "(555) 123-4567",
+  "phoneHelper": "US format only",
+  "appId": "App ID (9 digits, optional)",
+  "pictureUrl": "Picture URL (optional)",
+  "profileUpdated": "Profile updated",
+  "failedToLoadProfile": "Failed to load profile",
+
+  "@@ Terminology Settings": {},
+  "workTerminology": "Work Terminology",
+  "howDoYouPreferToCallWork": "How do you prefer to call your work?",
+  "shiftsExample": "Shifts (e.g., \"My Shifts\")",
+  "jobsExample": "Jobs (e.g., \"My Jobs\")",
+  "eventsExample": "Events (e.g., \"My Events\")",
+  "terminologyUpdateInfo": "This will update how work assignments appear throughout the app",
+
+  "@@ Notifications": {},
+  "pushNotifications": "Push Notifications",
+  "youWillReceiveNotificationsFor": "You'll receive notifications for:",
+  "newMessagesFromManagers": "New messages from managers",
+  "taskAssignments": "Task assignments",
+  "eventInvitations": "Event invitations",
+  "hoursApprovalUpdates": "Hours approval updates",
+  "importantSystemAlerts": "Important system alerts",
+  "sendTestNotification": "Send Test Notification",
+  "sendingTest": "Sending Test...",
+  "tapToVerifyNotifications": "Tap to verify push notifications are working",
+  "testNotificationSent": "Test notification sent! Check your notifications.",
+  "failedToSendTestNotification": "Failed to send test notification",
+
+  "@@ Navigation": {},
+  "navProfile": "Profile",
+  "navEarnings": "Earnings",
+  "navChats": "Chats",
+  "navShifts": "Shifts",
+  "navJobs": "Jobs",
+  "navEvents": "Events",
+
+  "@@ Earnings Page": {},
+  "myEarnings": "My Earnings",
+  "totalEarnings": "Total Earnings",
+  "monthlyBreakdown": "Monthly Breakdown",
+  "allYears": "All Years",
+  "pleaseLoginToViewEarnings": "Please log in to view earnings",
+  "noEarningsYet": "No earnings data yet",
+  "acceptEventToSeeEarnings": "Accept an event to see your earnings here",
+
+  "@@ Common Actions": {},
+  "cancel": "Cancel",
+  "ok": "OK",
+  "done": "Done",
+  "loading": "Loading...",
+  "error": "Error",
+  "tryAgain": "Try Again",
+
+  "@@ Auth": {},
+  "pleaseLogin": "Please log in",
+
+  "@@ Onboarding": {},
+  "retry": "Retry",
+  "completeYourProfile": "Complete Your Profile",
+  "signOut": "Sign out",
+  "welcomeToNexaStaff": "Welcome to Nexa Staff!",
+  "pleaseCompleteProfileToGetStarted": "Please complete your profile to get started",
+  "firstNameLabel": "First Name *",
+  "enterYourFirstName": "Enter your first name",
+  "lastNameLabel": "Last Name *",
+  "enterYourLastName": "Enter your last name",
+  "phoneNumberLabel": "Phone Number *",
+  "phoneNumberHint": "555-123-4567",
+  "phoneNumberFormat": "Format: XXX-XXX-XXXX or 10 digits",
+  "defaultHomeScreen": "Default Home Screen",
+  "chooseWhichScreenToShow": "Choose which screen to show when you open the app",
+  "roles": "Roles",
+  "chat": "Chat",
+  "clockIn": "Clock In",
+  "appIdOptional": "App ID (Optional)",
+  "enterYourAppId": "Enter your app ID if provided",
+  "continueButton": "Continue",
+  "requiredFields": "* Required fields",
+  "profileSavedSuccessfully": "Profile saved successfully!",
+  "fieldIsRequired": "{field} is required",
+  "@fieldIsRequired": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneNumberIsRequired": "Phone number is required",
+  "enterValidUSPhoneNumber": "Enter a valid US phone number",
+
+  "@@ Earnings Details": {},
+  "calculatingEarnings": "Calculating earnings...",
+  "noEarningsYetTitle": "No Earnings Yet",
+  "completeEventsToSeeEarnings": "Complete events to see your earnings here",
+  "allYearsFilter": "All Years",
+  "totalEarningsTitle": "Total Earnings",
+  "yearEarnings": "{year} Earnings",
+  "@yearEarnings": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "hours": "Hours",
+  "avgRate": "Avg Rate",
+  "monthly": "Monthly",
+  "loadMoreMonths": "Load {count} More Months",
+  "@loadMoreMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "events": "Events",
+  "noEventsFoundForMonth": "No events found for this month",
+  "client": "Client",
+  "venue": "Venue",
+  "role": "Role",
+  "rate": "Rate",
+
+  "@@ Conversations": {},
+  "chats": "Chats",
+  "failedToLoadConversations": "Failed to load conversations",
+  "noConversationsYet": "No conversations yet",
+  "yourManagerWillAppearHere": "Your manager will appear here when they message you",
+  "errorManagerIdMissing": "Error: Manager ID is missing",
+  "noMessagesYet": "No messages yet",
+  "valerioAssistant": "Valerio Assistant",
+  "valerioAssistantDescription": "Get help with shifts 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, check your schedule 📅, and more ✨",
+
+  "@@ Event Detail": {},
+  "untitledEvent": "Untitled Event",
+  "myEvents": "My Events",
+  "noAcceptedEvents": "No accepted events",
+  "eventAccepted": "{count} event accepted",
+  "@eventAccepted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventsAccepted": "{count} events accepted",
+  "@eventsAccepted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "event": "event",
+  "noPastEvents": "No past events",
+  "completedEventsWillAppearHere": "Your completed events will appear here",
+  "loadMoreEvents": "Load {count} More Events",
+  "@loadMoreEvents": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "venue": "Venue",
+  "followRouteInMaps": "Follow route in Maps",
+  "guests": "Guests",
+  "shiftPay": "Shift Pay",
+  "tapToViewRateDetails": "Tap to view rate details",
+  "uniformRequirements": "Uniform Requirements",
+  "parkingInstructions": "Parking Instructions",
+  "decline": "DECLINE",
+  "accept": "ACCEPT",
+  "full": "FULL",
+  "conflict": "CONFLICT",
+  "requestCancellation": "Request cancellation",
+  "close": "CLOSE",
+  "requestCancellationQuestion": "Request cancellation?",
+  "keepEvent": "KEEP EVENT",
+  "requestCancellationCaps": "REQUEST CANCELLATION",
+  "unavailabilityConflict": "Unavailability Conflict",
+  "acceptAnyway": "ACCEPT ANYWAY",
+  "teamChat": "Team Chat",
+  "shiftPayRole": "Shift Pay - {role}",
+  "@shiftPayRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "guestsCount": "Guests: {count}",
+  "@guestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Date and Time": {},
+  "mon": "Mon",
+  "tue": "Tue",
+  "wed": "Wed",
+  "thu": "Thu",
+  "fri": "Fri",
+  "sat": "Sat",
+  "sun": "Sun",
+  "jan": "Jan",
+  "feb": "Feb",
+  "mar": "Mar",
+  "apr": "Apr",
+  "may": "May",
+  "jun": "Jun",
+  "jul": "Jul",
+  "aug": "Aug",
+  "sep": "Sep",
+  "oct": "Oct",
+  "nov": "Nov",
+  "dec": "Dec",
+  "january": "January",
+  "february": "February",
+  "march": "March",
+  "april": "April",
+  "mayFull": "May",
+  "june": "June",
+  "july": "July",
+  "august": "August",
+  "september": "September",
+  "october": "October",
+  "november": "November",
+  "december": "December",
+  "daysAgo": "{count} days ago",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "weekAgo": "1 week ago",
+  "weeksAgo": "{count} weeks ago",
+  "@weeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thisMonth": "This Month",
+  "lastMonth": "Last Month",
+
+  "@@ Tariff Dialog": {},
+  "estimatedTotal": "Estimated Total",
+  "basedOnScheduledDuration": "Based on scheduled shift duration",
+
+  "@@ Chat": {},
+  "failedToSendMessage": "Failed to send message: {error}",
+  "@failedToSendMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseLoginToUseAI": "Please log in to use AI message composer",
+  "failedToOpenAIComposer": "Failed to open AI composer: {error}",
+  "@failedToOpenAIComposer": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "callManager": "Call Manager",
+  "callPerson": "Call {name}?",
+  "@callPerson": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "call": "Call",
+  "callingFeatureAvailableSoon": "Calling feature will be available soon",
+  "failedToLoadMessages": "Failed to load messages",
+  "eventNotFound": "Event not found",
+  "declineInvitationQuestion": "Decline Invitation?",
+  "declineInvitationConfirm": "Are you sure you want to decline this event invitation? The manager will be notified.",
+  "declineInvitation": "Decline",
+  "failedToRespond": "Failed to respond: {error}",
+  "@failedToRespond": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "typeAMessage": "Type a message...",
+  "noMessagesYetTitle": "No messages yet",
+  "sendMessageToStart": "Send a message to start the conversation",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "invitationAccepted": "Invitation accepted!",
+  "invitationDeclined": "Invitation declined",
+  "aiMessageAssistant": "AI Message Assistant",
+
+  "@@ Root Page - Clock In/Out": {},
+  "clockIn": "Clock In",
+  "clockOut": "Clock Out",
+  "clockingIn": "Clocking in...",
+  "clockingOut": "Clocking out...",
+  "clockedInSuccessfully": "✓ Clocked in successfully!",
+  "clockedInOffline": "✓ Clocked in (offline) - Will sync when online",
+  "clockedOutSuccessfully": "✓ Clocked out successfully! Time worked: {time}",
+  "@clockedOutSuccessfully": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "timerRestored": "✓ Timer restored - You are already clocked in",
+  "clockInAvailableIn": "Clock in available in {time}",
+  "@clockInAvailableIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "autoClockedIn": "Auto clocked in to event: {eventId}",
+  "@autoClockedIn": {
+    "placeholders": {
+      "eventId": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToQueueClockIn": "Failed to queue clock-in: {error}",
+  "@failedToQueueClockIn": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToQueueClockOut": "Failed to queue clock-out: {error}",
+  "@failedToQueueClockOut": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Root Page - Availability": {},
+  "available": "Available",
+  "unavailable": "Unavailable",
+  "confirmed": "Confirmed",
+  "availabilityUpdated": "Availability updated",
+  "availabilityDeleted": "Availability deleted",
+  "failedToUpdateAvailability": "Failed to update availability",
+  "failedToDeleteAvailability": "Failed to delete availability",
+  "deleteAvailability": "Delete availability",
+
+  "@@ Root Page - Menu": {},
+  "myProfile": "My Profile",
+  "teams": "Teams",
+  "settings": "Settings",
+  "logout": "Logout",
+  "account": "Account",
+
+  "@@ Root Page - Default Start Screen": {},
+  "defaultStartScreen": "Default Start Screen",
+  "defaultStartScreenUpdated": "Default start screen updated",
+  "chooseDefaultScreen": "Choose which screen to open when you launch the app:",
+  "shifts": "Shifts",
+
+  "@@ Root Page - Empty States": {},
+  "noUpcomingEvents": "No upcoming events",
+  "noUpcomingShifts": "No upcoming shifts",
+  "noAvailableRoles": "No Available Roles",
+  "noRolesAvailable": "No roles available",
+  "noAvailableTerminology": "No Available {terminology}",
+  "@noAvailableTerminology": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "noAcceptedTerminology": "No accepted {terminology}",
+  "@noAcceptedTerminology": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "noTerminologyMatchProfile": "No {terminology} match your profile just yet. Check back soon or refresh for updates.",
+  "@noTerminologyMatchProfile": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "acceptTerminologyFromRoles": "Accept {terminology} from the Roles tab to see them here",
+  "@acceptTerminologyFromRoles": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "noRolesMatchProfile": "No roles match your profile just yet. Check back soon or refresh for updates.",
+  "acceptEventsFromRoles": "Accept events from the Roles tab to see them here",
+  "acceptEventFromShifts": "Accept an event from the Shifts tab to see it here",
+  "noEventsOrAvailability": "No events or availability",
+  "pullToRefresh": "Pull to refresh and check for new events",
+
+  "@@ Root Page - Calendar/Time": {},
+  "calendar": "Calendar",
+  "duration": "Duration",
+  "start": "Start",
+  "end": "End",
+  "estimated": "Estimated",
+  "thisWeek": "This Week",
+  "lastWeek": "Last Week",
+  "nextWeek": "Next Week",
+  "in2Weeks": "In 2 Weeks",
+  "in3Weeks": "In 3 Weeks",
+  "eventDateTimeNotAvailable": "Event date/time not available",
+  "eventTimePassed": "Event time has passed",
+  "noDate": "No Date",
+  "am": "AM",
+  "pm": "PM",
+
+  "@@ Root Page - Misc": {},
+  "invitation": "Invitation",
+  "private": "Private",
+  "clientLabel": "Client: ",
+  "estimateNoTaxes": "Estimate does not include applicable taxes",
+  "locationPermissionRequired": "Location permission required",
+  "locationPermissionDenied": "Location permission denied. Enable in settings.",
+  "couldNotLaunchMap": "Could not launch map",
+  "ask": "Ask"
+}

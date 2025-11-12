@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
+import '../l10n/app_localizations.dart';
 import 'root_page.dart';
 
 class StaffOnboardingGate extends StatefulWidget {
@@ -133,7 +134,7 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadProfile,
-                    child: const Text('Retry'),
+                    child: Text(AppLocalizations.of(context)!.retry),
                   ),
                 ],
               ),
@@ -206,16 +207,16 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
     super.dispose();
   }
 
-  String? _validateRequired(String? value, String fieldName) {
+  String? _validateRequired(String? value, String fieldName, BuildContext context) {
     if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
+      return AppLocalizations.of(context)!.fieldIsRequired(fieldName);
     }
     return null;
   }
 
-  String? _validatePhone(String? value) {
+  String? _validatePhone(String? value, BuildContext context) {
     if (value == null || value.trim().isEmpty) {
-      return 'Phone number is required';
+      return AppLocalizations.of(context)!.phoneNumberIsRequired;
     }
 
     // US phone validation: XXX-XXX-XXXX or XXXXXXXXXX
@@ -224,7 +225,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
     );
 
     if (!phoneRegex.hasMatch(value.trim())) {
-      return 'Enter a valid US phone number';
+      return AppLocalizations.of(context)!.enterValidUSPhoneNumber;
     }
 
     return null;
@@ -276,8 +277,8 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
 
       // Show success and reload
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile saved successfully!'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.profileSavedSuccessfully),
           backgroundColor: Colors.green,
         ),
       );
@@ -299,16 +300,17 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complete Your Profile'),
+        title: Text(l10n.completeYourProfile),
         actions: [
           TextButton(
             onPressed: widget.onSignOut,
-            child: const Text(
-              'Sign out',
-              style: TextStyle(color: Colors.white),
+            child: Text(
+              l10n.signOut,
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -331,9 +333,9 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                         color: theme.primaryColor,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Welcome to Nexa Staff!',
-                        style: TextStyle(
+                      Text(
+                        l10n.welcomeToNexaStaff,
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
@@ -341,7 +343,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Please complete your profile to get started',
+                        l10n.pleaseCompleteProfileToGetStarted,
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[600],
@@ -357,44 +359,44 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
               // First Name
               TextFormField(
                 controller: _firstNameController,
-                decoration: const InputDecoration(
-                  labelText: 'First Name *',
-                  hintText: 'Enter your first name',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.firstNameLabel,
+                  hintText: l10n.enterYourFirstName,
+                  prefixIcon: const Icon(Icons.person_outline),
+                  border: const OutlineInputBorder(),
                 ),
                 textInputAction: TextInputAction.next,
-                validator: (value) => _validateRequired(value, 'First name'),
+                validator: (value) => _validateRequired(value, l10n.firstName, context),
               ),
               const SizedBox(height: 16),
 
               // Last Name
               TextFormField(
                 controller: _lastNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Last Name *',
-                  hintText: 'Enter your last name',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.lastNameLabel,
+                  hintText: l10n.enterYourLastName,
+                  prefixIcon: const Icon(Icons.person_outline),
+                  border: const OutlineInputBorder(),
                 ),
                 textInputAction: TextInputAction.next,
-                validator: (value) => _validateRequired(value, 'Last name'),
+                validator: (value) => _validateRequired(value, l10n.lastName, context),
               ),
               const SizedBox(height: 16),
 
               // Phone Number
               TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number *',
-                  hintText: '555-123-4567',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(),
-                  helperText: 'Format: XXX-XXX-XXXX or 10 digits',
+                decoration: InputDecoration(
+                  labelText: l10n.phoneNumberLabel,
+                  hintText: l10n.phoneNumberHint,
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                  border: const OutlineInputBorder(),
+                  helperText: l10n.phoneNumberFormat,
                 ),
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
-                validator: _validatePhone,
+                validator: (value) => _validatePhone(value, context),
               ),
               const SizedBox(height: 16),
 
@@ -409,9 +411,9 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                         children: [
                           Icon(Icons.home_outlined, color: theme.primaryColor),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Default Home Screen',
-                            style: TextStyle(
+                          Text(
+                            l10n.defaultHomeScreen,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -420,7 +422,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Choose which screen to show when you open the app',
+                        l10n.chooseWhichScreenToShow,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -432,12 +434,12 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                         runSpacing: 8,
                         children: [
                           ChoiceChip(
-                            label: const Row(
+                            label: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('Roles'),
-                                SizedBox(width: 4),
-                                Icon(Icons.star, size: 14, color: Colors.amber),
+                                Text(l10n.roles),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.star, size: 14, color: Colors.amber),
                               ],
                             ),
                             selected: _selectedDefaultTab == 0,
@@ -448,7 +450,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                             },
                           ),
                           ChoiceChip(
-                            label: const Text('Chat'),
+                            label: Text(l10n.chat),
                             selected: _selectedDefaultTab == 1,
                             onSelected: (selected) {
                               if (selected) {
@@ -457,7 +459,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                             },
                           ),
                           ChoiceChip(
-                            label: const Text('Earnings'),
+                            label: Text(l10n.navEarnings),
                             selected: _selectedDefaultTab == 2,
                             onSelected: (selected) {
                               if (selected) {
@@ -466,7 +468,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                             },
                           ),
                           ChoiceChip(
-                            label: const Text('Clock In'),
+                            label: Text(l10n.clockIn),
                             selected: _selectedDefaultTab == 3,
                             onSelected: (selected) {
                               if (selected) {
@@ -485,11 +487,11 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
               // App ID (optional)
               TextFormField(
                 controller: _appIdController,
-                decoration: const InputDecoration(
-                  labelText: 'App ID (Optional)',
-                  hintText: 'Enter your app ID if provided',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.appIdOptional,
+                  hintText: l10n.enterYourAppId,
+                  prefixIcon: const Icon(Icons.badge_outlined),
+                  border: const OutlineInputBorder(),
                 ),
                 textInputAction: TextInputAction.done,
               ),
@@ -534,16 +536,16 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
-                        'Continue',
-                        style: TextStyle(fontSize: 16),
+                    : Text(
+                        l10n.continueButton,
+                        style: const TextStyle(fontSize: 16),
                       ),
               ),
               const SizedBox(height: 12),
 
               // Required fields note
               Text(
-                '* Required fields',
+                l10n.requiredFields,
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],

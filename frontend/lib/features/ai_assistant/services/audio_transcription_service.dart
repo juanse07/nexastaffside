@@ -130,7 +130,10 @@ class AudioTranscriptionService {
 
   /// Transcribe audio file to text using OpenAI Whisper API via backend
   /// Uses staff AI endpoint: /api/ai/staff/transcribe
-  Future<String?> transcribeAudio(String audioFilePath) async {
+  ///
+  /// [audioFilePath] Path to the audio file to transcribe
+  /// [terminology] Optional terminology preference (jobs, shifts, events) for better transcription context
+  Future<String?> transcribeAudio(String audioFilePath, {String? terminology}) async {
     try {
       final token = await AuthService.getJwt();
       if (token == null) {
@@ -144,9 +147,17 @@ class AudioTranscriptionService {
 
       print('[AudioTranscriptionService] Transcribing audio: $audioFilePath');
       print('[AudioTranscriptionService] Using endpoint: $fullUrl');
+      if (terminology != null) {
+        print('[AudioTranscriptionService] Using terminology: $terminology');
+      }
 
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer $token';
+
+      // Add terminology if provided
+      if (terminology != null) {
+        request.fields['terminology'] = terminology.toLowerCase();
+      }
 
       final file = File(audioFilePath);
       if (!await file.exists()) {

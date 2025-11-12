@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
+import '../providers/terminology_provider.dart';
+import '../utils/terminology_helper.dart';
+import '../l10n/app_localizations.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -39,8 +43,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _error = 'Failed to load profile';
+        _error = AppLocalizations.of(context)!.failedToLoadProfile;
         _loading = false;
       });
     }
@@ -70,7 +75,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.profileUpdated)),
       );
     } catch (e) {
       setState(() {
@@ -93,8 +98,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
         SnackBar(
           content: Text(
             success
-                ? 'Test notification sent! Check your notifications.'
-                : 'Failed to send test notification',
+                ? AppLocalizations.of(context)!.testNotificationSent
+                : AppLocalizations.of(context)!.failedToSendTestNotification,
           ),
           backgroundColor: success ? Colors.green : Colors.red,
         ),
@@ -115,9 +120,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: Text(l10n.myProfile),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
@@ -126,7 +133,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Save', style: TextStyle(color: Colors.white)),
+                : Text(l10n.save, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -148,39 +155,42 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     ),
                   TextField(
                     controller: _firstNameCtrl,
-                    decoration: const InputDecoration(labelText: 'First name'),
+                    decoration: InputDecoration(labelText: l10n.firstName),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _lastNameCtrl,
-                    decoration: const InputDecoration(labelText: 'Last name'),
+                    decoration: InputDecoration(labelText: l10n.lastName),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _phoneCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone number',
-                      hintText: '(555) 123-4567',
-                      helperText: 'US format only',
+                    decoration: InputDecoration(
+                      labelText: l10n.phoneNumber,
+                      hintText: l10n.phoneHint,
+                      helperText: l10n.phoneHelper,
                     ),
                     keyboardType: TextInputType.phone,
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _appIdCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'App ID (9 digits, optional)'),
+                    decoration: InputDecoration(
+                        labelText: l10n.appId),
                     keyboardType: TextInputType.number,
                     maxLength: 9,
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _pictureCtrl,
-                    decoration: const InputDecoration(
-                        labelText: 'Picture URL (optional)'),
+                    decoration: InputDecoration(
+                        labelText: l10n.pictureUrl),
                   ),
                   const SizedBox(height: 32),
                   const Divider(),
+                  const SizedBox(height: 16),
+                  // Terminology Settings Section
+                  _buildTerminologySettings(context),
                   const SizedBox(height: 16),
                   // Notification Settings Section
                   Card(
@@ -198,9 +208,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Push Notifications',
-                                style: TextStyle(
+                              Text(
+                                l10n.pushNotifications,
+                                style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -208,21 +218,21 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'You\'ll receive notifications for:',
-                            style: TextStyle(fontSize: 14),
+                          Text(
+                            l10n.youWillReceiveNotificationsFor,
+                            style: const TextStyle(fontSize: 14),
                           ),
                           const SizedBox(height: 8),
-                          const Padding(
-                            padding: EdgeInsets.only(left: 16.0),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('• New messages from managers'),
-                                Text('• Task assignments'),
-                                Text('• Event invitations'),
-                                Text('• Hours approval updates'),
-                                Text('• Important system alerts'),
+                                Text('• ${l10n.newMessagesFromManagers}'),
+                                Text('• ${l10n.taskAssignments}'),
+                                Text('• ${l10n.eventInvitations}'),
+                                Text('• ${l10n.hoursApprovalUpdates}'),
+                                Text('• ${l10n.importantSystemAlerts}'),
                               ],
                             ),
                           ),
@@ -248,15 +258,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                   : const Icon(Icons.send),
                               label: Text(
                                 _sendingTest
-                                    ? 'Sending Test...'
-                                    : 'Send Test Notification',
+                                    ? l10n.sendingTest
+                                    : l10n.sendTestNotification,
                                 style: const TextStyle(fontSize: 16),
                               ),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Tap to verify push notifications are working',
+                            l10n.tapToVerifyNotifications,
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -271,6 +281,116 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildTerminologySettings(BuildContext context) {
+    final terminologyProvider = context.watch<TerminologyProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    // Auto-detect system language
+    terminologyProvider.updateSystemLanguage(context);
+
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.work_outline,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.workTerminology,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.howDoYouPreferToCallWork,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            RadioListTile<String>(
+              title: Text(l10n.shiftsExample),
+              value: TerminologyHelper.shifts,
+              groupValue: terminologyProvider.terminology,
+              onChanged: (value) {
+                if (value != null) {
+                  terminologyProvider.setTerminology(value);
+                }
+              },
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+            RadioListTile<String>(
+              title: Text(l10n.jobsExample),
+              value: TerminologyHelper.jobs,
+              groupValue: terminologyProvider.terminology,
+              onChanged: (value) {
+                if (value != null) {
+                  terminologyProvider.setTerminology(value);
+                }
+              },
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+            RadioListTile<String>(
+              title: Text(l10n.eventsExample),
+              value: TerminologyHelper.events,
+              groupValue: terminologyProvider.terminology,
+              onChanged: (value) {
+                if (value != null) {
+                  terminologyProvider.setTerminology(value);
+                }
+              },
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.terminologyUpdateInfo,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

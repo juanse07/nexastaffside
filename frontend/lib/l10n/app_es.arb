@@ -1,0 +1,458 @@
+{
+  "@@locale": "es",
+
+  "@@ Profile Page": {},
+  "myProfile": "Mi Perfil",
+  "save": "Guardar",
+  "firstName": "Nombre",
+  "lastName": "Apellido",
+  "phoneNumber": "Número de teléfono",
+  "phoneHint": "(555) 123-4567",
+  "phoneHelper": "Solo formato de EE.UU.",
+  "appId": "ID de la App (9 dígitos, opcional)",
+  "pictureUrl": "URL de la imagen (opcional)",
+  "profileUpdated": "Perfil actualizado",
+  "failedToLoadProfile": "Error al cargar el perfil",
+
+  "@@ Terminology Settings": {},
+  "workTerminology": "Terminología de Trabajo",
+  "howDoYouPreferToCallWork": "¿Cómo prefieres llamar a tu trabajo?",
+  "shiftsExample": "Turnos (ej., \"Mis Turnos\")",
+  "jobsExample": "Trabajos (ej., \"Mis Trabajos\")",
+  "eventsExample": "Eventos (ej., \"Mis Eventos\")",
+  "terminologyUpdateInfo": "Esto actualizará cómo aparecen las asignaciones de trabajo en toda la aplicación",
+
+  "@@ Notifications": {},
+  "pushNotifications": "Notificaciones Push",
+  "youWillReceiveNotificationsFor": "Recibirás notificaciones para:",
+  "newMessagesFromManagers": "Nuevos mensajes de gerentes",
+  "taskAssignments": "Asignaciones de tareas",
+  "eventInvitations": "Invitaciones a eventos",
+  "hoursApprovalUpdates": "Actualizaciones de aprobación de horas",
+  "importantSystemAlerts": "Alertas importantes del sistema",
+  "sendTestNotification": "Enviar Notificación de Prueba",
+  "sendingTest": "Enviando Prueba...",
+  "tapToVerifyNotifications": "Toca para verificar que las notificaciones push funcionan",
+  "testNotificationSent": "¡Notificación de prueba enviada! Revisa tus notificaciones.",
+  "failedToSendTestNotification": "Error al enviar notificación de prueba",
+
+  "@@ Navigation": {},
+  "navProfile": "Perfil",
+  "navEarnings": "Ganancias",
+  "navChats": "Chats",
+  "navShifts": "Turnos",
+  "navJobs": "Trabajos",
+  "navEvents": "Eventos",
+
+  "@@ Earnings Page": {},
+  "myEarnings": "Mis Ganancias",
+  "totalEarnings": "Ganancias Totales",
+  "monthlyBreakdown": "Desglose Mensual",
+  "allYears": "Todos los Años",
+  "pleaseLoginToViewEarnings": "Por favor inicia sesión para ver las ganancias",
+  "noEarningsYet": "Aún no hay datos de ganancias",
+  "acceptEventToSeeEarnings": "Acepta un evento para ver tus ganancias aquí",
+
+  "@@ Common Actions": {},
+  "cancel": "Cancelar",
+  "ok": "OK",
+  "done": "Listo",
+  "loading": "Cargando...",
+  "error": "Error",
+  "tryAgain": "Intentar de Nuevo",
+
+  "@@ Auth": {},
+  "pleaseLogin": "Por favor inicia sesión",
+
+  "@@ Onboarding": {},
+  "retry": "Reintentar",
+  "completeYourProfile": "Completa Tu Perfil",
+  "signOut": "Cerrar sesión",
+  "welcomeToNexaStaff": "¡Bienvenido a Nexa Staff!",
+  "pleaseCompleteProfileToGetStarted": "Por favor completa tu perfil para comenzar",
+  "firstNameLabel": "Nombre *",
+  "enterYourFirstName": "Ingresa tu nombre",
+  "lastNameLabel": "Apellido *",
+  "enterYourLastName": "Ingresa tu apellido",
+  "phoneNumberLabel": "Número de Teléfono *",
+  "phoneNumberHint": "555-123-4567",
+  "phoneNumberFormat": "Formato: XXX-XXX-XXXX o 10 dígitos",
+  "defaultHomeScreen": "Pantalla de Inicio Predeterminada",
+  "chooseWhichScreenToShow": "Elige qué pantalla mostrar al abrir la aplicación",
+  "roles": "Roles",
+  "chat": "Chat",
+  "clockIn": "Registrar Entrada",
+  "appIdOptional": "ID de la App (Opcional)",
+  "enterYourAppId": "Ingresa tu ID de la app si lo tienes",
+  "continueButton": "Continuar",
+  "requiredFields": "* Campos requeridos",
+  "profileSavedSuccessfully": "¡Perfil guardado exitosamente!",
+  "fieldIsRequired": "{field} es requerido",
+  "@fieldIsRequired": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneNumberIsRequired": "El número de teléfono es requerido",
+  "enterValidUSPhoneNumber": "Ingresa un número de teléfono válido de EE.UU.",
+
+  "@@ Earnings Details": {},
+  "calculatingEarnings": "Calculando ganancias...",
+  "noEarningsYetTitle": "Aún No Hay Ganancias",
+  "completeEventsToSeeEarnings": "Completa eventos para ver tus ganancias aquí",
+  "allYearsFilter": "Todos los Años",
+  "totalEarningsTitle": "Ganancias Totales",
+  "yearEarnings": "Ganancias {year}",
+  "@yearEarnings": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "hours": "Horas",
+  "avgRate": "Tarifa Prom",
+  "monthly": "Mensual",
+  "loadMoreMonths": "Cargar {count} Meses Más",
+  "@loadMoreMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "events": "Eventos",
+  "noEventsFoundForMonth": "No se encontraron eventos para este mes",
+  "client": "Cliente",
+  "venue": "Lugar",
+  "role": "Rol",
+  "rate": "Tarifa",
+
+  "@@ Conversations": {},
+  "chats": "Chats",
+  "failedToLoadConversations": "Error al cargar conversaciones",
+  "noConversationsYet": "Aún no hay conversaciones",
+  "yourManagerWillAppearHere": "Tu gerente aparecerá aquí cuando te envíe un mensaje",
+  "errorManagerIdMissing": "Error: Falta el ID del gerente",
+  "noMessagesYet": "Aún no hay mensajes",
+  "valerioAssistant": "Asistente Valerio",
+  "valerioAssistantDescription": "Obtén ayuda con turnos 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, revisa tu horario 📅, y más ✨",
+
+  "@@ Event Detail": {},
+  "untitledEvent": "Evento sin título",
+  "myEvents": "Mis Eventos",
+  "noAcceptedEvents": "No hay eventos aceptados",
+  "eventAccepted": "{count} evento aceptado",
+  "@eventAccepted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventsAccepted": "{count} eventos aceptados",
+  "@eventsAccepted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "event": "evento",
+  "noPastEvents": "No hay eventos pasados",
+  "completedEventsWillAppearHere": "Tus eventos completados aparecerán aquí",
+  "loadMoreEvents": "Cargar {count} Eventos Más",
+  "@loadMoreEvents": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "venue": "Lugar",
+  "followRouteInMaps": "Seguir ruta en Mapas",
+  "guests": "Invitados",
+  "shiftPay": "Pago del Turno",
+  "tapToViewRateDetails": "Toca para ver detalles de tarifa",
+  "uniformRequirements": "Requisitos de Uniforme",
+  "parkingInstructions": "Instrucciones de Estacionamiento",
+  "decline": "RECHAZAR",
+  "accept": "ACEPTAR",
+  "full": "COMPLETO",
+  "conflict": "CONFLICTO",
+  "requestCancellation": "Solicitar cancelación",
+  "close": "CERRAR",
+  "requestCancellationQuestion": "¿Solicitar cancelación?",
+  "keepEvent": "MANTENER EVENTO",
+  "requestCancellationCaps": "SOLICITAR CANCELACIÓN",
+  "unavailabilityConflict": "Conflicto de Disponibilidad",
+  "acceptAnyway": "ACEPTAR DE TODOS MODOS",
+  "teamChat": "Chat del Equipo",
+  "shiftPayRole": "Pago del Turno - {role}",
+  "@shiftPayRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "guestsCount": "Invitados: {count}",
+  "@guestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Date and Time": {},
+  "mon": "Lun",
+  "tue": "Mar",
+  "wed": "Mié",
+  "thu": "Jue",
+  "fri": "Vie",
+  "sat": "Sáb",
+  "sun": "Dom",
+  "jan": "Ene",
+  "feb": "Feb",
+  "mar": "Mar",
+  "apr": "Abr",
+  "may": "May",
+  "jun": "Jun",
+  "jul": "Jul",
+  "aug": "Ago",
+  "sep": "Sep",
+  "oct": "Oct",
+  "nov": "Nov",
+  "dec": "Dic",
+  "january": "Enero",
+  "february": "Febrero",
+  "march": "Marzo",
+  "april": "Abril",
+  "mayFull": "Mayo",
+  "june": "Junio",
+  "july": "Julio",
+  "august": "Agosto",
+  "september": "Septiembre",
+  "october": "Octubre",
+  "november": "Noviembre",
+  "december": "Diciembre",
+  "daysAgo": "hace {count} días",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "weekAgo": "hace 1 semana",
+  "weeksAgo": "hace {count} semanas",
+  "@weeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thisMonth": "Este Mes",
+  "lastMonth": "Mes Pasado",
+
+  "@@ Tariff Dialog": {},
+  "estimatedTotal": "Total Estimado",
+  "basedOnScheduledDuration": "Basado en la duración del turno programado",
+
+  "@@ Chat": {},
+  "failedToSendMessage": "Error al enviar mensaje: {error}",
+  "@failedToSendMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseLoginToUseAI": "Por favor inicia sesión para usar el compositor de mensajes IA",
+  "failedToOpenAIComposer": "Error al abrir compositor IA: {error}",
+  "@failedToOpenAIComposer": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "callManager": "Llamar al Gerente",
+  "callPerson": "¿Llamar a {name}?",
+  "@callPerson": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "call": "Llamar",
+  "callingFeatureAvailableSoon": "La función de llamadas estará disponible pronto",
+  "failedToLoadMessages": "Error al cargar mensajes",
+  "eventNotFound": "Evento no encontrado",
+  "declineInvitationQuestion": "¿Rechazar Invitación?",
+  "declineInvitationConfirm": "¿Estás seguro de que quieres rechazar esta invitación al evento? Se notificará al gerente.",
+  "declineInvitation": "Rechazar",
+  "failedToRespond": "Error al responder: {error}",
+  "@failedToRespond": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "typeAMessage": "Escribe un mensaje...",
+  "noMessagesYetTitle": "Aún no hay mensajes",
+  "sendMessageToStart": "Envía un mensaje para iniciar la conversación",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "invitationAccepted": "¡Invitación aceptada!",
+  "invitationDeclined": "Invitación rechazada",
+  "aiMessageAssistant": "Asistente de Mensajes IA",
+
+  "@@ Root Page - Clock In/Out": {},
+  "clockIn": "Registrar Entrada",
+  "clockOut": "Registrar Salida",
+  "clockingIn": "Registrando entrada...",
+  "clockingOut": "Registrando salida...",
+  "clockedInSuccessfully": "✓ ¡Entrada registrada exitosamente!",
+  "clockedInOffline": "✓ Entrada registrada (sin conexión) - Se sincronizará cuando esté en línea",
+  "clockedOutSuccessfully": "✓ ¡Salida registrada exitosamente! Tiempo trabajado: {time}",
+  "@clockedOutSuccessfully": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "timerRestored": "✓ Temporizador restaurado - Ya estás registrado",
+  "clockInAvailableIn": "Entrada disponible en {time}",
+  "@clockInAvailableIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "autoClockedIn": "Entrada automática al evento: {eventId}",
+  "@autoClockedIn": {
+    "placeholders": {
+      "eventId": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToQueueClockIn": "Error al encolar registro de entrada: {error}",
+  "@failedToQueueClockIn": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToQueueClockOut": "Error al encolar registro de salida: {error}",
+  "@failedToQueueClockOut": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Root Page - Availability": {},
+  "available": "Disponible",
+  "unavailable": "No Disponible",
+  "confirmed": "Confirmado",
+  "availabilityUpdated": "Disponibilidad actualizada",
+  "availabilityDeleted": "Disponibilidad eliminada",
+  "failedToUpdateAvailability": "Error al actualizar disponibilidad",
+  "failedToDeleteAvailability": "Error al eliminar disponibilidad",
+  "deleteAvailability": "Eliminar disponibilidad",
+
+  "@@ Root Page - Menu": {},
+  "myProfile": "Mi Perfil",
+  "teams": "Equipos",
+  "settings": "Configuración",
+  "logout": "Cerrar sesión",
+  "account": "Cuenta",
+
+  "@@ Root Page - Default Start Screen": {},
+  "defaultStartScreen": "Pantalla de Inicio Predeterminada",
+  "defaultStartScreenUpdated": "Pantalla de inicio predeterminada actualizada",
+  "chooseDefaultScreen": "Elige qué pantalla mostrar al abrir la aplicación:",
+  "shifts": "Turnos",
+
+  "@@ Root Page - Empty States": {},
+  "noUpcomingEvents": "No hay eventos próximos",
+  "noUpcomingShifts": "No hay turnos próximos",
+  "noAvailableRoles": "No Hay Roles Disponibles",
+  "noRolesAvailable": "No hay roles disponibles",
+  "noAvailableTerminology": "No Hay {terminology} Disponibles",
+  "@noAvailableTerminology": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "noAcceptedTerminology": "No hay {terminology} aceptados",
+  "@noAcceptedTerminology": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "noTerminologyMatchProfile": "Aún no hay {terminology} que coincidan con tu perfil. Vuelve pronto o actualiza para ver novedades.",
+  "@noTerminologyMatchProfile": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "acceptTerminologyFromRoles": "Acepta {terminology} de la pestaña Roles para verlos aquí",
+  "@acceptTerminologyFromRoles": {
+    "placeholders": {
+      "terminology": {
+        "type": "String"
+      }
+    }
+  },
+  "noRolesMatchProfile": "Aún no hay roles que coincidan con tu perfil. Vuelve pronto o actualiza para ver novedades.",
+  "acceptEventsFromRoles": "Acepta eventos de la pestaña Roles para verlos aquí",
+  "acceptEventFromShifts": "Acepta un evento de la pestaña Turnos para verlo aquí",
+  "noEventsOrAvailability": "No hay eventos o disponibilidad",
+  "pullToRefresh": "Desliza para actualizar y buscar nuevos eventos",
+
+  "@@ Root Page - Calendar/Time": {},
+  "calendar": "Calendario",
+  "duration": "Duración",
+  "start": "Inicio",
+  "end": "Fin",
+  "estimated": "Estimado",
+  "thisWeek": "Esta Semana",
+  "lastWeek": "Semana Pasada",
+  "nextWeek": "Próxima Semana",
+  "in2Weeks": "En 2 Semanas",
+  "in3Weeks": "En 3 Semanas",
+  "eventDateTimeNotAvailable": "Fecha/hora del evento no disponible",
+  "eventTimePassed": "La hora del evento ya pasó",
+  "noDate": "Sin Fecha",
+  "am": "AM",
+  "pm": "PM",
+
+  "@@ Root Page - Misc": {},
+  "invitation": "Invitación",
+  "private": "Privado",
+  "clientLabel": "Cliente: ",
+  "estimateNoTaxes": "El estimado no incluye impuestos aplicables",
+  "locationPermissionRequired": "Permiso de ubicación requerido",
+  "locationPermissionDenied": "Permiso de ubicación denegado. Actívalo en configuración.",
+  "couldNotLaunchMap": "No se pudo abrir el mapa",
+  "ask": "Preguntar"
+}

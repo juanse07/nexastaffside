@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../services/staff_chat_service.dart';
-import '../widgets/chat_message_widget.dart';
-import '../widgets/chat_input_widget.dart';
-import '../widgets/availability_confirmation_card.dart';
-import '../widgets/shift_action_card.dart';
+import '../../../providers/terminology_provider.dart';
 import '../../../services/subscription_service.dart';
+import '../services/staff_chat_service.dart';
+import '../widgets/availability_confirmation_card.dart';
+import '../widgets/chat_input_widget.dart';
+import '../widgets/chat_message_widget.dart';
+import '../widgets/shift_action_card.dart';
 
 /// Staff AI Assistant Chat Screen
 /// Main interface for staff to interact with AI assistant
@@ -47,14 +49,18 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       _isInitialized = true;
     });
 
-    // Send welcome message
+    // Get user's terminology preference for welcome message
+    final terminology = context.read<TerminologyProvider>().lowercasePlural;
+    final singularTerm = context.read<TerminologyProvider>().singular.toLowerCase();
+
+    // Send welcome message with user's terminology
     _chatService.addSystemMessage(
       'Hi! 👋 I\'m your AI assistant. I can help you with:\n\n'
-      '• Viewing your schedule and shifts\n'
+      '• Viewing your schedule and $terminology\n'
       '• Marking your availability\n'
-      '• Accepting or declining shift offers\n'
+      '• Accepting or declining $singularTerm offers\n'
       '• Tracking your earnings\n'
-      '• Answering questions about events\n\n'
+      '• Answering questions about $terminology\n\n'
       'What would you like help with?'
     );
     setState(() {});
@@ -68,8 +74,15 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // Clear old pending actions
     setState(() {});
 
-    // Pass model preference to chat service (always pass the selected model)
-    final response = await _chatService.sendMessage(message, modelPreference: _selectedModel);
+    // Get user's terminology preference
+    final terminology = context.read<TerminologyProvider>().lowercasePlural;
+
+    // Pass model preference and terminology to chat service
+    final response = await _chatService.sendMessage(
+      message,
+      modelPreference: _selectedModel,
+      terminology: terminology,
+    );
     if (response != null) {
       setState(() {});
       _scrollToBottom();

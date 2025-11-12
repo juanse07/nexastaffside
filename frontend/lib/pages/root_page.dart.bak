@@ -32,7 +32,6 @@ import 'team_center_page.dart';
 import 'earnings_page.dart';
 import 'conversations_page.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
-import '../l10n/app_localizations.dart';
 
 enum _AccountMenuAction { profile, teams, settings, logout }
 
@@ -1214,7 +1213,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              Text(AppLocalizations.of(context)!.myProfile),
+              const Text('My Profile'),
             ],
           ),
         ),
@@ -1227,7 +1226,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              Text(AppLocalizations.of(context)!.teams),
+              const Text('Teams'),
               if (pendingInvites > 0) ...[
                 const SizedBox(width: 8),
                 Container(
@@ -1258,7 +1257,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              Text(AppLocalizations.of(context)!.settings),
+              const Text('Settings'),
             ],
           ),
         ),
@@ -1271,7 +1270,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 color: Theme.of(context).colorScheme.onSurface,
               ),
               const SizedBox(width: 12),
-              Text(AppLocalizations.of(context)!.logout),
+              const Text('Logout'),
             ],
           ),
         ),
@@ -1304,7 +1303,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.defaultStartScreen),
+          title: const Text('Default Start Screen'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1315,11 +1314,11 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 16),
               RadioListTile<int>(
-                title: Row(
+                title: const Row(
                   children: [
                     Icon(Icons.work_rounded, size: 20),
                     SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.shifts),
+                    Text('Shifts'),
                   ],
                 ),
                 value: 0,
@@ -1331,11 +1330,11 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 },
               ),
               RadioListTile<int>(
-                title: Row(
+                title: const Row(
                   children: [
                     Icon(Icons.chat_bubble, size: 20),
                     SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.chat),
+                    Text('Chats'),
                   ],
                 ),
                 value: 1,
@@ -1347,11 +1346,11 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 },
               ),
               RadioListTile<int>(
-                title: Row(
+                title: const Row(
                   children: [
                     Icon(Icons.account_balance_wallet, size: 20),
                     SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.navEarnings),
+                    Text('Earnings'),
                   ],
                 ),
                 value: 2,
@@ -1363,11 +1362,11 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 },
               ),
               RadioListTile<int>(
-                title: Row(
+                title: const Row(
                   children: [
                     Icon(Icons.access_time, size: 20),
                     SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.clockIn),
+                    Text('Clock In'),
                   ],
                 ),
                 value: 3,
@@ -1383,7 +1382,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(AppLocalizations.of(context)!.cancel),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () async {
@@ -1395,15 +1394,15 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                     });
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(AppLocalizations.of(context)!.defaultStartScreenUpdated),
+                      const SnackBar(
+                        content: Text('Default start screen updated'),
                         duration: Duration(seconds: 2),
                       ),
                     );
                   }
                 }
               },
-              child: Text(AppLocalizations.of(context)!.save),
+              child: const Text('Save'),
             ),
           ],
         ),
@@ -1498,10 +1497,10 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 100.0; // Compact AppBar height
+  double get minExtent => 90.0; // Compact AppBar height
 
   @override
-  double get maxExtent => 100.0;
+  double get maxExtent => 90.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -1974,16 +1973,16 @@ class _HomeTabState extends State<_HomeTab> {
         if (mounted && context.mounted) {
           if (alreadyClockedIn) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppLocalizations.of(context)!.timerRestored),
+              const SnackBar(
+                content: Text('✓ Timer restored - You are already clocked in'),
                 backgroundColor: Color(0xFFF59E0B),
                 duration: Duration(seconds: 2),
               ),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppLocalizations.of(context)!.clockedInSuccessfully),
+              const SnackBar(
+                content: Text('✓ Clocked in successfully!'),
                 backgroundColor: Color(0xFF10B981),
                 duration: Duration(seconds: 2),
               ),
@@ -2029,13 +2028,13 @@ class _HomeTabState extends State<_HomeTab> {
       // Show offline message
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
                 Icon(Icons.cloud_off, color: Colors.white),
                 SizedBox(width: 8),
                 Expanded(
-                  child: Text(AppLocalizations.of(context)!.clockedInOffline),
+                  child: Text('✓ Clocked in (offline) - Will sync when online'),
                 ),
               ],
             ),
@@ -2128,7 +2127,7 @@ class _HomeTabState extends State<_HomeTab> {
         if (mounted && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.clockedOutSuccessfully(_elapsedTimeText)),
+              content: Text('✓ Clocked out successfully! Time worked: $_elapsedTimeText'),
               backgroundColor: const Color(0xFF10B981),
               duration: const Duration(seconds: 3),
             ),
@@ -2241,7 +2240,7 @@ class _HomeTabState extends State<_HomeTab> {
         print('[CLOCK-IN] ✗ No event date/time');
         setState(() {
           _canClockIn = false;
-          _clockInError = AppLocalizations.of(context)!.eventDateTimeNotAvailable;
+          _clockInError = 'Event date/time not available';
         });
         return;
       }
@@ -2314,7 +2313,7 @@ class _HomeTabState extends State<_HomeTab> {
         print('[CLOCK-IN] ✗ Event time has passed (not today)');
         setState(() {
           _canClockIn = false;
-          _clockInError = AppLocalizations.of(context)!.eventTimePassed;
+          _clockInError = 'Event time has passed';
         });
         return;
       }
@@ -2978,7 +2977,7 @@ class _HomeTabState extends State<_HomeTab> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              AppLocalizations.of(context)!.estimated,
+                              'Estimated',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: isPrivate
                                     ? const Color(0xFF9333EA)
@@ -3287,7 +3286,7 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
               child: Row(
                 children: [
                   FilterChip(
-                    label: Text(AppLocalizations.of(context)!.available),
+                    label: const Text('Available'),
                     avatar: const Icon(Icons.work_outline, size: 18),
                     selected: selectedView == _ViewMode.available,
                     onSelected: (selected) {
@@ -3329,7 +3328,7 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
                   ),
                   const SizedBox(width: 8),
                   FilterChip(
-                    label: Text(AppLocalizations.of(context)!.calendar),
+                    label: const Text('Calendar'),
                     avatar: const Icon(Icons.calendar_month, size: 18),
                     selected: selectedView == _ViewMode.calendar,
                     onSelected: (selected) {
@@ -3444,21 +3443,12 @@ class _RolesSectionState extends State<_RolesSection> {
   DateTime _selectedWeekStart = DateTime.now();
   final ScrollController _scrollController = ScrollController();
   bool _hideUnavailableDates = true; // Default: hide unavailable dates
-  bool _didInitializeLabel = false;
 
   @override
   void initState() {
     super.initState();
     _loadFilterPreference();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_didInitializeLabel) {
-      _updateWeekLabel();
-      _didInitializeLabel = true;
-    }
+    _updateWeekLabel();
   }
 
   // Get the start of the week (Monday) for a given date
@@ -3477,11 +3467,11 @@ class _RolesSectionState extends State<_RolesSection> {
     final currentWeekDate = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day);
 
     if (weekStartDate == currentWeekDate) {
-      return AppLocalizations.of(context)!.thisWeek;
+      return 'This Week';
     } else if (weekStartDate == currentWeekDate.add(const Duration(days: 7))) {
-      return AppLocalizations.of(context)!.nextWeek;
+      return 'Next Week';
     } else if (weekStartDate == currentWeekDate.subtract(const Duration(days: 7))) {
-      return AppLocalizations.of(context)!.lastWeek;
+      return 'Last Week';
     } else {
       // Format as "Jan 6-12, 2025"
       final weekEnd = weekStart.add(const Duration(days: 6));
@@ -3772,13 +3762,13 @@ class _RolesSectionState extends State<_RolesSection> {
     final diff = eventDate.difference(today).inDays;
 
     if (diff >= 0 && diff < 7) {
-      return AppLocalizations.of(context)!.thisWeek;
+      return 'This Week';
     } else if (diff >= 7 && diff < 14) {
-      return AppLocalizations.of(context)!.nextWeek;
+      return 'Next Week';
     } else if (diff >= 14 && diff < 21) {
-      return AppLocalizations.of(context)!.in2Weeks;
+      return 'In 2 Weeks';
     } else if (diff >= 21 && diff < 28) {
-      return AppLocalizations.of(context)!.in3Weeks;
+      return 'In 3 Weeks';
     } else {
       final formatter = DateFormat('MMM d');
       return 'Week of ${formatter.format(date)}';
@@ -3801,6 +3791,16 @@ class _RolesSectionState extends State<_RolesSection> {
     final myEvents = _getMyAcceptedEvents();
     final myEventsCount = myEvents.length;
     final myEventsTotalHours = _calculateTotalHours(myEvents);
+
+    // Initialize current week label from first event
+    if (myEvents.isNotEmpty && _currentWeekLabel == null) {
+      final firstEventDate = _parseDateSafe(myEvents.first['date']?.toString() ?? '');
+      if (firstEventDate != null) {
+        _currentWeekLabel = _getWeekLabel(firstEventDate);
+      } else {
+        _currentWeekLabel = 'This Week';
+      }
+    }
 
     // Dynamic title based on selected view (no subtitle in new compact design)
     final String appBarTitle = terminologyProvider.plural;
@@ -3825,6 +3825,11 @@ class _RolesSectionState extends State<_RolesSection> {
           onHideBottomBar: widget.onHideBottomBar,
           onShowBottomBar: widget.onShowBottomBar,
           availability: widget.availability,
+          onWeekChanged: (weekLabel) {
+            setState(() {
+              _currentWeekLabel = weekLabel;
+            });
+          },
         );
         break;
       case _ViewMode.calendar:
@@ -3838,10 +3843,12 @@ class _RolesSectionState extends State<_RolesSection> {
     }
 
     // Calculate header heights
-    const double appBarHeight = 100.0; // Compact AppBar height (matches _FixedAppBarDelegate minExtent/maxExtent)
+    const double appBarHeight = 90.0; // Compact AppBar height (matches _FixedAppBarDelegate minExtent/maxExtent)
     const double chipsHeight = 60.0;
-    const double toggleHeight = 34.0; // Unavailable dates toggle height (only in Available view)
-    final double totalHeaderHeight = appBarHeight + chipsHeight + (_selectedView == _ViewMode.available ? toggleHeight : 0);
+    const double weekBannerHeight = 40.0; // Week display banner (simpler, no navigation)
+    // Show week banner in My Events and Calendar views
+    final bool showWeekBanner = _selectedView == _ViewMode.myEvents || _selectedView == _ViewMode.calendar;
+    final double totalHeaderHeight = appBarHeight + chipsHeight + (showWeekBanner ? weekBannerHeight : 0);
 
     return Stack(
       children: [
@@ -3861,41 +3868,66 @@ class _RolesSectionState extends State<_RolesSection> {
               // Compact app bar with blur
               Container(
                 height: appBarHeight,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7A3AFB).withOpacity(0.75),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Colors.white.withOpacity(0.1),
-                            width: 0.5,
-                          ),
-                        ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7A3AFB).withOpacity(0.75),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 0.5,
                       ),
-                      child: SafeArea(
-                        bottom: false,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  appBarTitle,
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.95),
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.5,
-                                  ),
-                                ),
+                    ),
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              appBarTitle,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.95),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
                               ),
-                              const Spacer(),
-                              widget.profileMenu,
-                            ],
+                            ),
                           ),
-                        ),
+                          if (_selectedView == _ViewMode.available)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _hideUnavailableDates = !_hideUnavailableDates;
+                                });
+                                _saveFilterPreference(_hideUnavailableDates);
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _hideUnavailableDates
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: Colors.white.withOpacity(0.9),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Unavailable dates',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(width: 12),
+                          widget.profileMenu,
+                        ],
                       ),
                     ),
                   ),
@@ -3914,7 +3946,7 @@ class _RolesSectionState extends State<_RolesSection> {
                       child: Row(
                         children: [
                           FilterChip(
-                            label: Text(AppLocalizations.of(context)!.available),
+                            label: const Text('Available'),
                             avatar: const Icon(Icons.work_outline, size: 18),
                             selected: _selectedView == _ViewMode.available,
                             onSelected: (selected) {
@@ -3958,7 +3990,7 @@ class _RolesSectionState extends State<_RolesSection> {
                           ),
                           const SizedBox(width: 8),
                           FilterChip(
-                            label: Text(AppLocalizations.of(context)!.calendar),
+                            label: const Text('Calendar'),
                             avatar: const Icon(Icons.calendar_month, size: 18),
                             selected: _selectedView == _ViewMode.calendar,
                             onSelected: (selected) {
@@ -3985,37 +4017,25 @@ class _RolesSectionState extends State<_RolesSection> {
                 ),
               ),
 
-              // Unavailable dates toggle (only shown in Available view)
-              if (_selectedView == _ViewMode.available)
+              // Week display banner (conditionally shown in My Events and Calendar views)
+              if (showWeekBanner && _currentWeekLabel != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _hideUnavailableDates = !_hideUnavailableDates;
-                      });
-                      _saveFilterPreference(_hideUnavailableDates);
-                    },
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _hideUnavailableDates
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Hide unavailable dates',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  height: weekBannerHeight,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.transparent,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _currentWeekLabel!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
                 ),
@@ -4057,21 +4077,12 @@ class _MyEventsListState extends State<_MyEventsList> {
   Map<String, List<Map<String, dynamic>>> _weekGroups = {};
   List<String> _weekKeys = [];
   String? _currentVisibleWeek;
-  bool _didInitializeWeeks = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_didInitializeWeeks) {
-      _updateWeekGroups();
-      _didInitializeWeeks = true;
-    }
+    _updateWeekGroups();
   }
 
   @override
@@ -4124,7 +4135,7 @@ class _MyEventsListState extends State<_MyEventsList> {
     _weekGroups = _groupEventsByWeek(mine);
 
     // Sort week keys
-    final preferredOrder = [AppLocalizations.of(context)!.thisWeek, AppLocalizations.of(context)!.nextWeek];
+    final preferredOrder = ['This Week', 'Next Week'];
     _weekKeys = _weekGroups.keys.toList()
       ..sort((a, b) {
         final aIndex = preferredOrder.indexOf(a);
@@ -4231,9 +4242,9 @@ class _MyEventsListState extends State<_MyEventsList> {
       final nextWeekStart = thisWeekStart.add(const Duration(days: 7));
 
       if (weekStart == thisWeekStart) {
-        weekLabel = AppLocalizations.of(context)!.thisWeek;
+        weekLabel = 'This Week';
       } else if (weekStart == nextWeekStart) {
-        weekLabel = AppLocalizations.of(context)!.nextWeek;
+        weekLabel = 'Next Week';
       } else {
         // Format as "Oct Mon 20 - Sun 26" for future weeks
         final months = [
@@ -4311,7 +4322,7 @@ class _MyEventsListState extends State<_MyEventsList> {
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
             child: Container(
-              height: 160, // AppBar (100) + Chips (60)
+              height: 190, // AppBar (90) + Chips (60) + Week Banner (40)
               color: Colors.transparent,
             ),
           ),
@@ -4409,7 +4420,7 @@ class _MyEventsListState extends State<_MyEventsList> {
     });
 
     // Sort week labels to show upcoming weeks first
-    final preferredOrder = [AppLocalizations.of(context)!.thisWeek, AppLocalizations.of(context)!.nextWeek];
+    final preferredOrder = ['This Week', 'Next Week'];
     final sortedKeys = grouped.keys.toList()
       ..sort((a, b) {
         final aIndex = preferredOrder.indexOf(a);
@@ -4481,9 +4492,6 @@ class _MyEventsListState extends State<_MyEventsList> {
   }
 
   Widget _buildEmptyState(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-    final terminologyProvider = context.watch<TerminologyProvider>();
-
     return Column(
       children: [
         const SizedBox(height: 40),
@@ -4512,14 +4520,14 @@ class _MyEventsListState extends State<_MyEventsList> {
               ),
               const SizedBox(height: 16),
               Text(
-                l10n.noAcceptedTerminology(terminologyProvider.plural.toLowerCase()),
+                'No accepted events',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                l10n.acceptTerminologyFromRoles(terminologyProvider.plural.toLowerCase()),
+                'Accept events from the Roles tab to see them here',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -4913,7 +4921,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                                     fontWeight: FontWeight.w400,
                                   ),
                                   children: [
-                                    TextSpan(text: AppLocalizations.of(context)!.clientLabel),
+                                    const TextSpan(text: 'Client: '),
                                     TextSpan(
                                       text: clientName,
                                       style: const TextStyle(
@@ -5084,9 +5092,6 @@ class _RoleList extends StatelessWidget {
     }
 
     if (roleEventPairs.isEmpty && !loading) {
-      final l10n = AppLocalizations.of(context)!;
-      final terminologyProvider = context.watch<TerminologyProvider>();
-
       return EnhancedRefreshIndicator(
         showLastRefreshTime: false,
         child: CustomScrollView(
@@ -5103,7 +5108,7 @@ class _RoleList extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      l10n.noAvailableTerminology(terminologyProvider.plural),
+                      'No Available Roles',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -5112,7 +5117,7 @@ class _RoleList extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Text(
-                        l10n.noTerminologyMatchProfile(terminologyProvider.plural.toLowerCase()),
+                        'No roles match your profile just yet. Check back soon or refresh for updates.',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.7),
@@ -5135,7 +5140,7 @@ class _RoleList extends StatelessWidget {
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
             child: Container(
-              height: 194, // AppBar (100) + Chips (60) + Toggle (34)
+              height: 190, // AppBar (90) + Chips (60) + Week Banner (40)
               color: Colors.transparent,
             ),
           ),
@@ -5152,7 +5157,7 @@ class _RoleList extends StatelessWidget {
               final monthEvents = monthEntry.value;
 
               // Format month header
-              String monthLabel = AppLocalizations.of(context)!.noDate;
+              String monthLabel = 'No Date';
               if (monthKey != 'unknown') {
                 try {
                   final parts = monthKey.split('-');
@@ -5485,7 +5490,7 @@ class _RoleList extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 3),
                                       Text(
-                                        AppLocalizations.of(context)!.private,
+                                        'Private',
                                         style: TextStyle(
                                           fontSize: 9,
                                           fontWeight: FontWeight.w600,
@@ -5528,7 +5533,7 @@ class _RoleList extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                isPrivate ? AppLocalizations.of(context)!.invitation : 'Available',
+                                isPrivate ? 'Invitation' : 'Available',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: isPrivate
                                       ? const Color(0xFF9333EA)
@@ -5701,7 +5706,7 @@ class _RoleList extends StatelessWidget {
                                     fontWeight: FontWeight.w400,
                                   ),
                                   children: [
-                                    TextSpan(text: AppLocalizations.of(context)!.clientLabel),
+                                    const TextSpan(text: 'Client: '),
                                     TextSpan(
                                       text: clientName,
                                       style: const TextStyle(
@@ -6297,10 +6302,10 @@ class _CalendarTabState extends State<_CalendarTab> {
         context.read<DataService>().forceRefresh();
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.availabilityUpdated)));
+        ).showSnackBar(const SnackBar(content: Text('Availability updated')));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.failedToUpdateAvailability)),
+          const SnackBar(content: Text('Failed to update availability')),
         );
       }
     }
@@ -6313,10 +6318,10 @@ class _CalendarTabState extends State<_CalendarTab> {
       context.read<DataService>().forceRefresh();
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.availabilityDeleted)));
+      ).showSnackBar(const SnackBar(content: Text('Availability deleted')));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.failedToDeleteAvailability)),
+        const SnackBar(content: Text('Failed to delete availability')),
       );
     }
   }
@@ -6582,7 +6587,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
               segments: [
                 ButtonSegment(
                   value: 'available',
-                  label: Text(AppLocalizations.of(context)!.available),
+                  label: const Text('Available'),
                   icon: Icon(
                     Icons.check_circle_outline,
                     color: _status == 'available'
@@ -6592,7 +6597,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
                 ),
                 ButtonSegment(
                   value: 'unavailable',
-                  label: Text(AppLocalizations.of(context)!.unavailable),
+                  label: const Text('Unavailable'),
                   icon: Icon(
                     Icons.cancel_outlined,
                     color: _status == 'unavailable'
@@ -6648,7 +6653,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
                           ),
                         ),
                         Text(
-                          AppLocalizations.of(context)!.start,
+                          'Start',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withOpacity(0.6),
                           ),
@@ -6697,7 +6702,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
                           ),
                         ),
                         Text(
-                          AppLocalizations.of(context)!.end,
+                          'End',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withOpacity(0.6),
                           ),
@@ -6714,7 +6719,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(AppLocalizations.of(context)!.cancel),
+          child: const Text('Cancel'),
         ),
         FilledButton(
           onPressed: () {
@@ -6726,7 +6731,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
                   '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}',
             });
           },
-          child: Text(AppLocalizations.of(context)!.save),
+          child: const Text('Save'),
         ),
       ],
     );

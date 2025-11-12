@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 
 import 'app.dart';
 import 'services/data_service.dart';
-import 'services/notification_service.dart';
 import 'services/offline_service.dart';
 import 'services/sync_service.dart';
+import 'providers/terminology_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,8 +33,15 @@ Future<void> main() async {
   // (in staff_onboarding_page.dart after user is authenticated)
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => DataService()..initialize(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (context) => DataService()..initialize(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => TerminologyProvider()..initialize(),
+        ),
+      ],
       child: const MyApp(),
     ),
   );

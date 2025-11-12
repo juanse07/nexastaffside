@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui' show ImageFilter;
 
 import 'event_detail_page.dart';
+import '../l10n/app_localizations.dart';
 
 class RoleEventsPage extends StatelessWidget {
   final String roleName;
@@ -20,6 +21,7 @@ class RoleEventsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     // Filter out events already accepted by the user
     final filtered = userKey == null
         ? events
@@ -77,7 +79,7 @@ class RoleEventsPage extends StatelessWidget {
           itemBuilder: (context, index) {
             final event = filtered[index];
             final eventName =
-                event['shift_name']?.toString() ?? 'Untitled Event';
+                event['shift_name']?.toString() ?? l10n.untitledEvent;
             final clientName = event['client_name']?.toString() ?? '';
             final venueName = event['venue_name']?.toString() ?? '';
             // Build time label from start/end times if present

@@ -66,22 +66,36 @@ class StaffChatService {
   }
 
   /// Get default system instructions (inline fallback)
-  String _getDefaultSystemInstructions() {
+  String _getDefaultSystemInstructions({String? terminology}) {
+    final workTerm = terminology ?? 'shifts';
+    final workTermSingular = _getSingularForm(workTerm);
+
     return '''
 You are a helpful AI assistant for staff members in an event staffing system.
 
+IMPORTANT: Use "$workTerm" terminology when referring to work assignments (not "shifts", "jobs", or "events" unless that's the user's preference).
+
 You can help with:
-- Viewing upcoming shifts and schedule
+- Viewing upcoming $workTerm and schedule
 - Marking availability (available/unavailable/preferred dates)
-- Accepting or declining shift offers
+- Accepting or declining $workTermSingular offers
 - Tracking earnings and hours worked
-- Answering questions about assigned events
+- Answering questions about assigned $workTerm
 
 Be friendly, concise, and helpful. Use emojis occasionally to make conversations engaging.
 
 When responding about schedule, be specific with dates, times, venues, and roles.
-When marking availability or accepting/declining shifts, use the appropriate response formats.
+When marking availability or accepting/declining $workTerm, use the appropriate response formats.
 ''';
+  }
+
+  /// Get singular form of terminology
+  String _getSingularForm(String plural) {
+    if (plural.toLowerCase() == 'shifts') return 'shift';
+    if (plural.toLowerCase() == 'events') return 'event';
+    if (plural.toLowerCase() == 'jobs') return 'job';
+    // Fallback: remove 's'
+    return plural.endsWith('s') ? plural.substring(0, plural.length - 1) : plural;
   }
 
   /// Load staff context from backend
@@ -133,11 +147,11 @@ When marking availability or accepting/declining shifts, use the appropriate res
   }
 
   /// Build system message with context
-  Future<String> _buildSystemMessage() async {
+  Future<String> _buildSystemMessage({String? terminology}) async {
     final context = await _loadStaffContext();
 
     final buffer = StringBuffer();
-    buffer.writeln(_systemInstructions ?? _getDefaultSystemInstructions());
+    buffer.writeln(_systemInstructions ?? _getDefaultSystemInstructions(terminology: terminology));
     buffer.writeln();
 
     if (context != null) {
@@ -236,7 +250,7 @@ When marking availability or accepting/declining shifts, use the appropriate res
   }
 
   /// Send a message to the AI
-  Future<ChatMessage?> sendMessage(String userMessage, {String? modelPreference}) async {
+  Future<ChatMessage?> sendMessage(String userMessage, {String? modelPreference, String? terminology}) async {
     try {
       _isLoading = true;
 
@@ -251,7 +265,7 @@ When marking availability or accepting/declining shifts, use the appropriate res
       final messages = <Map<String, dynamic>>[];
 
       // Add system message with context
-      final systemMessage = await _buildSystemMessage();
+      final systemMessage = await _buildSystemMessage(terminology: terminology);
       messages.add({
         'role': 'system',
         'content': systemMessage,

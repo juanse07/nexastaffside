@@ -10,6 +10,7 @@ import '../auth_service.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import '../services/data_service.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/ai_message_composer.dart';
 import '../widgets/event_invitation_card.dart';
 
@@ -191,9 +192,10 @@ class _ChatPageState extends State<ChatPage> {
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send message: $e'),
+            content: Text(l10n.failedToSendMessage(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -216,9 +218,10 @@ class _ChatPageState extends State<ChatPage> {
       final token = await AuthService.getJwt();
       if (token == null) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please log in to use AI message composer'),
+            SnackBar(
+              content: Text(l10n.pleaseLoginToUseAI),
               backgroundColor: Colors.orange,
             ),
           );
@@ -245,9 +248,10 @@ class _ChatPageState extends State<ChatPage> {
       );
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to open AI composer: $e'),
+            content: Text(l10n.failedToOpenAIComposer(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -264,17 +268,18 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _initiateCall() async {
+    final l10n = AppLocalizations.of(context)!;
     // For now, we'll show a dialog since we don't have the manager's phone number
     // In a real app, you'd have the phone number from the manager's profile
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Call Manager'),
-        content: Text('Call ${widget.managerName}?'),
+        title: Text(l10n.callManager),
+        content: Text(l10n.callPerson(widget.managerName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton.icon(
             onPressed: () {
@@ -282,13 +287,13 @@ class _ChatPageState extends State<ChatPage> {
               // In a real app, you would have the manager's phone number
               // and would use: launchUrl(Uri(scheme: 'tel', path: phoneNumber))
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Calling feature will be available soon'),
+                SnackBar(
+                  content: Text(l10n.callingFeatureAvailableSoon),
                 ),
               );
             },
             icon: const Icon(Icons.phone),
-            label: const Text('Call'),
+            label: Text(l10n.call),
           ),
         ],
       ),
@@ -297,6 +302,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Detect keyboard and auto-scroll when it opens
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     if (keyboardHeight > 0) {
@@ -534,17 +540,18 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     if (_error != null) {
+      final l10n = AppLocalizations.of(context)!;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            const Text('Failed to load messages'),
+            Text(l10n.failedToLoadMessages),
             const SizedBox(height: 8),
             TextButton(
               onPressed: _loadMessages,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -552,6 +559,7 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     if (_messages.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -559,12 +567,12 @@ class _ChatPageState extends State<ChatPage> {
             Icon(Icons.chat_outlined, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
             Text(
-              'No messages yet',
+              l10n.noMessagesYetTitle,
               style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
-              'Send a message to start the conversation',
+              l10n.sendMessageToStart,
               style: TextStyle(color: Colors.grey[500], fontSize: 12),
             ),
           ],
@@ -611,6 +619,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildDateDivider(DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -618,9 +627,9 @@ class _ChatPageState extends State<ChatPage> {
 
     String label;
     if (messageDate == today) {
-      label = 'Today';
+      label = l10n.today;
     } else if (messageDate == yesterday) {
-      label = 'Yesterday';
+      label = l10n.yesterday;
     } else {
       label = DateFormat('MMM d, yyyy').format(date);
     }
@@ -699,9 +708,10 @@ class _ChatPageState extends State<ChatPage> {
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           debugPrint('[INVITATION_ANALYTICS] invitation_card_error: event not found');
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Event not found'),
+          final l10n = AppLocalizations.of(context)!;
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(l10n.eventNotFound),
           );
         }
 
@@ -805,25 +815,23 @@ class _ChatPageState extends State<ChatPage> {
     String eventId,
     String roleId,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Decline Invitation?'),
-        content: const Text(
-          'Are you sure you want to decline this event invitation? '
-          'The manager will be notified.',
-        ),
+        title: Text(l10n.declineInvitationQuestion),
+        content: Text(l10n.declineInvitationConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(
               backgroundColor: Colors.grey.shade700,
             ),
-            child: const Text('Decline'),
+            child: Text(l10n.declineInvitation),
           ),
         ],
       ),
@@ -875,9 +883,10 @@ class _ChatPageState extends State<ChatPage> {
       }
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(accept ? 'Invitation accepted!' : 'Invitation declined'),
+            content: Text(accept ? l10n.invitationAccepted : l10n.invitationDeclined),
             backgroundColor: accept ? Colors.green : Colors.grey.shade600,
             duration: const Duration(seconds: 2),
           ),
@@ -918,9 +927,10 @@ class _ChatPageState extends State<ChatPage> {
       debugPrint('[INVITATION_ANALYTICS] duration: ${duration.inMilliseconds}ms');
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to respond: $e'),
+            content: Text(l10n.failedToRespond(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -929,6 +939,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessageInput() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
@@ -953,7 +964,7 @@ class _ChatPageState extends State<ChatPage> {
                 child: TextField(
                   controller: _messageController,
                   decoration: InputDecoration(
-                    hintText: 'Type a message...',
+                    hintText: l10n.typeAMessage,
                     hintStyle: TextStyle(color: Colors.grey[500]),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -961,7 +972,7 @@ class _ChatPageState extends State<ChatPage> {
                         size: 20,
                         color: Colors.grey[400],
                       ),
-                      tooltip: 'AI Message Assistant',
+                      tooltip: l10n.aiMessageAssistant,
                       onPressed: _showAiComposer,
                       padding: const EdgeInsets.all(8),
                     ),
