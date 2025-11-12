@@ -4064,7 +4064,6 @@ class _EarningsTab extends StatelessWidget {
         slivers: [
           buildStyledAppBar(
             title: 'My Earnings',
-            subtitle: 'Please log in to view',
             profileMenu: profileMenu,
           ),
           SliverFillRemaining(
@@ -4085,7 +4084,6 @@ class _EarningsTab extends StatelessWidget {
         slivers: [
           buildStyledAppBar(
             title: 'My Earnings',
-            subtitle: 'Loading...',
             profileMenu: profileMenu,
           ),
           const SliverFillRemaining(
@@ -4104,7 +4102,6 @@ class _EarningsTab extends StatelessWidget {
             slivers: [
               buildStyledAppBar(
                 title: 'My Earnings',
-                subtitle: 'Loading earnings...',
                 profileMenu: profileMenu,
               ),
               const SliverFillRemaining(
@@ -4119,7 +4116,6 @@ class _EarningsTab extends StatelessWidget {
             slivers: [
               buildStyledAppBar(
                 title: 'My Earnings',
-                subtitle: 'Error loading data',
                 profileMenu: profileMenu,
               ),
               SliverFillRemaining(
@@ -4142,7 +4138,6 @@ class _EarningsTab extends StatelessWidget {
             slivers: [
               buildStyledAppBar(
                 title: 'My Earnings',
-                subtitle: 'No earnings yet',
                 profileMenu: profileMenu,
               ),
               SliverFillRemaining(
@@ -4181,117 +4176,71 @@ class _EarningsTab extends StatelessWidget {
         final yearTotal = data['yearTotal'] as double;
         final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
 
-        // Calculate current month earnings for header
-        final now = DateTime.now();
-        final currentYearMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
-        final currentMonthData = monthlyData
-            .where((m) => m['yearMonth'] == currentYearMonth)
-            .firstOrNull;
-        final currentMonthEarnings =
-            currentMonthData?['totalEarnings'] as double? ?? 0.0;
-
-        return CustomScrollView(
-          slivers: [
-            buildStyledAppBar(
-              title: 'My Earnings',
-              subtitle: 'This month: \$${currentMonthEarnings.toStringAsFixed(2)} • Total: \$${yearTotal.toStringAsFixed(0)}',
-              profileMenu: profileMenu,
-            ),
+        return EnhancedRefreshIndicator(
+          showLastRefreshTime: false,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              buildStyledAppBar(
+                title: 'My Earnings',
+                profileMenu: profileMenu,
+              ),
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // Year Total Card
+                  // Total Earnings Card - Modern & Simple
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF6B46C1), // Purple
-                          Color(0xFF9333EA), // Lighter purple
+                          Color(0xFF6B46C1),
+                          Color(0xFF8B5CF6),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF6B46C1).withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.calendar_today,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'All-Time Total',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Total Earnings',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                         Text(
                           '\$${yearTotal.toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 42,
-                            fontWeight: FontWeight.bold,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Total approved earnings',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 14,
+                            fontSize: 48,
+                            fontWeight: FontWeight.w700,
+                            height: 1.1,
+                            letterSpacing: -1,
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
                   // Monthly Breakdown Header
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.trending_up,
-                          size: 20,
-                          color: Color(0xFF6B46C1),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Monthly Breakdown',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'Monthly',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
 
@@ -4344,45 +4293,24 @@ class _EarningsTab extends StatelessWidget {
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 4,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF9333EA),
-                                          borderRadius: BorderRadius.circular(
-                                            2,
-                                          ),
+                                  Text(
+                                    displayLabel,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        displayLabel,
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                    ],
                                   ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '\$${totalEarnings.toStringAsFixed(2)}',
-                                        style: theme.textTheme.titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF6B46C1),
-                                            ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Icon(
-                                        Icons.chevron_right,
-                                        color: Color(0xFF6B46C1),
-                                      ),
-                                    ],
+                                  Text(
+                                    '\$${totalEarnings.toStringAsFixed(2)}',
+                                    style: theme.textTheme.titleLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: theme.colorScheme.primary,
+                                          fontSize: 20,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -4423,6 +4351,7 @@ class _EarningsTab extends StatelessWidget {
               ),
             ),
           ],
+        ),
         );
       },
     );
