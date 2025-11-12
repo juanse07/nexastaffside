@@ -4180,7 +4180,7 @@ class _EarningsTab extends StatelessWidget {
         return EnhancedRefreshIndicator(
           showLastRefreshTime: false,
           child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               buildStyledAppBar(
                 title: 'My Earnings',
@@ -4353,7 +4353,7 @@ class _EarningsTab extends StatelessWidget {
             ),
           ],
         ),
-        );
+      );
       },
     );
   }
