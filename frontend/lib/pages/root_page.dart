@@ -22,6 +22,7 @@ import '../services/geofence_service.dart';
 import '../models/pending_clock_action.dart';
 import '../utils/id.dart';
 import '../utils/jwt.dart';
+import '../utils/accepted_staff.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 import 'event_detail_page.dart';
 import 'past_events_page.dart';
@@ -526,18 +527,8 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     // Filter accepted events for this user
     final List<Map<String, dynamic>> mine = [];
     for (final e in events) {
-      final accepted = e['accepted_staff'];
-      if (accepted is List) {
-        for (final a in accepted) {
-          if (a is String && a == _userKey) {
-            mine.add(e);
-            break;
-          }
-          if (a is Map && a['userKey'] == _userKey) {
-            mine.add(e);
-            break;
-          }
-        }
+      if (isAcceptedByUser(e, _userKey)) {
+        mine.add(e);
       }
     }
     if (mine.isEmpty) {
@@ -741,7 +732,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               );
             },
             backgroundColor: const Color(0xFFF2F2F2).withOpacity(0.85), // Very light gray, almost white
-            foregroundColor: const Color(0xFF2C2C2C), // Dark gray text for contrast
+            foregroundColor: const Color(0xFF555555), // Semi-dark gray text
             elevation: 0, // No elevation/shadow
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(28), // More rounded edges
@@ -750,7 +741,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               width: 28,
               height: 28,
               decoration: const BoxDecoration(
-                color: Color(0xFF7A3AFB), // Purple circle
+                color: Color(0xFF999999), // Lighter gray circle
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -1095,7 +1086,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     final Map<String, int> roleToNeeded = {};
     // Exclude events the current user already accepted
     final Iterable<Map<String, dynamic>> sourceEvents = events.where(
-      (e) => !_isAcceptedByUser(e, _userKey),
+      (e) => !isAcceptedByUser(e, _userKey),
     );
     for (final event in sourceEvents) {
       final roles = event['roles'] as List<dynamic>? ?? const [];
@@ -1179,18 +1170,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
       return a.roleName.toLowerCase().compareTo(b.roleName.toLowerCase());
     });
     return summaries;
-  }
-
-  bool _isAcceptedByUser(Map<String, dynamic> event, String? userKey) {
-    if (userKey == null) return false;
-    final accepted = event['accepted_staff'];
-    if (accepted is List) {
-      for (final a in accepted) {
-        if (a is String && a == userKey) return true;
-        if (a is Map && a['userKey'] == userKey) return true;
-      }
-    }
-    return false;
   }
 
   Widget _buildProfileMenu(BuildContext context, int pendingInvites) {
@@ -1518,41 +1497,43 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF7A3AFB).withOpacity(0.75),
-            border: Border(
-              bottom: BorderSide(
-                color: Colors.white.withOpacity(0.1),
-                width: 0.5,
+    return SizedBox.expand(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF7A3AFB).withOpacity(0.75),
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 0.5,
+                ),
               ),
             ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  // Title
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: Row(
+                  children: [
+                    // Title
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Eye icon toggle (for Available view)
-                  if (bottomWidget != null) bottomWidget!,
-                  const Spacer(),
-                  // Profile menu
-                  profileMenu,
-                ],
+                    const SizedBox(width: 12),
+                    // Eye icon toggle (for Available view)
+                    if (bottomWidget != null) bottomWidget!,
+                    const Spacer(),
+                    // Profile menu
+                    profileMenu,
+                  ],
+                ),
               ),
             ),
           ),
@@ -1658,33 +1639,31 @@ class _HomeTabState extends State<_HomeTab> {
   }
 
   void _computeUpcoming() async {
+    print('[CLOCK-IN] _computeUpcoming called - userKey: ${widget.userKey}, total events: ${widget.events.length}');
     setState(() {
       _upcoming = null;
       _status = null;
       _acceptedRole = null;
     });
-    if (widget.userKey == null) return;
+    if (widget.userKey == null) {
+      print('[CLOCK-IN] userKey is null, returning');
+      return;
+    }
     // Filter accepted events for this user and extract the role
     final List<Map<String, dynamic>> mine = [];
     final Map<Map<String, dynamic>, String?> eventRoles = {};
     for (final e in widget.events) {
-      final accepted = e['accepted_staff'];
-      if (accepted is List) {
-        for (final a in accepted) {
-          if (a is String && a == widget.userKey) {
-            mine.add(e);
-            eventRoles[e] = null; // Legacy format without role
-            break;
-          }
-          if (a is Map && a['userKey'] == widget.userKey) {
-            mine.add(e);
-            eventRoles[e] = a['role']?.toString(); // Extract role from Map
-            break;
-          }
-        }
+      final acceptedEntry = findAcceptedStaffEntry(e, widget.userKey);
+      if (acceptedEntry != null) {
+        mine.add(e);
+        eventRoles[e] = acceptedEntry['role']?.toString();
       }
     }
-    if (mine.isEmpty) return;
+    print('[CLOCK-IN] Found ${mine.length} events for this user');
+    if (mine.isEmpty) {
+      print('[CLOCK-IN] No events found for user, returning');
+      return;
+    }
     // Choose nearest upcoming event (today or future, prioritize by date/time)
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -2475,6 +2454,9 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // Debug logging
+    print('[CLOCK-IN] Building with: userKey=${widget.userKey}, loading=${widget.loading}, events=${widget.events.length}, upcoming=$_upcoming, status=$_status');
 
     return EnhancedRefreshIndicator(
       showLastRefreshTime: false,
@@ -3276,88 +3258,87 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  double get minExtent => 60.0;
+  double get minExtent => 80.0;
 
   @override
-  double get maxExtent => 60.0;
+  double get maxExtent => 80.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final theme = Theme.of(context);
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-        child: Container(
-          color: theme.colorScheme.surfaceContainerLowest.withOpacity(0.5),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Center(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+    return SizedBox.expand(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+          child: Container(
+            color: theme.colorScheme.surfaceContainerLowest.withOpacity(0.5),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Center(
               child: Row(
                 children: [
-              FilterChip(
-            label: const Text('Available'),
-            avatar: const Icon(Icons.work_outline, size: 18),
-            selected: selectedView == _ViewMode.available,
-            onSelected: (selected) {
-              if (selected) onViewChanged(_ViewMode.available);
-            },
-            selectedColor: const Color(0xFF6A1B9A),
-            labelStyle: TextStyle(
-              color: selectedView == _ViewMode.available
-                  ? Colors.white
-                  : const Color(0xFF6A1B9A),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-            side: BorderSide(
-              color: const Color(0xFF6A1B9A),
-              width: selectedView == _ViewMode.available ? 0 : 1,
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilterChip(
-            label: const Text('My Events'),
-            avatar: const Icon(Icons.event_available, size: 18),
-            selected: selectedView == _ViewMode.myEvents,
-            onSelected: (selected) {
-              if (selected) onViewChanged(_ViewMode.myEvents);
-            },
-            selectedColor: const Color(0xFF6A1B9A),
-            labelStyle: TextStyle(
-              color: selectedView == _ViewMode.myEvents
-                  ? Colors.white
-                  : const Color(0xFF6A1B9A),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-            side: BorderSide(
-              color: const Color(0xFF6A1B9A),
-              width: selectedView == _ViewMode.myEvents ? 0 : 1,
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilterChip(
-            label: const Text('Calendar'),
-            avatar: const Icon(Icons.calendar_month, size: 18),
-            selected: selectedView == _ViewMode.calendar,
-            onSelected: (selected) {
-              if (selected) onViewChanged(_ViewMode.calendar);
-            },
-            selectedColor: const Color(0xFF6A1B9A),
-            labelStyle: TextStyle(
-              color: selectedView == _ViewMode.calendar
-                  ? Colors.white
-                  : const Color(0xFF6A1B9A),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-            side: BorderSide(
-              color: const Color(0xFF6A1B9A),
-              width: selectedView == _ViewMode.calendar ? 0 : 1,
-            ),
-          ),
-        ],
+                  FilterChip(
+                    label: const Text('Available'),
+                    avatar: const Icon(Icons.work_outline, size: 18),
+                    selected: selectedView == _ViewMode.available,
+                    onSelected: (selected) {
+                      if (selected) onViewChanged(_ViewMode.available);
+                    },
+                    selectedColor: const Color(0xFF6A1B9A),
+                    labelStyle: TextStyle(
+                      color: selectedView == _ViewMode.available
+                          ? Colors.white
+                          : const Color(0xFF6A1B9A),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    side: BorderSide(
+                      color: const Color(0xFF6A1B9A),
+                      width: selectedView == _ViewMode.available ? 0 : 1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: const Text('My Events'),
+                    avatar: const Icon(Icons.event_available, size: 18),
+                    selected: selectedView == _ViewMode.myEvents,
+                    onSelected: (selected) {
+                      if (selected) onViewChanged(_ViewMode.myEvents);
+                    },
+                    selectedColor: const Color(0xFF6A1B9A),
+                    labelStyle: TextStyle(
+                      color: selectedView == _ViewMode.myEvents
+                          ? Colors.white
+                          : const Color(0xFF6A1B9A),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    side: BorderSide(
+                      color: const Color(0xFF6A1B9A),
+                      width: selectedView == _ViewMode.myEvents ? 0 : 1,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: const Text('Calendar'),
+                    avatar: const Icon(Icons.calendar_month, size: 18),
+                    selected: selectedView == _ViewMode.calendar,
+                    onSelected: (selected) {
+                      if (selected) onViewChanged(_ViewMode.calendar);
+                    },
+                    selectedColor: const Color(0xFF6A1B9A),
+                    labelStyle: TextStyle(
+                      color: selectedView == _ViewMode.calendar
+                          ? Colors.white
+                          : const Color(0xFF6A1B9A),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    side: BorderSide(
+                      color: const Color(0xFF6A1B9A),
+                      width: selectedView == _ViewMode.calendar ? 0 : 1,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -3390,23 +3371,25 @@ class _WeekBannerDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.transparent,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          alignment: Alignment.center,
-          child: Text(
-            weekLabel,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.grey[700],
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.3,
+    return SizedBox.expand(
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            alignment: Alignment.center,
+            child: Text(
+              weekLabel,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
         ),
@@ -3515,18 +3498,6 @@ class _RolesSectionState extends State<_RolesSection> {
   Future<void> _saveFilterPreference(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('filter_unavailable_dates', value);
-  }
-
-  bool _isAcceptedByUser(Map<String, dynamic> event, String? userKey) {
-    if (userKey == null) return false;
-    final accepted = event['accepted_staff'];
-    if (accepted is List) {
-      for (final a in accepted) {
-        if (a is String && a == userKey) return true;
-        if (a is Map && a['userKey'] == userKey) return true;
-      }
-    }
-    return false;
   }
 
   // Check if an event conflicts with user's unavailability
@@ -3643,7 +3614,7 @@ class _RolesSectionState extends State<_RolesSection> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final sourceEvents = widget.events.where((e) {
-      if (_isAcceptedByUser(e, widget.userKey)) return false;
+      if (isAcceptedByUser(e, widget.userKey)) return false;
       // Filter out past events
       final dateStr = e['date']?.toString();
       if (dateStr != null && dateStr.isNotEmpty) {
@@ -3719,36 +3690,19 @@ class _RolesSectionState extends State<_RolesSection> {
     for (final e in widget.events) {
       final eventId = e['_id'] ?? e['id'];
       final eventName = e['event_name'] ?? e['title'] ?? 'Unknown';
-      final accepted = e['accepted_staff'];
 
-      // Debug: Log every event being processed
-      debugPrint('[MY_EVENTS] Processing event: $eventId - $eventName (has accepted_staff: ${accepted != null && accepted is List})');
+      final isAccepted = isAcceptedByUser(e, widget.userKey);
+      debugPrint('[MY_EVENTS] Processing event: $eventId - $eventName (accepted: $isAccepted)');
 
-      if (accepted is List) {
-        bool isAccepted = false;
-        for (final a in accepted) {
-          if (a is String && a == widget.userKey) {
-            isAccepted = true;
-            debugPrint('[MY_EVENTS] ✅ User found in accepted_staff (String format) for event $eventId');
-            break;
-          }
-          if (a is Map && a['userKey'] == widget.userKey) {
-            isAccepted = true;
-            debugPrint('[MY_EVENTS] ✅ User found in accepted_staff (Map format) for event $eventId');
-            break;
-          }
-        }
-
-        // Only include if accepted AND event is today or in the future
-        if (isAccepted) {
-          final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
-          debugPrint('[MY_EVENTS] Event ${e['_id']} (${e['event_name']}): date=$eventDate, today=$today, isBefore=${eventDate?.isBefore(today)}');
-          if (eventDate != null && !eventDate.isBefore(today)) {
-            mine.add(e);
-            debugPrint('[MY_EVENTS] ✓ Added event ${e['_id']} to My Events');
-          } else {
-            debugPrint('[MY_EVENTS] ✗ Skipped event ${e['_id']} - date in past or null');
-          }
+      // Only include if accepted AND event is today or in the future
+      if (isAccepted) {
+        final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
+        debugPrint('[MY_EVENTS] Event ${e['_id']} (${e['event_name']}): date=$eventDate, today=$today, isBefore=${eventDate?.isBefore(today)}');
+        if (eventDate != null && !eventDate.isBefore(today)) {
+          mine.add(e);
+          debugPrint('[MY_EVENTS] ✓ Added event ${e['_id']} to My Events');
+        } else {
+          debugPrint('[MY_EVENTS] ✗ Skipped event ${e['_id']} - date in past or null');
         }
       }
     }
@@ -3902,62 +3856,176 @@ class _RolesSectionState extends State<_RolesSection> {
               // Compact app bar with blur
               Container(
                 height: appBarHeight,
-                child: _FixedAppBarDelegate(
-                  title: appBarTitle,
-                  profileMenu: widget.profileMenu,
-                  bottomWidget: _selectedView == _ViewMode.available
-                      ? GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _hideUnavailableDates = !_hideUnavailableDates;
-                            });
-                            _saveFilterPreference(_hideUnavailableDates);
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _hideUnavailableDates
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.white.withOpacity(0.9),
-                                size: 16,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF7A3AFB).withOpacity(0.75),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withOpacity(0.1),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              appBarTitle,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.95),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.5,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Unavailable dates',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        )
-                      : null,
-                ).build(context, 0, false),
+                          if (_selectedView == _ViewMode.available)
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _hideUnavailableDates = !_hideUnavailableDates;
+                                });
+                                _saveFilterPreference(_hideUnavailableDates);
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _hideUnavailableDates
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: Colors.white.withOpacity(0.9),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Unavailable dates',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(width: 12),
+                          widget.profileMenu,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
               // Filter chips with blur
               Container(
                 height: chipsHeight,
-                child: _FilterChipsDelegate(
-                  selectedView: _selectedView,
-                  onViewChanged: (view) {
-                    setState(() => _selectedView = view);
-                  },
-                ).build(context, 0, false),
+                child: Container(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest.withOpacity(0.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          FilterChip(
+                            label: const Text('Available'),
+                            avatar: const Icon(Icons.work_outline, size: 18),
+                            selected: _selectedView == _ViewMode.available,
+                            onSelected: (selected) {
+                              if (selected) setState(() => _selectedView = _ViewMode.available);
+                            },
+                            backgroundColor: Colors.white.withOpacity(0.7),
+                            selectedColor: const Color(0xFF6A1B9A),
+                            labelStyle: TextStyle(
+                              color: _selectedView == _ViewMode.available
+                                  ? Colors.white
+                                  : const Color(0xFF6A1B9A),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                            side: BorderSide(
+                              color: const Color(0xFF6A1B9A),
+                              width: _selectedView == _ViewMode.available ? 0 : 1,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: const Text('My Events'),
+                            avatar: const Icon(Icons.event, size: 18),
+                            selected: _selectedView == _ViewMode.myEvents,
+                            onSelected: (selected) {
+                              if (selected) setState(() => _selectedView = _ViewMode.myEvents);
+                            },
+                            backgroundColor: Colors.white.withOpacity(0.7),
+                            selectedColor: const Color(0xFF6A1B9A),
+                            labelStyle: TextStyle(
+                              color: _selectedView == _ViewMode.myEvents
+                                  ? Colors.white
+                                  : const Color(0xFF6A1B9A),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                            side: BorderSide(
+                              color: const Color(0xFF6A1B9A),
+                              width: _selectedView == _ViewMode.myEvents ? 0 : 1,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilterChip(
+                            label: const Text('Calendar'),
+                            avatar: const Icon(Icons.calendar_month, size: 18),
+                            selected: _selectedView == _ViewMode.calendar,
+                            onSelected: (selected) {
+                              if (selected) setState(() => _selectedView = _ViewMode.calendar);
+                            },
+                            backgroundColor: Colors.white.withOpacity(0.7),
+                            selectedColor: const Color(0xFF6A1B9A),
+                            labelStyle: TextStyle(
+                              color: _selectedView == _ViewMode.calendar
+                                  ? Colors.white
+                                  : const Color(0xFF6A1B9A),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                            side: BorderSide(
+                              color: const Color(0xFF6A1B9A),
+                              width: _selectedView == _ViewMode.calendar ? 0 : 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
 
               // Week display banner (conditionally shown in My Events and Calendar views)
               if (showWeekBanner && _currentWeekLabel != null)
                 Container(
                   height: weekBannerHeight,
-                  child: _WeekBannerDelegate(
-                    weekLabel: _currentWeekLabel!,
-                    theme: Theme.of(context),
-                  ).build(context, 0, false),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.transparent,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _currentWeekLabel!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -3987,7 +4055,11 @@ class _EarningsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    // Debug logging
+    print('[EARNINGS] Building with: userKey=$userKey, loading=$loading, events=${events.length}');
+
     if (userKey == null) {
+      print('[EARNINGS] userKey is null, showing login message');
       return CustomScrollView(
         slivers: [
           buildStyledAppBar(
@@ -4008,6 +4080,7 @@ class _EarningsTab extends StatelessWidget {
     }
 
     if (loading) {
+      print('[EARNINGS] Loading state is true, showing loading indicator');
       return CustomScrollView(
         slivers: [
           buildStyledAppBar(
@@ -4022,6 +4095,7 @@ class _EarningsTab extends StatelessWidget {
       );
     }
 
+    print('[EARNINGS] Starting FutureBuilder with ${events.length} events');
     return FutureBuilder<Map<String, dynamic>>(
       future: _calculateEarnings(events, userKey!),
       builder: (context, snapshot) {
@@ -4061,7 +4135,9 @@ class _EarningsTab extends StatelessWidget {
         }
 
         final data = snapshot.data;
+        print('[EARNINGS] FutureBuilder completed - data: $data');
         if (data == null || data['yearTotal'] == 0.0) {
+          print('[EARNINGS] No earnings (yearTotal=0 or data=null), showing empty state');
           return CustomScrollView(
             slivers: [
               buildStyledAppBar(
@@ -4104,12 +4180,12 @@ class _EarningsTab extends StatelessWidget {
 
         final yearTotal = data['yearTotal'] as double;
         final monthlyData = data['monthlyData'] as List<Map<String, dynamic>>;
-        final currentYear = DateTime.now().year;
 
         // Calculate current month earnings for header
         final now = DateTime.now();
+        final currentYearMonth = '${now.year}-${now.month.toString().padLeft(2, '0')}';
         final currentMonthData = monthlyData
-            .where((m) => m['monthNum'] == now.month)
+            .where((m) => m['yearMonth'] == currentYearMonth)
             .firstOrNull;
         final currentMonthEarnings =
             currentMonthData?['totalEarnings'] as double? ?? 0.0;
@@ -4118,7 +4194,7 @@ class _EarningsTab extends StatelessWidget {
           slivers: [
             buildStyledAppBar(
               title: 'My Earnings',
-              subtitle: 'This month: \$${currentMonthEarnings.toStringAsFixed(2)} • YTD: \$${yearTotal.toStringAsFixed(0)}',
+              subtitle: 'This month: \$${currentMonthEarnings.toStringAsFixed(2)} • Total: \$${yearTotal.toStringAsFixed(0)}',
               profileMenu: profileMenu,
             ),
             SliverPadding(
@@ -4164,9 +4240,9 @@ class _EarningsTab extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Text(
-                              '$currentYear Total',
-                              style: const TextStyle(
+                            const Text(
+                              'All-Time Total',
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
@@ -4225,12 +4301,19 @@ class _EarningsTab extends StatelessWidget {
                   ...monthlyData.map((month) {
                     final monthName = month['month'] as String;
                     final monthNum = month['monthNum'] as int;
+                    final year = month['year'] as int;
                     final totalEarnings = month['totalEarnings'] as double;
                     final totalHours = month['totalHours'] as double;
                     final eventCount = month['eventCount'] as int;
                     final avgRate = totalHours > 0
                         ? totalEarnings / totalHours
                         : 0.0;
+
+                    // Determine if we need to show year in label
+                    // Show year if: data spans multiple years OR month is not from current year
+                    final allYears = monthlyData.map((m) => m['year'] as int).toSet();
+                    final showYear = allYears.length > 1 || year != now.year;
+                    final displayLabel = showYear ? '$monthName $year' : monthName;
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -4244,9 +4327,9 @@ class _EarningsTab extends StatelessWidget {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => _MonthlyEarningsDetailPage(
-                                monthName: monthName,
+                                monthName: displayLabel,
                                 monthNum: monthNum,
-                                year: currentYear,
+                                year: year,
                                 events: events,
                                 userKey: userKey!,
                               ),
@@ -4276,7 +4359,7 @@ class _EarningsTab extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 12),
                                       Text(
-                                        monthName,
+                                        displayLabel,
                                         style: theme.textTheme.titleMedium
                                             ?.copyWith(
                                               fontWeight: FontWeight.bold,
@@ -4349,13 +4432,16 @@ class _EarningsTab extends StatelessWidget {
     List<Map<String, dynamic>> events,
     String userKey,
   ) async {
+    print('[EARNINGS-CALC] Starting calculation for ${events.length} events, userKey: $userKey');
     double yearTotal = 0.0;
-    final Map<int, Map<String, dynamic>> monthlyMap = {};
-    final currentYear = DateTime.now().year;
+    final Map<String, Map<String, dynamic>> monthlyMap = {}; // Changed to String key for year-month
+    final now = DateTime.now();
 
     for (final event in events) {
       final eventDate = _parseEventDate(event['date']);
-      if (eventDate == null || eventDate.year != currentYear) continue;
+      if (eventDate == null) continue;
+      // Skip future events, include all past events with approved attendance
+      if (eventDate.isAfter(now)) continue;
 
       final acceptedStaff = event['accepted_staff'] as List?;
       if (acceptedStaff == null) continue;
@@ -4365,7 +4451,10 @@ class _EarningsTab extends StatelessWidget {
         if (staff['userKey'] != userKey) continue;
 
         final attendance = staff['attendance'] as List?;
-        if (attendance == null || attendance.isEmpty) continue;
+        if (attendance == null || attendance.isEmpty) {
+          print('[EARNINGS-CALC] Event ${event['_id']} has no attendance for user');
+          continue;
+        }
 
         final staffRole = staff['role']?.toString() ?? '';
 
@@ -4389,16 +4478,23 @@ class _EarningsTab extends StatelessWidget {
           final approvedHours = session['approvedHours'];
           final status = session['status']?.toString();
 
+          print('[EARNINGS-CALC] Session status: $status, approvedHours: $approvedHours, hourlyRate: $hourlyRate');
+
           if (approvedHours != null && status == 'approved') {
             final hours = (approvedHours as num).toDouble();
             final earnings = hours * hourlyRate;
 
+            print('[EARNINGS-CALC] Adding earnings: $earnings (${hours}h × £$hourlyRate)');
             yearTotal += earnings;
 
-            final month = eventDate.month;
-            if (!monthlyMap.containsKey(month)) {
-              monthlyMap[month] = {
-                'month': _getMonthName(month),
+            // Create year-month key for proper grouping across multiple years
+            final yearMonth = '${eventDate.year}-${eventDate.month.toString().padLeft(2, '0')}';
+            if (!monthlyMap.containsKey(yearMonth)) {
+              monthlyMap[yearMonth] = {
+                'yearMonth': yearMonth,
+                'year': eventDate.year,
+                'monthNum': eventDate.month,
+                'month': _getMonthName(eventDate.month),
                 'totalEarnings': 0.0,
                 'totalHours': 0.0,
                 'eventCount': 0,
@@ -4406,40 +4502,33 @@ class _EarningsTab extends StatelessWidget {
               };
             }
 
-            monthlyMap[month]!['totalEarnings'] =
-                (monthlyMap[month]!['totalEarnings'] as double) + earnings;
-            monthlyMap[month]!['totalHours'] =
-                (monthlyMap[month]!['totalHours'] as double) + hours;
+            monthlyMap[yearMonth]!['totalEarnings'] =
+                (monthlyMap[yearMonth]!['totalEarnings'] as double) + earnings;
+            monthlyMap[yearMonth]!['totalHours'] =
+                (monthlyMap[yearMonth]!['totalHours'] as double) + hours;
 
             final eventId =
                 event['_id']?.toString() ?? event['id']?.toString() ?? '';
             if (eventId.isNotEmpty) {
-              (monthlyMap[month]!['eventIds'] as Set<String>).add(eventId);
-              monthlyMap[month]!['eventCount'] =
-                  (monthlyMap[month]!['eventIds'] as Set<String>).length;
+              (monthlyMap[yearMonth]!['eventIds'] as Set<String>).add(eventId);
+              monthlyMap[yearMonth]!['eventCount'] =
+                  (monthlyMap[yearMonth]!['eventIds'] as Set<String>).length;
             }
           }
         }
       }
     }
 
-    // Convert to sorted list
+    // Convert to sorted list (sorted by year-month descending - most recent first)
     final monthlyData = monthlyMap.entries
-        .map(
-          (e) => {
-            'monthNum': e.key,
-            'month': e.value['month'],
-            'totalEarnings': e.value['totalEarnings'],
-            'totalHours': e.value['totalHours'],
-            'eventCount': e.value['eventCount'],
-          },
-        )
+        .map((e) => e.value)
         .toList();
 
     monthlyData.sort(
-      (a, b) => (b['monthNum'] as int).compareTo(a['monthNum'] as int),
+      (a, b) => (b['yearMonth'] as String).compareTo(a['yearMonth'] as String),
     );
 
+    print('[EARNINGS-CALC] Calculation complete - yearTotal: $yearTotal, months: ${monthlyData.length}');
     return {'yearTotal': yearTotal, 'monthlyData': monthlyData};
   }
 
@@ -4965,26 +5054,10 @@ class _MyEventsListState extends State<_MyEventsList> {
     final today = DateTime(now.year, now.month, now.day);
 
     for (final e in widget.events) {
-      final accepted = e['accepted_staff'];
-      if (accepted is List) {
-        bool isAccepted = false;
-        for (final a in accepted) {
-          if (a is String && a == widget.userKey) {
-            isAccepted = true;
-            break;
-          }
-          if (a is Map && a['userKey'] == widget.userKey) {
-            isAccepted = true;
-            break;
-          }
-        }
-
-        // Only include if accepted AND event is today or in the future
-        if (isAccepted) {
-          final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
-          if (eventDate != null && !eventDate.isBefore(today)) {
-            mine.add(e);
-          }
+      if (isAcceptedByUser(e, widget.userKey)) {
+        final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
+        if (eventDate != null && !eventDate.isBefore(today)) {
+          mine.add(e);
         }
       }
     }
@@ -5151,10 +5224,12 @@ class _MyEventsListState extends State<_MyEventsList> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
+                    final events = context.read<DataService>().events;
+                    debugPrint('🚀 [NAVIGATION] Opening PastEventsPage with ${events.length} events');
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) =>
-                            PastEventsPage(events: widget.events, userKey: widget.userKey),
+                            PastEventsPage(events: events, userKey: widget.userKey),
                       ),
                     );
                   },
@@ -5367,16 +5442,11 @@ class _MyEventsListState extends State<_MyEventsList> {
     if (roleNameOverride != null && roleNameOverride.trim().isNotEmpty) {
       role = roleNameOverride.trim();
     } else {
-      final acc = e['accepted_staff'];
-      if (acc is List) {
-        for (final a in acc) {
-          if (a is Map && a['userKey'] == widget.userKey) {
-            role = a['role']?.toString();
-            final response = a['response']?.toString();
-            isConfirmed = response == 'accept';
-            break;
-          }
-        }
+      final acceptedEntry = findAcceptedStaffEntry(e, widget.userKey);
+      if (acceptedEntry != null) {
+        role = acceptedEntry['role']?.toString();
+        final response = acceptedEntry['response']?.toString().toLowerCase();
+        isConfirmed = response == null || response == 'accept';
       }
     }
 
@@ -5852,15 +5922,8 @@ class _RoleList extends StatelessWidget {
     if (userKey == null) return const [];
     final List<Map<String, dynamic>> result = [];
     for (final e in events) {
-      final acc = e['accepted_staff'];
-      if (acc is List) {
-        for (final a in acc) {
-          if ((a is String && a == userKey) ||
-              (a is Map && a['userKey'] == userKey)) {
-            result.add(e);
-            break;
-          }
-        }
+      if (isAcceptedByUser(e, userKey)) {
+        result.add(e);
       }
     }
     return result;
@@ -6115,15 +6178,10 @@ class _RoleList extends StatelessWidget {
     if (roleNameOverride != null && roleNameOverride.trim().isNotEmpty) {
       role = roleNameOverride.trim();
     } else {
-      final acc = e['accepted_staff'];
-      if (acc is List) {
-        for (final a in acc) {
-          if (a is Map && a['userKey'] == userKey) {
-            role = a['role']?.toString();
-            isUserAccepted = true;
-            break;
-          }
-        }
+      final acceptedEntry = findAcceptedStaffEntry(e, userKey);
+      if (acceptedEntry != null) {
+        role = acceptedEntry['role']?.toString();
+        isUserAccepted = true;
       }
     }
 
