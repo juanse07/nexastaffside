@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' show ImageFilter;
 import 'event_detail_page.dart';
+import '../utils/accepted_staff.dart';
 
 class PastEventsPage extends StatefulWidget {
-  final List<Map<String, dynamic>> events;
+  final List<Map<String, dynamic>> events; // Now contains shifts data
   final String? userKey;
 
   const PastEventsPage({
@@ -69,30 +70,45 @@ class _PastEventsPageState extends State<PastEventsPage> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    for (final e in widget.events) {
-      final accepted = e['accepted_staff'];
-      if (accepted is List) {
-        bool isAccepted = false;
-        for (final a in accepted) {
-          if (a is String && a == widget.userKey) {
-            isAccepted = true;
-            break;
-          }
-          if (a is Map && a['userKey'] == widget.userKey) {
-            isAccepted = true;
-            break;
-          }
-        }
+    debugPrint('=== PAST EVENTS FILTER DEBUG ===');
+    debugPrint('UserKey: ${widget.userKey}');
+    debugPrint('Today: $today');
+    debugPrint('Total events to check: ${widget.events.length}');
 
-        // Only include if accepted AND event is in the past
-        if (isAccepted) {
-          final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
-          if (eventDate != null && eventDate.isBefore(today)) {
+    for (final e in widget.events) {
+      final eventId = e['_id'] ?? e['id'];
+      final eventName = e['event_name'] ?? 'No name';
+      final acceptedEntry = findAcceptedStaffEntry(e, widget.userKey);
+
+      debugPrint('Checking event: $eventId - $eventName');
+      debugPrint('  Date: ${e['date']}');
+      debugPrint('  Status: ${e['status']}');
+      debugPrint('  Accepted entry found: ${acceptedEntry != null}');
+
+      if (acceptedEntry != null) {
+        final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
+        debugPrint('  Event date parsed: $eventDate');
+
+        if (eventDate != null) {
+          final isPast = eventDate.isBefore(today);
+          debugPrint('  Is event before today: $isPast');
+
+          if (isPast) {
             pastEvents.add(e);
+            debugPrint('  ✅ Added to past events!');
+          } else {
+            debugPrint('  ❌ Skipped - not past');
           }
+        } else {
+          debugPrint('  ❌ Skipped - could not parse date');
         }
+      } else {
+        debugPrint('  ❌ Skipped - user not accepted');
       }
     }
+
+    debugPrint('=== FINAL PAST EVENTS COUNT: ${pastEvents.length} ===');
+    debugPrint('=====================================');
 
     // Sort by date, most recent first
     pastEvents.sort((a, b) {
@@ -162,8 +178,10 @@ class _PastEventsPageState extends State<PastEventsPage> {
   String _getRoleName(Map<String, dynamic> event) {
     final acc = event['accepted_staff'];
     if (acc is List) {
+      final userKeyNumeric = widget.userKey?.split(':').last;
       for (final a in acc) {
-        if (a is Map && a['userKey'] == widget.userKey) {
+        if (a is Map && (a['userKey'] == widget.userKey || a['userKey'] == userKeyNumeric ||
+                        a['sub'] == widget.userKey || a['sub'] == userKeyNumeric)) {
           final role = a['role']?.toString();
           if (role != null && role.isNotEmpty) {
             return role;
@@ -312,6 +330,10 @@ class _PastEventsPageState extends State<PastEventsPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    debugPrint('🔍 [PAST_EVENTS] Building with ${widget.events.length} events');
+    debugPrint('🔍 [PAST_EVENTS] UserKey: ${widget.userKey}');
+
     final pastEvents = _filterPastAccepted();
 
     return Scaffold(
@@ -392,7 +414,7 @@ class _PastEventsPageState extends State<PastEventsPage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        'Past Events',
+                                        'My Events',
                                         style: theme.textTheme.titleLarge?.copyWith(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
@@ -403,8 +425,8 @@ class _PastEventsPageState extends State<PastEventsPage> {
                                       const SizedBox(height: 6),
                                       Text(
                                         pastEvents.isEmpty
-                                            ? 'No past events'
-                                            : '${pastEvents.length} ${pastEvents.length == 1 ? 'event' : 'events'} completed',
+                                            ? 'No accepted events'
+                                            : '${pastEvents.length} ${pastEvents.length == 1 ? 'event' : 'events'} accepted',
                                         style: theme.textTheme.bodyMedium?.copyWith(
                                           color: Colors.white.withOpacity(0.9),
                                           fontSize: 14,
@@ -528,9 +550,9 @@ class _PastEventsPageState extends State<PastEventsPage> {
     ThemeData theme,
     Map<String, dynamic> e,
   ) {
-    final eventName = e['event_name']?.toString() ?? 'Untitled Event';
+    final eventName = e['shift_name']?.toString() ?? e['event_name']?.toString() ?? 'Untitled Event';
     final clientName = e['client_name']?.toString() ?? '';
-    final venue = e['event_name']?.toString() ?? e['venue_name']?.toString() ?? '';
+    final venue = e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
     final date = e['date']?.toString() ?? '';
     final role = _getRoleName(e);

@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 import 'chat_service.dart';
+import '../utils/accepted_staff.dart';
 
 /// Enhanced data service with smart caching and efficient refresh mechanisms
 class DataService extends ChangeNotifier {
@@ -16,6 +17,8 @@ class DataService extends ChangeNotifier {
   static const String _lastFetchKey = 'last_fetch_timestamp';
   static const String _availabilityStorageKey = 'cached_availability';
   static const String _lastAvailabilityFetchKey = 'last_availability_fetch';
+  static const String _shiftsStorageKey = 'cached_shifts';
+  static const String _lastShiftsFetchKey = 'last_shifts_fetch_timestamp';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   // Cache duration in minutes - adjust based on your needs
@@ -25,6 +28,7 @@ class DataService extends ChangeNotifier {
   List<Map<String, dynamic>> _events = [];
   List<Map<String, dynamic>> _availability = [];
   List<Map<String, dynamic>> _eventsRaw = [];
+  List<Map<String, dynamic>> _shifts = [];
   List<Map<String, dynamic>> _myTeams = [];
   List<Map<String, dynamic>> _pendingInvites = [];
   final Set<String> _teamIds = <String>{};
@@ -33,6 +37,7 @@ class DataService extends ChangeNotifier {
   String? _lastError;
   DateTime? _lastFetch;
   DateTime? _lastAvailabilityFetch;
+  DateTime? _lastShiftsFetch;
   Timer? _backgroundRefreshTimer;
   io.Socket? _socket;
   bool _connectingSocket = false;
@@ -43,6 +48,7 @@ class DataService extends ChangeNotifier {
   List<Map<String, dynamic>> get events => List.unmodifiable(_events);
   List<Map<String, dynamic>> get availability =>
       List.unmodifiable(_availability);
+  List<Map<String, dynamic>> get shifts => List.unmodifiable(_shifts);
   List<Map<String, dynamic>> get teams => List.unmodifiable(_myTeams);
   List<Map<String, dynamic>> get pendingInvites =>
       List.unmodifiable(_pendingInvites);
@@ -50,7 +56,9 @@ class DataService extends ChangeNotifier {
   bool get isRefreshing => _isRefreshing;
   String? get lastError => _lastError;
   DateTime? get lastFetch => _lastFetch;
+  DateTime? get lastShiftsFetch => _lastShiftsFetch;
   bool get hasData => _events.isNotEmpty;
+  bool get hasShiftsData => _shifts.isNotEmpty;
 
   // Check if data is fresh enough to avoid unnecessary requests
   bool get isDataFresh {
@@ -175,6 +183,19 @@ class DataService extends ChangeNotifier {
         _lastAvailabilityFetch = DateTime.tryParse(lastAvailabilityStr);
       }
 
+      // Load cached shifts
+      final cachedShifts = await _safeStorageRead(_shiftsStorageKey);
+      if (cachedShifts != null) {
+        final data = json.decode(cachedShifts) as List<dynamic>;
+        _shifts = data.cast<Map<String, dynamic>>();
+      }
+
+      // Load last shifts fetch timestamp
+      final lastShiftsStr = await _safeStorageRead(_lastShiftsFetchKey);
+      if (lastShiftsStr != null) {
+        _lastShiftsFetch = DateTime.tryParse(lastShiftsStr);
+      }
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading cached data: $e');
@@ -188,6 +209,16 @@ class DataService extends ChangeNotifier {
       await _safeStorageWrite(_lastFetchKey, DateTime.now().toIso8601String());
     } catch (e) {
       debugPrint('Error caching events: $e');
+    }
+  }
+
+  /// Cache shifts data to secure storage
+  Future<void> _cacheShifts(List<Map<String, dynamic>> shifts) async {
+    try {
+      await _safeStorageWrite(_shiftsStorageKey, json.encode(shifts));
+      await _safeStorageWrite(_lastShiftsFetchKey, DateTime.now().toIso8601String());
+    } catch (e) {
+      debugPrint('Error caching shifts: $e');
     }
   }
 
@@ -304,20 +335,11 @@ class DataService extends ChangeNotifier {
         if (userKey != null) {
           int acceptedCount = 0;
           for (final evt in _eventsRaw) {
-            final accepted = evt['accepted_staff'] as List?;
-            if (accepted != null) {
-              for (final entry in accepted) {
-                String? entryKey;
-                if (entry is String) {
-                  entryKey = entry;
-                } else if (entry is Map) {
-                  entryKey = entry['userKey']?.toString();
-                }
-                if (entryKey == userKey) {
-                  acceptedCount++;
-                  debugPrint('✅ [MY_EVENTS_DEBUG] Found accepted event BEFORE filter: ${evt['_id']} - ${evt['event_name']}');
-                }
-              }
+            if (isAcceptedByUser(evt, userKey)) {
+              acceptedCount++;
+              debugPrint(
+                '✅ [MY_EVENTS_DEBUG] Found accepted event BEFORE filter: ${evt['_id']} - ${evt['event_name']}',
+              );
             }
           }
           debugPrint('✅ [MY_EVENTS_DEBUG] Total events with user in accepted_staff BEFORE filter: $acceptedCount');
@@ -330,18 +352,11 @@ class DataService extends ChangeNotifier {
         if (userKey != null) {
           int acceptedCount = 0;
           for (final evt in _events) {
-            final accepted = evt['accepted_staff'] as List?;
-            if (accepted != null) {
-              for (final entry in accepted) {
-                String? entryKey;
-                if (entry is String) entryKey = entry;
-                if (entry is Map) entryKey = entry['userKey']?.toString();
-                if (entryKey == userKey) {
-                  acceptedCount++;
-                  debugPrint('[DATA_SERVICE] User IS accepted in event: ${evt['_id']} (${evt['event_name']})');
-                  break;
-                }
-              }
+            if (isAcceptedByUser(evt, userKey)) {
+              acceptedCount++;
+              debugPrint(
+                '[DATA_SERVICE] User IS accepted in event: ${evt['_id']} (${evt['event_name']})',
+              );
             }
           }
           debugPrint('[DATA_SERVICE] Total events where user is accepted: $acceptedCount');
@@ -672,6 +687,66 @@ class DataService extends ChangeNotifier {
         (status == 'deleted');
   }
 
+  /// Fetch past events from server using existing events endpoint
+  Future<void> _fetchShifts({bool silent = false}) async {
+    try {
+      final token = await _safeStorageRead('auth_jwt');
+      if (token == null) return;
+
+      final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
+      final apiPathPrefix = dotenv.env['API_PATH_PREFIX'] ?? '/api';
+      final uri = Uri.parse('$baseUrl$apiPathPrefix/events');
+
+      debugPrint('🔄 Fetching events for past events view from ${uri.toString()}');
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('📥 Events response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final eventsData = responseData is List
+          ? responseData.cast<Map<String, dynamic>>()
+          : (responseData['events'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+
+        debugPrint('🛰️ Received ${eventsData.length} events for past events filtering');
+
+        _shifts = eventsData; // Store in _shifts for past events use
+        _lastShiftsFetch = DateTime.now();
+        await _cacheShifts(_shifts);
+
+        debugPrint('✅ Successfully loaded ${_shifts.length} events for past view');
+
+        if (!silent) {
+          notifyListeners();
+        }
+      } else {
+        debugPrint('❌ Failed to fetch events: ${response.statusCode} ${response.body}');
+        if (!silent) {
+          _lastError = 'Failed to fetch events: ${response.statusCode}';
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching events: $e');
+      if (!silent) {
+        _lastError = 'Error fetching events: $e';
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Public method to fetch shifts (for manual refresh)
+  Future<void> fetchShifts({bool silent = false}) async {
+    await _fetchShifts(silent: silent);
+  }
+
   /// Fetch availability from server with JWT token
   Future<void> _fetchAvailability({bool silent = false}) async {
     try {
@@ -832,23 +907,7 @@ class DataService extends ChangeNotifier {
           .where((value) => value.isNotEmpty)
           .toList();
 
-      final accepted = (evt['accepted_staff'] as List<dynamic>? ?? []);
-      var isAccepted = false;
-      if (userKey != null) {
-        for (final entry in accepted) {
-          if (entry is String && entry == userKey) {
-            isAccepted = true;
-            break;
-          }
-          if (entry is Map<String, dynamic>) {
-            final key = entry['userKey']?.toString();
-            if (key != null && key == userKey) {
-              isAccepted = true;
-              break;
-            }
-          }
-        }
-      }
+      final isAccepted = isAcceptedByUser(evt, userKey);
 
       final isGlobalAudience = audienceUsers.isEmpty && audienceTeams.isEmpty;
       final bool inAudienceUsers =
