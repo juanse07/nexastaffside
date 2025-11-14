@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/terminology_provider.dart';
 import '../../../services/subscription_service.dart';
 import '../services/staff_chat_service.dart';
+import '../widgets/animated_ai_message_widget.dart';
 import '../widgets/availability_confirmation_card.dart';
 import '../widgets/chat_input_widget.dart';
 import '../widgets/chat_message_widget.dart';
@@ -65,7 +68,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     );
     setState(() {});
 
-    _scrollToBottom();
+    // With reverse: true, welcome message appears at bottom automatically
   }
 
   Future<void> _sendMessage(String message) async {
@@ -85,7 +88,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     );
     if (response != null) {
       setState(() {});
-      _scrollToBottom();
+      // With reverse: true, new messages appear at bottom automatically - no scroll needed!
       // Refresh usage stats after sending message
       _loadSubscriptionStatus();
     } else {
@@ -102,15 +105,9 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    // EXPERT: With reverse: true, new messages appear at position 0 (bottom) automatically
+    // No scrolling needed! The message is already visible.
+    // This method is kept for backward compatibility but does nothing now.
   }
 
   /// Load subscription status and usage statistics
@@ -149,7 +146,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     _chatService.clearPendingAvailability();
     _chatService.addSystemMessage('✅ Your availability has been updated successfully!');
     setState(() {});
-    _scrollToBottom();
+    // With reverse: true, message appears at bottom automatically
   }
 
   /// Handle shift action confirmation
@@ -178,7 +175,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
           : '👍 No problem! $eventName has been declined. Your manager has been notified.'
     );
     setState(() {});
-    _scrollToBottom();
+    // With reverse: true, message appears at bottom automatically
   }
 
   /// Cancel availability confirmation
@@ -186,7 +183,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     _chatService.clearPendingAvailability();
     _chatService.addSystemMessage('Availability update cancelled.');
     setState(() {});
-    _scrollToBottom();
+    // With reverse: true, message appears at bottom automatically
   }
 
   /// Cancel shift action
@@ -194,7 +191,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     _chatService.clearPendingShiftAction();
     _chatService.addSystemMessage('Shift action cancelled.');
     setState(() {});
-    _scrollToBottom();
+    // With reverse: true, message appears at bottom automatically
   }
 
   /// Clear conversation
@@ -212,6 +209,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
           TextButton(
             onPressed: () {
               _chatService.clearConversation();
+              AnimatedAiMessageWidget.clearAnimationTracking(); // Clear animation tracking
               Navigator.pop(context);
               setState(() {});
 
@@ -230,19 +228,47 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
 
   /// Build a suggestion chip for quick actions
   Widget _buildSuggestionChip(String label, String query) {
-    return ActionChip(
-      label: Text(label),
-      onPressed: () => _sendMessage(query),
-      backgroundColor: Colors.white,
-      side: BorderSide(color: Colors.grey.shade300, width: 1),
-      labelStyle: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: Color(0xFF475569),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.7),
+            Colors.white.withOpacity(0.5),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.8),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      elevation: 0,
-      pressElevation: 2,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _sendMessage(query),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -251,11 +277,11 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // Detect keyboard and auto-scroll when it opens
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     if (keyboardHeight > 0) {
-      // Keyboard is open, scroll to bottom
+      // Keyboard is open, scroll to bottom (position 0 with reverse: true)
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
+            0, // With reverse: true, 0 is the bottom
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOut,
           );
@@ -429,121 +455,187 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       ),
       body: !_isInitialized
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : Stack(
               children: [
-                // Messages list
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.only(top: 16, bottom: 16),
-                    itemCount: _chatService.conversationHistory.length +
-                        (_chatService.pendingAvailability != null ? 1 : 0) +
-                        (_chatService.pendingShiftAction != null ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      // Regular messages
-                      if (index < _chatService.conversationHistory.length) {
-                        final message = _chatService.conversationHistory[index];
+                // Main content area with messages
+                Column(
+                  children: [
+                    // Messages list
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        reverse: true, // EXPERT: Makes new messages appear at bottom naturally
+                        padding: const EdgeInsets.only(
+                          top: 16,
+                          bottom: 140, // Extra padding for chips + input area
+                        ),
+                        itemCount: _chatService.conversationHistory.length +
+                            (_chatService.pendingAvailability != null ? 1 : 0) +
+                            (_chatService.pendingShiftAction != null ? 1 : 0),
+                        itemBuilder: (context, index) {
+                      // EXPERT: With reverse: true, index 0 is the newest message (at bottom)
+                      // We need to map index to the correct position in conversationHistory
+                      final historyLength = _chatService.conversationHistory.length;
 
-                        // Skip system messages that are just markers
-                        if (message.role == 'system' &&
-                            (message.content.contains('AVAILABILITY_MARK') ||
-                             message.content.contains('SHIFT_ACCEPT') ||
-                             message.content.contains('SHIFT_DECLINE'))) {
-                          return const SizedBox.shrink();
+                      // Check for pending cards first (they appear at the very bottom, index 0)
+                      if (_chatService.pendingShiftAction != null && index == 0) {
+                        return RepaintBoundary(
+                          key: const ValueKey('shift_action_card'),
+                          child: ShiftActionCard(
+                            shiftAction: _chatService.pendingShiftAction!,
+                            onConfirm: _confirmShiftAction,
+                            onCancel: _cancelShiftAction,
+                          ),
+                        );
+                      }
+
+                      if (_chatService.pendingAvailability != null) {
+                        final availabilityIndex = _chatService.pendingShiftAction != null ? 1 : 0;
+                        if (index == availabilityIndex) {
+                          return RepaintBoundary(
+                            key: const ValueKey('availability_card'),
+                            child: AvailabilityConfirmationCard(
+                              availabilityData: _chatService.pendingAvailability!,
+                              onConfirm: _confirmAvailability,
+                              onCancel: _cancelAvailability,
+                            ),
+                          );
                         }
-
-                        return ChatMessageWidget(
-                          message: message,
-                          onLinkTap: (linkText) async {
-                            // Open venue in Google Maps
-                            final encodedAddress = Uri.encodeComponent(linkText);
-                            final mapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedAddress');
-
-                            try {
-                              if (await canLaunchUrl(mapsUrl)) {
-                                await launchUrl(mapsUrl, mode: LaunchMode.externalApplication);
-                              } else {
-                                print('Could not launch maps for: $linkText');
-                              }
-                            } catch (e) {
-                              print('Error opening maps: $e');
-                            }
-                          },
-                        );
                       }
 
-                      // Availability confirmation card
-                      if (_chatService.pendingAvailability != null &&
-                          index == _chatService.conversationHistory.length) {
-                        return AvailabilityConfirmationCard(
-                          availabilityData: _chatService.pendingAvailability!,
-                          onConfirm: _confirmAvailability,
-                          onCancel: _cancelAvailability,
-                        );
+                      // Calculate message index: skip pending cards, then reverse
+                      final pendingCards =
+                          (_chatService.pendingShiftAction != null ? 1 : 0) +
+                          (_chatService.pendingAvailability != null ? 1 : 0);
+                      final messageIndex = historyLength - 1 - (index - pendingCards);
+
+                      if (messageIndex < 0 || messageIndex >= historyLength) {
+                        return const SizedBox.shrink();
                       }
 
-                      // Shift action confirmation card
-                      if (_chatService.pendingShiftAction != null) {
-                        return ShiftActionCard(
-                          shiftAction: _chatService.pendingShiftAction!,
-                          onConfirm: _confirmShiftAction,
-                          onCancel: _cancelShiftAction,
-                        );
+                      final message = _chatService.conversationHistory[messageIndex];
+
+                      // Skip system messages that are just markers
+                      if (message.role == 'system' &&
+                          (message.content.contains('AVAILABILITY_MARK') ||
+                           message.content.contains('SHIFT_ACCEPT') ||
+                           message.content.contains('SHIFT_DECLINE'))) {
+                        return const SizedBox.shrink();
                       }
 
-                      return const SizedBox.shrink();
-                    },
-                  ),
+                      // Check if this is the latest assistant message (widget handles animation tracking internally)
+                      final messageId = message.timestamp.millisecondsSinceEpoch;
+                      final isLatestAiMessage = message.role == 'assistant' &&
+                          messageIndex == _chatService.conversationHistory.length - 1;
+
+                      // Use RepaintBoundary with keys to prevent unnecessary rebuilds
+                      return RepaintBoundary(
+                        key: ValueKey('message_$messageId'),
+                        child: message.role == 'assistant'
+                          ? AnimatedAiMessageWidget(
+                              message: message,
+                              showAnimation: isLatestAiMessage, // Widget internally tracks if already animated
+                            )
+                          : ChatMessageWidget(
+                              message: message,
+                              onLinkTap: (linkText) async {
+                                // Open venue in Google Maps
+                                final encodedAddress = Uri.encodeComponent(linkText);
+                                final mapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedAddress');
+
+                                try {
+                                  if (await canLaunchUrl(mapsUrl)) {
+                                    await launchUrl(mapsUrl, mode: LaunchMode.externalApplication);
+                                  } else {
+                                    print('Could not launch maps for: $linkText');
+                                  }
+                                } catch (e) {
+                                  print('Error opening maps: $e');
+                                }
+                              },
+                            ),
+                      );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
 
-                // Quick action suggestion chips (zero AI cost!)
+                // Floating chips layer (positioned over messages)
                 if (!_chatService.isLoading)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        top: BorderSide(color: Colors.grey.shade200, width: 1),
-                      ),
-                    ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildSuggestionChip(
-                            '📋 Next 7 Jobs',
-                            'Show my next 7 jobs',
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 60 + (MediaQuery.of(context).padding.bottom > 0
+                      ? MediaQuery.of(context).padding.bottom
+                      : 8),
+                    child: IgnorePointer(
+                      ignoring: false,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              const Color(0xFFF8FAFC).withOpacity(0.3),
+                              const Color(0xFFF8FAFC).withOpacity(0.6),
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
                           ),
-                          const SizedBox(width: 8),
-                          _buildSuggestionChip(
-                            '🔜 Next Shift',
-                            'When is my next shift?',
+                        ),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildSuggestionChip(
+                                '📋 Next 7 Jobs',
+                                'Show my next 7 jobs',
+                              ),
+                              const SizedBox(width: 8),
+                              _buildSuggestionChip(
+                                '🔜 Next Shift',
+                                'When is my next shift?',
+                              ),
+                              const SizedBox(width: 8),
+                              _buildSuggestionChip(
+                                '📅 Last Month',
+                                'Show all my shifts from last month',
+                              ),
+                              const SizedBox(width: 8),
+                              _buildSuggestionChip(
+                                '💰 Earnings',
+                                'How much have I earned this month?',
+                              ),
+                              const SizedBox(width: 8),
+                              _buildSuggestionChip(
+                                '📍 Upcoming',
+                                'What are my upcoming events?',
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          _buildSuggestionChip(
-                            '📅 Last Month',
-                            'Show all my shifts from last month',
-                          ),
-                          const SizedBox(width: 8),
-                          _buildSuggestionChip(
-                            '💰 Earnings',
-                            'How much have I earned this month?',
-                          ),
-                          const SizedBox(width: 8),
-                          _buildSuggestionChip(
-                            '📍 Upcoming',
-                            'What are my upcoming events?',
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
 
-                // Input field
-                SafeArea(
-                  child: ChatInputWidget(
-                    onSendMessage: _sendMessage,
-                    isLoading: _chatService.isLoading,
+                // Input field layer (at bottom)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    color: Colors.white,
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).padding.bottom > 0
+                        ? MediaQuery.of(context).padding.bottom
+                        : 8, // Extra padding if no safe area
+                    ),
+                    child: ChatInputWidget(
+                      onSendMessage: _sendMessage,
+                      isLoading: _chatService.isLoading,
+                    ),
                   ),
                 ),
               ],
