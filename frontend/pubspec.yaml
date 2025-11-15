@@ -53,6 +53,7 @@ dependencies:
   geolocator: ^10.1.0
   timeago: ^3.7.0
   shared_preferences: ^2.3.3
+  flutter_markdown: ^0.7.4
   visibility_detector: ^0.4.0+2
 
   # AI Assistant Dependencies
@@ -87,7 +88,11 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
 
-  # Code generation for Hive
+  # Testing dependencies
+  mockito: ^5.4.4
+  http_mock_adapter: ^0.6.1
+
+  # Code generation for Hive and Mockito
   build_runner: ^2.4.6
   hive_generator: ^2.0.1
 

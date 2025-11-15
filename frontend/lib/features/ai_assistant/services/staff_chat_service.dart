@@ -42,6 +42,10 @@ class StaffChatService {
   // System instructions (loaded from markdown asset)
   String? _systemInstructions;
 
+  // Cached system message to avoid rebuilding on every API call
+  String? _cachedSystemMessage;
+  DateTime? _systemMessageBuiltAt;
+
   // Pending actions (availability, shift acceptance/decline)
   Map<String, dynamic>? _pendingAvailability;
   Map<String, dynamic>? _pendingShiftAction;
@@ -147,7 +151,17 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
   }
 
   /// Build system message with context
+  /// Cached to avoid rebuilding the same message repeatedly
   Future<String> _buildSystemMessage({String? terminology}) async {
+    // Check if we have a valid cached system message
+    // Cache is valid if context hasn't changed and was recently loaded
+    if (_cachedSystemMessage != null &&
+        _systemMessageBuiltAt != null &&
+        _contextLoadedAt != null &&
+        _systemMessageBuiltAt == _contextLoadedAt) {
+      return _cachedSystemMessage!;
+    }
+
     final context = await _loadStaffContext();
 
     final buffer = StringBuffer();
@@ -246,7 +260,11 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
       }
     }
 
-    return buffer.toString();
+    // Cache the built message
+    _cachedSystemMessage = buffer.toString();
+    _systemMessageBuiltAt = _contextLoadedAt;
+
+    return _cachedSystemMessage!;
   }
 
   /// Send a message to the AI
@@ -476,7 +494,10 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
   /// Refresh staff context (force reload)
   Future<void> refreshContext() async {
     await _loadStaffContext(force: true);
-    print('[StaffChatService] Staff context refreshed');
+    // Invalidate cached system message since context changed
+    _cachedSystemMessage = null;
+    _systemMessageBuiltAt = null;
+    print('[StaffChatService] Staff context refreshed, cache invalidated');
   }
 
   /// Add a system message to history (for UI feedback)
