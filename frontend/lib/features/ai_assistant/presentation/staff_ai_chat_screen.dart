@@ -294,9 +294,13 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     return Scaffold(
       backgroundColor: AppColors.surfaceLight,
       appBar: AppBar(
-        title: const Text('AI Assistant'),
+        title: const Text(
+          'AI Assistant',
+          style: TextStyle(color: AppColors.navySpaceCadet),
+        ),
         backgroundColor: AppColors.backgroundWhite,
-        foregroundColor: AppColors.textDark,
+        foregroundColor: AppColors.navySpaceCadet,
+        iconTheme: const IconThemeData(color: AppColors.navySpaceCadet),
         elevation: 0,
         actions: [
           // Usage indicator for free tier

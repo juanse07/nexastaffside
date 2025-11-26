@@ -105,7 +105,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundWhite,
       appBar: AppBar(
         title: const Text('Upgrade to Pro'),
-        backgroundColor: theme.colorScheme.primary,
+        backgroundColor: AppColors.navySpaceCadet,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -115,23 +115,16 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Pro Badge with Gradient
+              // Pro Badge with Navy Theme
               Container(
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.secondary,
-                    ],
-                  ),
+                  color: AppColors.navySpaceCadet,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      color: AppColors.navySpaceCadet.withValues(alpha: 0.3),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),
@@ -140,7 +133,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 child: const Icon(
                   Icons.star,
                   size: 64,
-                  color: Colors.white,
+                  color: AppColors.yellow,
                 ),
               ),
               const SizedBox(height: 24),
@@ -151,6 +144,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.navySpaceCadet,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -161,7 +155,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 'Unlimited AI Chat Messages',
                 style: TextStyle(
                   fontSize: 18,
-                  color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                  color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -171,46 +165,39 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
               _buildFeature(
                 'Unlimited AI chat messages',
                 Icons.chat_bubble,
-                theme,
-                isDark,
               ),
               _buildFeature(
                 'No monthly limits',
                 Icons.all_inclusive,
-                theme,
-                isDark,
               ),
               _buildFeature(
                 'Priority support',
                 Icons.support_agent,
-                theme,
-                isDark,
               ),
               _buildFeature(
                 'All future Pro features',
                 Icons.auto_awesome,
-                theme,
-                isDark,
               ),
 
               const SizedBox(height: 40),
 
-              // Pricing Card
+              // Pricing Card with Navy Theme
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? AppColors.surfaceDark
-                      : theme.colorScheme.primaryContainer,
+                  color: AppColors.navySpaceCadet,
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withOpacity(0.3),
-                    width: 2,
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.navySpaceCadet.withValues(alpha: 0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
-                    Row(
+                    const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -219,15 +206,16 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
+                            color: AppColors.yellow,
                           ),
                         ),
-                        const Text(
+                        Text(
                           '7.80',
                           style: TextStyle(
                             fontSize: 56,
                             fontWeight: FontWeight.bold,
                             height: 1,
+                            color: AppColors.yellow,
                           ),
                         ),
                       ],
@@ -235,14 +223,17 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                     const SizedBox(height: 8),
                     const Text(
                       'per month',
-                      style: TextStyle(fontSize: 18),
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Cancel anytime • No commitments',
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -253,18 +244,29 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
               const SizedBox(height: 40),
 
               // Subscribe Button
-              SizedBox(
+              Container(
                 width: double.infinity,
                 height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.yellow,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.yellow.withValues(alpha: 0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: _purchasing || _restoring ? null : _handlePurchase,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: AppColors.navySpaceCadet,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    elevation: 4,
                   ),
                   child: _purchasing
                       ? const SizedBox(
@@ -272,7 +274,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                           height: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AppColors.navySpaceCadet,
                           ),
                         )
                       : const Text(
@@ -280,6 +282,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: AppColors.navySpaceCadet,
                           ),
                         ),
                 ),
@@ -290,15 +293,24 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
               // Restore Button
               TextButton(
                 onPressed: _purchasing || _restoring ? null : _handleRestore,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.navySpaceCadet,
+                ),
                 child: _restoring
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.navySpaceCadet,
+                        ),
                       )
                     : const Text(
                         'Restore Purchase',
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.navySpaceCadet,
+                        ),
                       ),
               ),
 
@@ -309,7 +321,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 'By subscribing, you agree to our Terms of Service and Privacy Policy. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                  color: AppColors.navySpaceCadet.withValues(alpha: 0.6),
                   height: 1.5,
                 ),
                 textAlign: TextAlign.center,
@@ -321,7 +333,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
     );
   }
 
-  Widget _buildFeature(String text, IconData icon, ThemeData theme, bool isDark) {
+  Widget _buildFeature(String text, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -330,12 +342,12 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
+              color: AppColors.navySpaceCadet.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               icon,
-              color: theme.colorScheme.primary,
+              color: AppColors.navySpaceCadet,
               size: 24,
             ),
           ),
@@ -343,16 +355,16 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.textLight : AppColors.textDark,
+                color: AppColors.navySpaceCadet,
               ),
             ),
           ),
-          Icon(
+          const Icon(
             Icons.check_circle,
-            color: theme.colorScheme.primary,
+            color: AppColors.yellow,
             size: 24,
           ),
         ],

@@ -350,6 +350,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           fontSize: 20,
+                          color: AppColors.navySpaceCadet,
                         ),
                       ),
                     ),
@@ -418,11 +419,15 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
               label: Text(l10n.allYearsFilter),
               selected: _selectedYear == null,
               onSelected: (selected) => _selectYear(null),
-              selectedColor: theme.colorScheme.primary,
-              checkmarkColor: Colors.white,
+              selectedColor: AppColors.yellow,
+              checkmarkColor: AppColors.navySpaceCadet,
+              backgroundColor: AppColors.surfaceLight,
+              side: BorderSide(
+                color: _selectedYear == null ? AppColors.yellow : AppColors.navySpaceCadet.withValues(alpha: 0.3),
+              ),
               labelStyle: TextStyle(
-                color: _selectedYear == null ? Colors.white : theme.colorScheme.onSurface,
-                fontWeight: _selectedYear == null ? FontWeight.w600 : FontWeight.normal,
+                color: _selectedYear == null ? AppColors.navySpaceCadet : AppColors.navySpaceCadet,
+                fontWeight: _selectedYear == null ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ),
@@ -435,11 +440,15 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 label: Text(year.toString()),
                 selected: isSelected,
                 onSelected: (selected) => _selectYear(year),
-                selectedColor: theme.colorScheme.primary,
-                checkmarkColor: Colors.white,
+                selectedColor: AppColors.yellow,
+                checkmarkColor: AppColors.navySpaceCadet,
+                backgroundColor: AppColors.surfaceLight,
+                side: BorderSide(
+                  color: isSelected ? AppColors.yellow : AppColors.navySpaceCadet.withValues(alpha: 0.3),
+                ),
                 labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: AppColors.navySpaceCadet,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
             );
@@ -454,18 +463,11 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     final terminologyProvider = context.watch<TerminologyProvider>();
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.primary.withValues(alpha: 0.7),
-          ],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            color: AppColors.navySpaceCadet.withValues(alpha: 0.15),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -475,7 +477,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            // Decorative circles
+            // Decorative circles with navy tint
             Positioned(
               top: -50,
               right: -50,
@@ -484,7 +486,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 height: 150,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: AppColors.navySpaceCadet.withValues(alpha: 0.05),
                 ),
               ),
             ),
@@ -496,7 +498,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: AppColors.yellow.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -513,7 +515,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                         child: Text(
                           _selectedYear != null ? l10n.yearEarnings(_selectedYear!) : l10n.totalEarningsTitle,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: AppColors.navySpaceCadet.withValues(alpha: 0.8),
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
@@ -524,13 +526,13 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: AppColors.navySpaceCadet,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             terminologyProvider.getCount(stats.totalShifts),
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.yellow,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -544,7 +546,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                   Text(
                     '\$${total.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.navySpaceCadet,
                       fontSize: 56,
                       fontWeight: FontWeight.w800,
                       height: 1.0,
@@ -588,10 +590,10 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
+                              color: AppColors.navySpaceCadet.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
+                                color: AppColors.navySpaceCadet.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -601,13 +603,13 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                                 Icon(
                                   Icons.badge_outlined,
                                   size: 14,
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: AppColors.navySpaceCadet.withValues(alpha: 0.8),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   '${entry.key}: ${entry.value}',
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.95),
+                                    color: AppColors.navySpaceCadet.withValues(alpha: 0.9),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -633,12 +635,12 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
+        color: AppColors.navySpaceCadet.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.white.withValues(alpha: 0.9)),
+          Icon(icon, size: 18, color: AppColors.navySpaceCadet.withValues(alpha: 0.7)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -647,7 +649,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 Text(
                   value,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.navySpaceCadet,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -655,7 +657,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: AppColors.navySpaceCadet.withValues(alpha: 0.6),
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
@@ -685,6 +687,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
         borderRadius: BorderRadius.circular(16),
       ),
       elevation: 2,
+      color: Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
@@ -713,14 +716,23 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
+                      color: AppColors.navySpaceCadet,
                     ),
                   ),
-                  Text(
-                    '\$${month.totalEarnings.toStringAsFixed(2)}',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary,
-                      fontSize: 20,
+                  // Earnings amount with navy label background and yellow text
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.navySpaceCadet,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '\$${month.totalEarnings.toStringAsFixed(2)}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.yellow,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                 ],
@@ -729,21 +741,21 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
               Row(
                 children: [
                   Expanded(
-                    child: _StatItem(
+                    child: _MonthStatItem(
                       icon: Icons.access_time,
                       label: AppLocalizations.of(context)!.hours,
                       value: month.totalHours.toStringAsFixed(1),
                     ),
                   ),
                   Expanded(
-                    child: _StatItem(
+                    child: _MonthStatItem(
                       icon: Icons.event,
                       label: AppLocalizations.of(context)!.events,
                       value: '${month.eventCount}',
                     ),
                   ),
                   Expanded(
-                    child: _StatItem(
+                    child: _MonthStatItem(
                       icon: Icons.trending_up,
                       label: AppLocalizations.of(context)!.avgRate,
                       value: '\$${avgRate.toStringAsFixed(0)}/hr',
@@ -759,13 +771,13 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
   }
 }
 
-/// Stat item widget (reused from original)
-class _StatItem extends StatelessWidget {
+/// Stat item widget for monthly cards (navy theme on white background)
+class _MonthStatItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
 
-  const _StatItem({
+  const _MonthStatItem({
     required this.icon,
     required this.label,
     required this.value,
@@ -773,21 +785,22 @@ class _StatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Column(
       children: [
-        Icon(icon, size: 20, color: theme.colorScheme.primary.withValues(alpha: 0.7)),
+        Icon(icon, size: 20, color: AppColors.navySpaceCadet.withValues(alpha: 0.7)),
         const SizedBox(height: 4),
         Text(
           value,
-          style: theme.textTheme.titleSmall?.copyWith(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: AppColors.navySpaceCadet,
           ),
         ),
         Text(
           label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+          style: TextStyle(
+            color: AppColors.navySpaceCadet.withValues(alpha: 0.6),
             fontSize: 11,
           ),
         ),
@@ -795,6 +808,7 @@ class _StatItem extends StatelessWidget {
     );
   }
 }
+
 
 /// Monthly earnings detail page (optimized to use cached data)
 class MonthlyEarningsDetailPage extends StatelessWidget {

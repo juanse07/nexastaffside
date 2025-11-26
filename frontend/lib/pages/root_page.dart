@@ -2490,8 +2490,15 @@ class _HomeTabState extends State<_HomeTab> {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainer,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.navySpaceCadet.withOpacity(0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Column(
                         children: [
@@ -2499,15 +2506,13 @@ class _HomeTabState extends State<_HomeTab> {
                             width: 64,
                             height: 64,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
-                              ),
+                              color: AppColors.navySpaceCadet,
                               borderRadius: BorderRadius.circular(32),
                             ),
                             child: const Icon(
                               Icons.event_available_outlined,
                               size: 32,
-                              color: Colors.white,
+                              color: AppColors.yellow,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -2515,13 +2520,14 @@ class _HomeTabState extends State<_HomeTab> {
                             'No upcoming events',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
+                              color: AppColors.navySpaceCadet,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Accept an event from the Shifts tab to see it here',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                              color: AppColors.navySpaceCadet.withOpacity(0.6),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -2635,18 +2641,10 @@ class _HomeTabState extends State<_HomeTab> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
-        ),
-        border: Border.all(
-          color: AppColors.purpleLight.withOpacity(0.2),
-          width: 1,
-        ),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.purpleLight.withOpacity(0.1),
+            color: AppColors.navySpaceCadet.withOpacity(0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -2664,15 +2662,13 @@ class _HomeTabState extends State<_HomeTab> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
-                      ),
+                      color: AppColors.navySpaceCadet,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.work_rounded,
                       size: 20,
-                      color: Colors.white,
+                      color: AppColors.yellow,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -2682,6 +2678,7 @@ class _HomeTabState extends State<_HomeTab> {
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
+                        color: AppColors.navySpaceCadet,
                       ),
                     ),
                   ),
@@ -2694,7 +2691,7 @@ class _HomeTabState extends State<_HomeTab> {
                 child: Text(
                   title,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: AppColors.navySpaceCadet.withOpacity(0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -2707,9 +2704,7 @@ class _HomeTabState extends State<_HomeTab> {
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
-                      ),
+                      color: AppColors.navySpaceCadet,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -2719,6 +2714,7 @@ class _HomeTabState extends State<_HomeTab> {
                       title,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
+                        color: AppColors.navySpaceCadet,
                       ),
                     ),
                   ),
@@ -2736,11 +2732,8 @@ class _HomeTabState extends State<_HomeTab> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
+                    color: AppColors.navySpaceCadet.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withOpacity(0.3),
-                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -2748,13 +2741,13 @@ class _HomeTabState extends State<_HomeTab> {
                       Icon(
                         Icons.business_outlined,
                         size: 14,
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: AppColors.navySpaceCadet.withOpacity(0.7),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         clientName,
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: AppColors.navySpaceCadet,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -2769,7 +2762,7 @@ class _HomeTabState extends State<_HomeTab> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+                  color: AppColors.navySpaceCadet.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -2777,15 +2770,13 @@ class _HomeTabState extends State<_HomeTab> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
-                        ),
+                        color: AppColors.navySpaceCadet,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
                         Icons.calendar_today_rounded,
                         size: 16,
-                        color: Colors.white,
+                        color: AppColors.yellow,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -2798,6 +2789,7 @@ class _HomeTabState extends State<_HomeTab> {
                         ),
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: AppColors.navySpaceCadet,
                         ),
                       ),
                     ),
@@ -2813,9 +2805,7 @@ class _HomeTabState extends State<_HomeTab> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                    0.5,
-                  ),
+                  color: AppColors.navySpaceCadet.withOpacity(0.04),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -2823,13 +2813,13 @@ class _HomeTabState extends State<_HomeTab> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        color: AppColors.navySpaceCadet.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
                         Icons.location_on_rounded,
                         size: 16,
-                        color: theme.colorScheme.primary,
+                        color: AppColors.navySpaceCadet.withOpacity(0.8),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -2842,6 +2832,7 @@ class _HomeTabState extends State<_HomeTab> {
                               venueAddress,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
+                                color: AppColors.navySpaceCadet,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -2851,6 +2842,7 @@ class _HomeTabState extends State<_HomeTab> {
                               venue,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
+                                color: AppColors.navySpaceCadet,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -2863,9 +2855,7 @@ class _HomeTabState extends State<_HomeTab> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.success, AppColors.success],
-                          ),
+                          color: AppColors.navySpaceCadet,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Material(
@@ -2876,7 +2866,7 @@ class _HomeTabState extends State<_HomeTab> {
                             child: const Icon(
                               Icons.directions_rounded,
                               size: 18,
-                              color: Colors.white,
+                              color: AppColors.yellow,
                             ),
                           ),
                         ),
@@ -2899,37 +2889,29 @@ class _HomeTabState extends State<_HomeTab> {
                           horizontal: 12,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              theme.colorScheme.primary.withOpacity(0.1),
-                              theme.colorScheme.primary.withOpacity(0.05),
-                            ],
-                          ),
+                          color: AppColors.navySpaceCadet.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: theme.colorScheme.primary.withOpacity(0.2),
-                          ),
                         ),
                         child: Column(
                           children: [
                             Icon(
                               Icons.schedule_rounded,
                               size: 20,
-                              color: theme.colorScheme.primary,
+                              color: AppColors.navySpaceCadet.withOpacity(0.7),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               durationLabel,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
-                                color: theme.colorScheme.primary,
+                                color: AppColors.navySpaceCadet,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Duration',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                                color: AppColors.navySpaceCadet.withOpacity(0.6),
                                 fontSize: 11,
                               ),
                             ),
@@ -2947,46 +2929,29 @@ class _HomeTabState extends State<_HomeTab> {
                           horizontal: 12,
                         ),
                         decoration: BoxDecoration(
-                          gradient: isPrivate
-                              ? const LinearGradient(
-                                  colors: [Color(0xFFF3E8FF), Color(0xFFFAF5FF)],
-                                )
-                              : const LinearGradient(
-                                  colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
-                                ),
+                          color: AppColors.navySpaceCadet,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isPrivate
-                                ? AppColors.purple.withOpacity(0.3)
-                                : Colors.green.shade200,
-                          ),
                         ),
                         child: Column(
                           children: [
                             Icon(
                               Icons.payments_rounded,
                               size: 20,
-                              color: isPrivate
-                                  ? AppColors.purple
-                                  : Colors.green.shade700,
+                              color: AppColors.yellow.withOpacity(0.8),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               estimatedPay,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
-                                color: isPrivate
-                                    ? AppColors.purple
-                                    : Colors.green.shade800,
+                                color: AppColors.yellow,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               AppLocalizations.of(context)!.estimated,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: isPrivate
-                                    ? AppColors.purple
-                                    : Colors.green.shade700,
+                                color: Colors.white.withOpacity(0.7),
                                 fontSize: 11,
                               ),
                             ),
@@ -3005,8 +2970,7 @@ class _HomeTabState extends State<_HomeTab> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest
-                        .withOpacity(0.3),
+                    color: AppColors.navySpaceCadet.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -3014,17 +2978,14 @@ class _HomeTabState extends State<_HomeTab> {
                       Icon(
                         Icons.info_outline_rounded,
                         size: 14,
-                        color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                          0.6,
-                        ),
+                        color: AppColors.navySpaceCadet.withOpacity(0.5),
                       ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Estimate does not include applicable taxes',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withOpacity(0.8),
+                            color: AppColors.navySpaceCadet.withOpacity(0.6),
                             fontSize: 11,
                           ),
                         ),
@@ -3048,16 +3009,14 @@ class _HomeTabState extends State<_HomeTab> {
             width: double.infinity,
             height: 56,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: _canClockIn
-                    ? const [AppColors.success, AppColors.success]
-                    : [Colors.grey.shade400, Colors.grey.shade500],
-              ),
+              color: _canClockIn
+                  ? AppColors.navySpaceCadet
+                  : Colors.grey.shade400,
               borderRadius: BorderRadius.circular(12),
               boxShadow: _canClockIn
                   ? [
                       BoxShadow(
-                        color: AppColors.success.withOpacity(0.3),
+                        color: AppColors.navySpaceCadet.withOpacity(0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -3079,18 +3038,18 @@ class _HomeTabState extends State<_HomeTab> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColors.yellow,
                       ),
                     )
                   : const Icon(
                       Icons.play_arrow_rounded,
-                      color: Colors.white,
+                      color: AppColors.yellow,
                       size: 24,
                     ),
               label: Text(
                 _loading ? 'Clocking in...' : 'Clock In',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.yellow,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -3102,9 +3061,7 @@ class _HomeTabState extends State<_HomeTab> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                  0.5,
-                ),
+                color: AppColors.navySpaceCadet.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -3112,14 +3069,14 @@ class _HomeTabState extends State<_HomeTab> {
                   Icon(
                     Icons.schedule_rounded,
                     size: 16,
-                    color: theme.colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    color: AppColors.navySpaceCadet.withOpacity(0.7),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _clockInError!,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: AppColors.navySpaceCadet,
                         fontSize: 12,
                       ),
                     ),
@@ -3134,19 +3091,8 @@ class _HomeTabState extends State<_HomeTab> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppColors.primaryIndigo.withOpacity(0.1),
-                  AppColors.purpleLight.withOpacity(0.05),
-                ],
-              ),
+              color: AppColors.navySpaceCadet.withOpacity(0.06),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.primaryIndigo.withOpacity(0.2),
-                width: 1,
-              ),
             ),
             child: Column(
               children: [
@@ -3156,22 +3102,22 @@ class _HomeTabState extends State<_HomeTab> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
+                        color: AppColors.navySpaceCadet,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.timer,
-                        color: AppColors.success,
+                        color: AppColors.yellow,
                         size: 24,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
+                    Text(
                       'Time Worked',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
+                        color: AppColors.navySpaceCadet.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -3182,7 +3128,7 @@ class _HomeTabState extends State<_HomeTab> {
                   style: const TextStyle(
                     fontSize: 48,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
+                    color: AppColors.navySpaceCadet,
                     letterSpacing: 2,
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
@@ -3193,7 +3139,7 @@ class _HomeTabState extends State<_HomeTab> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
+                    color: AppColors.navySpaceCadet.withOpacity(0.6),
                   ),
                 ),
               ],
@@ -4532,8 +4478,15 @@ class _MyEventsListState extends State<_MyEventsList> {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainer,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navySpaceCadet.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -4541,15 +4494,13 @@ class _MyEventsListState extends State<_MyEventsList> {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.purpleLight, Color(0xFFEC4899)],
-                  ),
+                  color: AppColors.navySpaceCadet,
                   borderRadius: BorderRadius.circular(32),
                 ),
                 child: const Icon(
                   Icons.event_available_outlined,
                   size: 32,
-                  color: Colors.white,
+                  color: AppColors.yellow,
                 ),
               ),
               const SizedBox(height: 16),
@@ -4557,13 +4508,14 @@ class _MyEventsListState extends State<_MyEventsList> {
                 l10n.noAcceptedTerminology(terminologyProvider.plural.toLowerCase()),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: AppColors.navySpaceCadet,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 l10n.acceptTerminologyFromRoles(terminologyProvider.plural.toLowerCase()),
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: AppColors.navySpaceCadet.withOpacity(0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -5266,8 +5218,15 @@ class _RoleList extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainer,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navySpaceCadet.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -5275,15 +5234,13 @@ class _RoleList extends StatelessWidget {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6366F1), AppColors.purpleLight],
-                  ),
+                  color: AppColors.navySpaceCadet,
                   borderRadius: BorderRadius.circular(32),
                 ),
                 child: const Icon(
                   Icons.work_outline,
                   size: 32,
-                  color: Colors.white,
+                  color: AppColors.yellow,
                 ),
               ),
               const SizedBox(height: 16),
@@ -5291,13 +5248,14 @@ class _RoleList extends StatelessWidget {
                 'No roles available',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: AppColors.navySpaceCadet,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Pull to refresh and check for new events',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: AppColors.navySpaceCadet.withOpacity(0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -5923,7 +5881,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                                             right: 2,
                                           ),
                                           decoration: const BoxDecoration(
-                                            color: AppColors.purpleLight,
+                                            color: AppColors.oceanBlue,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -5950,34 +5908,31 @@ class _CalendarTabState extends State<_CalendarTab> {
                                   color: theme.colorScheme.onSurface,
                                 ),
                                 holidayTextStyle: TextStyle(
-                                  color: theme.colorScheme.primary,
+                                  color: AppColors.navySpaceCadet,
                                 ),
-                                selectedDecoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      AppColors.purpleLight,
-                                      Color(0xFFEC4899),
-                                    ],
-                                  ),
+                                selectedDecoration: const BoxDecoration(
+                                  color: AppColors.navySpaceCadet,
                                   shape: BoxShape.circle,
                                 ),
+                                selectedTextStyle: const TextStyle(
+                                  color: AppColors.yellow,
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 todayDecoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.3,
-                                  ),
+                                  color: AppColors.oceanBlue.withOpacity(0.3),
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                              headerStyle: HeaderStyle(
+                              headerStyle: const HeaderStyle(
                                 formatButtonVisible: false,
                                 titleCentered: true,
                                 leftChevronIcon: Icon(
                                   Icons.chevron_left,
-                                  color: theme.colorScheme.primary,
+                                  color: AppColors.navySpaceCadet,
                                 ),
                                 rightChevronIcon: Icon(
                                   Icons.chevron_right,
-                                  color: theme.colorScheme.primary,
+                                  color: AppColors.navySpaceCadet,
                                 ),
                               ),
                               selectedDayPredicate: (day) {
@@ -6438,9 +6393,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                       width: 6,
                       height: 6,
                       decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.purpleLight, Color(0xFFEC4899)],
-                        ),
+                        color: AppColors.oceanBlue,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -6450,6 +6403,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                         clientName.isNotEmpty ? clientName : eventName,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: AppColors.navySpaceCadet,
                         ),
                       ),
                     ),
@@ -6460,7 +6414,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                   Text(
                     eventName,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: AppColors.navySpaceCadet.withOpacity(0.7),
                     ),
                   ),
                 ],
@@ -6469,7 +6423,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                   Text(
                     venue,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: AppColors.navySpaceCadet.withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -6478,7 +6432,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                   Text(
                     timeLabel,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
+                      color: AppColors.oceanBlue,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
