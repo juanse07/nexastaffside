@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/event_chat_message.dart';
 import '../services/event_team_chat_service.dart';
 import '../services/data_service.dart';
+import '../shared/presentation/theme/theme.dart';
 
 class EventTeamChatPage extends StatefulWidget {
   const EventTeamChatPage({
@@ -191,8 +192,8 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
             ),
           ],
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: AppColors.backgroundWhite,
+        foregroundColor: AppColors.textDark,
         elevation: 0,
       ),
       body: Column(
@@ -200,15 +201,15 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
           if (!widget.chatEnabled)
             Container(
               padding: const EdgeInsets.all(16),
-              color: Colors.orange.shade50,
+              color: AppColors.warningLight,
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.orange.shade700),
+                  Icon(Icons.info_outline, color: AppColors.warning),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Team chat will be enabled 1 hour before the event starts',
-                      style: TextStyle(color: Colors.orange.shade900, fontSize: 13),
+                      style: TextStyle(color: AppColors.warningDark, fontSize: 13),
                     ),
                   ),
                 ],
@@ -233,7 +234,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+            Text('Error: $_error', style: const TextStyle(color: AppColors.error)),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadMessages,
@@ -253,12 +254,12 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.schedule, size: 64, color: Colors.orange.shade300),
+                Icon(Icons.schedule, size: 64, color: AppColors.warningLight),
                 const SizedBox(height: 24),
                 Text(
                   'Chat Opens Soon',
                   style: TextStyle(
-                    color: Colors.grey.shade800,
+                    color: AppColors.textDark,
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                   ),
@@ -266,13 +267,13 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                 const SizedBox(height: 12),
                 Text(
                   'Team chat will automatically open 1 hour before your shift starts',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Come back closer to your shift time to coordinate with your team!',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -285,16 +286,16 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey.shade300),
+            Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.borderLight),
             const SizedBox(height: 16),
             Text(
               'No messages yet',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
               'Start the conversation!',
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 14),
             ),
           ],
         ),
@@ -324,19 +325,19 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: AppColors.surfaceBlue,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.info_outline, size: 14, color: Colors.blue.shade700),
+              Icon(Icons.info_outline, size: 14, color: AppColors.info),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   message.message,
                   style: TextStyle(
-                    color: Colors.blue.shade900,
+                    color: AppColors.infoDark,
                     fontSize: 12,
                   ),
                   textAlign: TextAlign.center,
@@ -364,12 +365,12 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
             backgroundImage: message.senderAvatar != null
                 ? NetworkImage(message.senderAvatar!)
                 : null,
-            backgroundColor: isFromManager ? Colors.purple.shade100 : Colors.blue.shade100,
+            backgroundColor: isFromManager ? AppColors.warningLight : AppColors.surfaceBlue,
             child: message.senderAvatar == null
                 ? Text(
                     message.senderName[0].toUpperCase(),
                     style: TextStyle(
-                      color: isFromManager ? Colors.purple.shade700 : Colors.blue.shade700,
+                      color: isFromManager ? AppColors.primaryPurple : AppColors.info,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -397,13 +398,13 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                         margin: const EdgeInsets.only(left: 6),
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.purple.shade50,
+                          color: AppColors.warningLight,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text(
+                        child: const Text(
                           'Manager',
                           style: TextStyle(
-                            color: Colors.purple.shade700,
+                            color: AppColors.primaryPurple,
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
                           ),
@@ -437,9 +438,9 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.backgroundWhite,
         border: Border(
-          top: BorderSide(color: Colors.grey.shade200),
+          top: BorderSide(color: AppColors.borderLight),
         ),
       ),
       child: SafeArea(
@@ -452,7 +453,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                   hintText: 'Type a message...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: AppColors.borderMedium),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,

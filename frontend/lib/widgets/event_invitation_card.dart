@@ -64,7 +64,7 @@ class EventInvitationCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isAccepted
                         ? const Color(0xFF10B981)
-                        : const Color(0xFF9333EA), // Pure purple for invitations
+                        : const Color(0xFFFFC107), // Yellow/gold for invitations
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -88,7 +88,7 @@ class EventInvitationCard extends StatelessWidget {
                             colors: [Color(0xFF10B981), Color(0xFF059669)],
                           )
                         : const LinearGradient(
-                            colors: [Color(0xFFFF6B6B), Color(0xFF9333EA)], // Coral to purple gradient
+                            colors: [Color(0xFFFFC107), Color(0xFF3B82F6)], // Yellow to blue gradient
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -136,7 +136,7 @@ class EventInvitationCard extends StatelessWidget {
                         size: 20,
                         color: isAccepted
                             ? const Color(0xFF16A34A).withOpacity(0.5) // Subtle green for accepted
-                            : const Color(0xFF9333EA), // Pure purple for invitations
+                            : const Color(0xFFFFC107), // Yellow/gold for invitations
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -166,7 +166,7 @@ class EventInvitationCard extends StatelessWidget {
                         size: 18,
                         color: isAccepted
                             ? const Color(0xFF16A34A).withOpacity(0.5) // Subtle green for accepted
-                            : const Color(0xFF9333EA), // Pure purple for invitations
+                            : const Color(0xFFFFC107), // Yellow/gold for invitations
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -191,7 +191,7 @@ class EventInvitationCard extends StatelessWidget {
                 gradient: isAccepted
                     ? null
                     : const LinearGradient(
-                        colors: [Color(0xFFFFEBEB), Color(0xFFFAF5FF)], // Light coral to light purple
+                        colors: [Color(0xFFFFF9E5), Color(0xFFE3F2FD)], // Light yellow to light blue
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
@@ -207,7 +207,7 @@ class EventInvitationCard extends StatelessWidget {
                     size: 16,
                     color: isAccepted
                         ? const Color(0xFF16A34A).withOpacity(0.5) // Subtle green for accepted
-                        : const Color(0xFF9333EA), // Pure purple for invitations
+                        : const Color(0xFFFFC107), // Pure purple for invitations
                   ),
                   const SizedBox(width: 8),
                   Expanded(

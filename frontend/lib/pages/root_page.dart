@@ -33,6 +33,7 @@ import 'earnings_page.dart';
 import 'conversations_page.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 
 enum _AccountMenuAction { profile, teams, settings, logout }
 
@@ -951,16 +952,12 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               },
               child: Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
-                ),
+                color: AppColors.surfaceWhite,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, -5),
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
@@ -1045,7 +1042,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                   Icon(
                     isSelected ? selectedIcon : icon,
                     size: 28,
-                    color: Colors.white,
+                    color: isSelected ? AppColors.oceanBlue : AppColors.textMuted,
                   ),
                   if (badgeCount > 0)
                     Positioned(
@@ -1075,10 +1072,10 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                style: TextStyle(
+                  color: isSelected ? AppColors.oceanBlue : AppColors.textMuted,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   letterSpacing: 0.3,
                 ),
               ),
@@ -1282,7 +1279,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
             ? Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF6B46C1), width: 2),
+                  border: Border.all(color: AppColors.primaryIndigo, width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 16,
@@ -1511,7 +1508,14 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
           filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF7A3AFB).withOpacity(0.75),
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  AppColors.navySpaceCadet, // #212C4A
+                  AppColors.oceanBlue,       // #1E3A8A
+                ],
+              ),
               border: Border(
                 bottom: BorderSide(
                   color: Colors.white.withOpacity(0.1),
@@ -1976,7 +1980,7 @@ class _HomeTabState extends State<_HomeTab> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(AppLocalizations.of(context)!.timerRestored),
-                backgroundColor: Color(0xFFF59E0B),
+                backgroundColor: AppColors.warning,
                 duration: Duration(seconds: 2),
               ),
             );
@@ -1984,7 +1988,7 @@ class _HomeTabState extends State<_HomeTab> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(AppLocalizations.of(context)!.clockedInSuccessfully),
-                backgroundColor: Color(0xFF10B981),
+                backgroundColor: AppColors.success,
                 duration: Duration(seconds: 2),
               ),
             );
@@ -2039,7 +2043,7 @@ class _HomeTabState extends State<_HomeTab> {
                 ),
               ],
             ),
-            backgroundColor: Color(0xFF8B5CF6),
+            backgroundColor: AppColors.purpleLight,
             duration: Duration(seconds: 3),
           ),
         );
@@ -2062,7 +2066,7 @@ class _HomeTabState extends State<_HomeTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to queue clock-in: ${e.toString()}'),
-            backgroundColor: const Color(0xFFEF4444),
+            backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -2129,7 +2133,7 @@ class _HomeTabState extends State<_HomeTab> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context)!.clockedOutSuccessfully(_elapsedTimeText)),
-              backgroundColor: const Color(0xFF10B981),
+              backgroundColor: AppColors.success,
               duration: const Duration(seconds: 3),
             ),
           );
@@ -2193,7 +2197,7 @@ class _HomeTabState extends State<_HomeTab> {
                 ),
               ],
             ),
-            backgroundColor: const Color(0xFF8B5CF6),
+            backgroundColor: AppColors.purpleLight,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -2216,7 +2220,7 @@ class _HomeTabState extends State<_HomeTab> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to queue clock-out: ${e.toString()}'),
-            backgroundColor: const Color(0xFFEF4444),
+            backgroundColor: AppColors.error,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -2496,7 +2500,7 @@ class _HomeTabState extends State<_HomeTab> {
                             height: 64,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                                colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
                               ),
                               borderRadius: BorderRadius.circular(32),
                             ),
@@ -2535,7 +2539,7 @@ class _HomeTabState extends State<_HomeTab> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF10B981), Color(0xFF059669)],
+                            colors: [AppColors.success, AppColors.success],
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -2637,12 +2641,12 @@ class _HomeTabState extends State<_HomeTab> {
           colors: [Color(0xFFFFFFFF), Color(0xFFFAFAFC)],
         ),
         border: Border.all(
-          color: const Color(0xFF8B5CF6).withOpacity(0.2),
+          color: AppColors.purpleLight.withOpacity(0.2),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.1),
+            color: AppColors.purpleLight.withOpacity(0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -2661,7 +2665,7 @@ class _HomeTabState extends State<_HomeTab> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                        colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -2704,7 +2708,7 @@ class _HomeTabState extends State<_HomeTab> {
                     height: 8,
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                        colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
                       ),
                       shape: BoxShape.circle,
                     ),
@@ -2774,7 +2778,7 @@ class _HomeTabState extends State<_HomeTab> {
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF8B5CF6), Color(0xFF6366F1)],
+                          colors: [AppColors.primaryIndigo, AppColors.secondaryPurple],
                         ),
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -2860,7 +2864,7 @@ class _HomeTabState extends State<_HomeTab> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF10B981), Color(0xFF059669)],
+                            colors: [AppColors.success, AppColors.success],
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -2953,7 +2957,7 @@ class _HomeTabState extends State<_HomeTab> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isPrivate
-                                ? const Color(0xFF9333EA).withOpacity(0.3)
+                                ? AppColors.purple.withOpacity(0.3)
                                 : Colors.green.shade200,
                           ),
                         ),
@@ -2963,7 +2967,7 @@ class _HomeTabState extends State<_HomeTab> {
                               Icons.payments_rounded,
                               size: 20,
                               color: isPrivate
-                                  ? const Color(0xFF9333EA)
+                                  ? AppColors.purple
                                   : Colors.green.shade700,
                             ),
                             const SizedBox(height: 6),
@@ -2972,7 +2976,7 @@ class _HomeTabState extends State<_HomeTab> {
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                                 color: isPrivate
-                                    ? const Color(0xFF9333EA)
+                                    ? AppColors.purple
                                     : Colors.green.shade800,
                               ),
                             ),
@@ -2981,7 +2985,7 @@ class _HomeTabState extends State<_HomeTab> {
                               AppLocalizations.of(context)!.estimated,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: isPrivate
-                                    ? const Color(0xFF9333EA)
+                                    ? AppColors.purple
                                     : Colors.green.shade700,
                                 fontSize: 11,
                               ),
@@ -3046,14 +3050,14 @@ class _HomeTabState extends State<_HomeTab> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: _canClockIn
-                    ? const [Color(0xFF10B981), Color(0xFF059669)]
+                    ? const [AppColors.success, AppColors.success]
                     : [Colors.grey.shade400, Colors.grey.shade500],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: _canClockIn
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF10B981).withOpacity(0.3),
+                        color: AppColors.success.withOpacity(0.3),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -3134,13 +3138,13 @@ class _HomeTabState extends State<_HomeTab> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF6366F1).withOpacity(0.1),
-                  const Color(0xFF8B5CF6).withOpacity(0.05),
+                  AppColors.primaryIndigo.withOpacity(0.1),
+                  AppColors.purpleLight.withOpacity(0.05),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF6366F1).withOpacity(0.2),
+                color: AppColors.primaryIndigo.withOpacity(0.2),
                 width: 1,
               ),
             ),
@@ -3152,12 +3156,12 @@ class _HomeTabState extends State<_HomeTab> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        color: AppColors.success.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.timer,
-                        color: Color(0xFF10B981),
+                        color: AppColors.success,
                         size: 24,
                       ),
                     ),
@@ -3202,12 +3206,12 @@ class _HomeTabState extends State<_HomeTab> {
             height: 56,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                colors: [AppColors.error, Color(0xFFDC2626)],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFEF4444).withOpacity(0.3),
+                  color: AppColors.error.withOpacity(0.3),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -3293,16 +3297,16 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
                     onSelected: (selected) {
                       if (selected) onViewChanged(_ViewMode.available);
                     },
-                    selectedColor: const Color(0xFF6A1B9A),
+                    selectedColor: AppColors.primaryIndigo,
                     labelStyle: TextStyle(
                       color: selectedView == _ViewMode.available
                           ? Colors.white
-                          : const Color(0xFF6A1B9A),
+                          : const Color(0xFF2C3E50),
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                     side: BorderSide(
-                      color: const Color(0xFF6A1B9A),
+                      color: const Color(0xFF2C3E50),
                       width: selectedView == _ViewMode.available ? 0 : 1,
                     ),
                   ),
@@ -3314,16 +3318,16 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
                     onSelected: (selected) {
                       if (selected) onViewChanged(_ViewMode.myEvents);
                     },
-                    selectedColor: const Color(0xFF6A1B9A),
+                    selectedColor: AppColors.primaryIndigo,
                     labelStyle: TextStyle(
                       color: selectedView == _ViewMode.myEvents
                           ? Colors.white
-                          : const Color(0xFF6A1B9A),
+                          : const Color(0xFF2C3E50),
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                     side: BorderSide(
-                      color: const Color(0xFF6A1B9A),
+                      color: const Color(0xFF2C3E50),
                       width: selectedView == _ViewMode.myEvents ? 0 : 1,
                     ),
                   ),
@@ -3335,16 +3339,16 @@ class _FilterChipsDelegate extends SliverPersistentHeaderDelegate {
                     onSelected: (selected) {
                       if (selected) onViewChanged(_ViewMode.calendar);
                     },
-                    selectedColor: const Color(0xFF6A1B9A),
+                    selectedColor: AppColors.primaryIndigo,
                     labelStyle: TextStyle(
                       color: selectedView == _ViewMode.calendar
                           ? Colors.white
-                          : const Color(0xFF6A1B9A),
+                          : const Color(0xFF2C3E50),
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                     side: BorderSide(
-                      color: const Color(0xFF6A1B9A),
+                      color: const Color(0xFF2C3E50),
                       width: selectedView == _ViewMode.calendar ? 0 : 1,
                     ),
                   ),
@@ -3790,8 +3794,15 @@ class _RolesSectionState extends State<_RolesSection> {
     final theme = Theme.of(context);
     final terminologyProvider = context.watch<TerminologyProvider>();
     terminologyProvider.updateSystemLanguage(context);
+
+    // DEBUG: Log incoming events
+    debugPrint('🔍 [ROLES_SECTION] Building with ${widget.events.length} events, userKey=${widget.userKey}, loading=${widget.loading}');
+
     final roleSummaries = _computeRoleSummaries();
     final availableCount = roleSummaries.length;
+
+    // DEBUG: Log computed summaries
+    debugPrint('🔍 [ROLES_SECTION] Computed ${roleSummaries.length} role summaries');
     final totalPositions = roleSummaries.fold<int>(
       0,
       (sum, role) => sum + role.totalNeeded,
@@ -3866,7 +3877,14 @@ class _RolesSectionState extends State<_RolesSection> {
                     filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF7A3AFB).withOpacity(0.75),
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.navySpaceCadet, // #212C4A
+                            AppColors.oceanBlue,       // #1E3A8A
+                          ],
+                        ),
                         border: Border(
                           bottom: BorderSide(
                             color: Colors.white.withOpacity(0.1),
@@ -3915,67 +3933,91 @@ class _RolesSectionState extends State<_RolesSection> {
                         children: [
                           FilterChip(
                             label: Text(AppLocalizations.of(context)!.available),
-                            avatar: const Icon(Icons.work_outline, size: 18),
+                            avatar: Icon(
+                              Icons.work_outline,
+                              size: 18,
+                              color: _selectedView == _ViewMode.available
+                                  ? AppColors.navySpaceCadet
+                                  : AppColors.textMuted,
+                            ),
                             selected: _selectedView == _ViewMode.available,
                             onSelected: (selected) {
                               if (selected) setState(() => _selectedView = _ViewMode.available);
                             },
                             backgroundColor: Colors.white.withOpacity(0.7),
-                            selectedColor: const Color(0xFF6A1B9A),
+                            selectedColor: AppColors.primaryIndigo,
                             labelStyle: TextStyle(
                               color: _selectedView == _ViewMode.available
-                                  ? Colors.white
-                                  : const Color(0xFF6A1B9A),
+                                  ? AppColors.navySpaceCadet
+                                  : AppColors.textMuted,
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
                             side: BorderSide(
-                              color: const Color(0xFF6A1B9A),
-                              width: _selectedView == _ViewMode.available ? 0 : 1,
+                              color: _selectedView == _ViewMode.available
+                                  ? AppColors.oceanBlue
+                                  : AppColors.borderGrey,
+                              width: _selectedView == _ViewMode.available ? 1.5 : 1,
                             ),
                           ),
                           const SizedBox(width: 8),
                           FilterChip(
                             label: Text(terminologyProvider.my),
-                            avatar: const Icon(Icons.event, size: 18),
+                            avatar: Icon(
+                              Icons.event,
+                              size: 18,
+                              color: _selectedView == _ViewMode.myEvents
+                                  ? AppColors.navySpaceCadet
+                                  : AppColors.textMuted,
+                            ),
                             selected: _selectedView == _ViewMode.myEvents,
                             onSelected: (selected) {
                               if (selected) setState(() => _selectedView = _ViewMode.myEvents);
                             },
                             backgroundColor: Colors.white.withOpacity(0.7),
-                            selectedColor: const Color(0xFF6A1B9A),
+                            selectedColor: AppColors.primaryIndigo,
                             labelStyle: TextStyle(
                               color: _selectedView == _ViewMode.myEvents
-                                  ? Colors.white
-                                  : const Color(0xFF6A1B9A),
+                                  ? AppColors.navySpaceCadet
+                                  : AppColors.textMuted,
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
                             side: BorderSide(
-                              color: const Color(0xFF6A1B9A),
-                              width: _selectedView == _ViewMode.myEvents ? 0 : 1,
+                              color: _selectedView == _ViewMode.myEvents
+                                  ? AppColors.oceanBlue
+                                  : AppColors.borderGrey,
+                              width: _selectedView == _ViewMode.myEvents ? 1.5 : 1,
                             ),
                           ),
                           const SizedBox(width: 8),
                           FilterChip(
                             label: Text(AppLocalizations.of(context)!.calendar),
-                            avatar: const Icon(Icons.calendar_month, size: 18),
+                            avatar: Icon(
+                              Icons.calendar_month,
+                              size: 18,
+                              color: _selectedView == _ViewMode.calendar
+                                  ? AppColors.navySpaceCadet
+                                  : AppColors.textMuted,
+                            ),
                             selected: _selectedView == _ViewMode.calendar,
                             onSelected: (selected) {
                               if (selected) setState(() => _selectedView = _ViewMode.calendar);
                             },
                             backgroundColor: Colors.white.withOpacity(0.7),
-                            selectedColor: const Color(0xFF6A1B9A),
+                            selectedColor: AppColors.primaryIndigo,
                             labelStyle: TextStyle(
                               color: _selectedView == _ViewMode.calendar
-                                  ? Colors.white
-                                  : const Color(0xFF6A1B9A),
+                                  ? AppColors.navySpaceCadet
+                                  : AppColors.textMuted,
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
                             side: BorderSide(
-                              color: const Color(0xFF6A1B9A),
-                              width: _selectedView == _ViewMode.calendar ? 0 : 1,
+                              color: _selectedView == _ViewMode.calendar
+                                  ? AppColors.oceanBlue
+                                  : AppColors.borderGrey,
+                              width: _selectedView == _ViewMode.calendar ? 1.5 : 1,
                             ),
                           ),
                         ],
@@ -4500,7 +4542,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                 height: 64,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                    colors: [AppColors.purpleLight, Color(0xFFEC4899)],
                   ),
                   borderRadius: BorderRadius.circular(32),
                 ),
@@ -4608,12 +4650,12 @@ class _MyEventsListState extends State<_MyEventsList> {
               ],
             ),
             border: Border.all(
-              color: const Color(0xFF8B5CF6).withOpacity(0.2),
+              color: AppColors.purpleLight.withOpacity(0.2),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6).withOpacity(0.08),
+                color: AppColors.purpleLight.withOpacity(0.08),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -4655,11 +4697,11 @@ class _MyEventsListState extends State<_MyEventsList> {
                                     ]
                                   : (isPrivate
                                       ? [
-                                          const Color(0xFF9333EA),
+                                          AppColors.purple,
                                           const Color(0xFF7E22CE),
                                         ]
                                       : [
-                                          const Color(0xFF8B5CF6),
+                                          AppColors.purpleLight,
                                           const Color(0xFFEC4899),
                                         ]),
                             ),
@@ -4675,7 +4717,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                                 : (isPrivate
                                     ? [
                                         BoxShadow(
-                                          color: const Color(0xFF9333EA).withOpacity(0.5),
+                                          color: AppColors.purple.withOpacity(0.5),
                                           blurRadius: 8,
                                           spreadRadius: 2,
                                         ),
@@ -4856,7 +4898,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                               color: isConfirmed
                                   ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
                                   : (isPrivate
-                                      ? const Color(0xFF9333EA) // Purple for invitations
+                                      ? AppColors.purple // Purple for invitations
                                       : Colors.blue.shade600), // Blue for available
                             ),
                             const SizedBox(width: 8),
@@ -4900,7 +4942,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                               color: isConfirmed
                                   ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
                                   : (isPrivate
-                                      ? const Color(0xFF9333EA) // Purple for invitations
+                                      ? AppColors.purple // Purple for invitations
                                       : Colors.blue.shade600), // Blue for available
                             ),
                             const SizedBox(width: 6),
@@ -4946,7 +4988,7 @@ class _MyEventsListState extends State<_MyEventsList> {
                                     color: isConfirmed
                                         ? Colors.green.shade700 // Green for confirmed
                                         : (isPrivate
-                                            ? const Color(0xFF9333EA) // Purple for invitations
+                                            ? AppColors.purple // Purple for invitations
                                             : Colors.blue.shade700), // Blue for available
                                   ),
                                 ),
@@ -5234,7 +5276,7 @@ class _RoleList extends StatelessWidget {
                 height: 64,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                    colors: [Color(0xFF6366F1), AppColors.purpleLight],
                   ),
                   borderRadius: BorderRadius.circular(32),
                 ),
@@ -5367,12 +5409,12 @@ class _RoleList extends StatelessWidget {
       ];
 
     final borderColor = isPrivate
-        ? const Color(0xFF9333EA).withOpacity(0.4)  // Purple border for private
-        : const Color(0xFF8B5CF6).withOpacity(0.2);
+        ? AppColors.purple.withOpacity(0.4)  // Purple border for private
+        : AppColors.purpleLight.withOpacity(0.2);
 
     final shadowColor = isPrivate
-        ? const Color(0xFF9333EA).withOpacity(0.15)  // Purple shadow for private
-        : const Color(0xFF8B5CF6).withOpacity(0.08);
+        ? AppColors.purple.withOpacity(0.15)  // Purple shadow for private
+        : AppColors.purpleLight.withOpacity(0.08);
 
     return Stack(
       children: [
@@ -5430,7 +5472,7 @@ class _RoleList extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: showBlueIndicator
                                 ? (isPrivate
-                                    ? const Color(0xFF9333EA)  // Pure purple for invitations
+                                    ? AppColors.purple  // Pure purple for invitations
                                     : Colors.blue.shade500)
                                 : const Color(0xFFEC4899),
                             shape: BoxShape.circle,
@@ -5438,7 +5480,7 @@ class _RoleList extends StatelessWidget {
                                 ? [
                                     BoxShadow(
                                       color: (isPrivate
-                                          ? const Color(0xFF9333EA)
+                                          ? AppColors.purple
                                           : Colors.blue).withOpacity(0.5),
                                       blurRadius: 8,
                                       spreadRadius: 2,
@@ -5468,10 +5510,10 @@ class _RoleList extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF9333EA).withOpacity(0.15),
+                                    color: AppColors.purple.withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(6),
                                     border: Border.all(
-                                      color: const Color(0xFF9333EA).withOpacity(0.5),
+                                      color: AppColors.purple.withOpacity(0.5),
                                       width: 1,
                                     ),
                                   ),
@@ -5481,7 +5523,7 @@ class _RoleList extends StatelessWidget {
                                       Icon(
                                         Icons.lock,
                                         size: 10,
-                                        color: const Color(0xFF9333EA),
+                                        color: AppColors.purple,
                                       ),
                                       const SizedBox(width: 3),
                                       Text(
@@ -5489,7 +5531,7 @@ class _RoleList extends StatelessWidget {
                                         style: TextStyle(
                                           fontSize: 9,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF9333EA),
+                                          color: AppColors.purple,
                                         ),
                                       ),
                                     ],
@@ -5511,7 +5553,7 @@ class _RoleList extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isPrivate
-                                  ? const Color(0xFF9333EA).withOpacity(0.3)
+                                  ? AppColors.purple.withOpacity(0.3)
                                   : Colors.blue.shade200,
                               width: 1,
                             ),
@@ -5523,7 +5565,7 @@ class _RoleList extends StatelessWidget {
                                 isPrivate ? Icons.mail_outline : Icons.schedule,
                                 size: 14,
                                 color: isPrivate
-                                    ? const Color(0xFF9333EA)
+                                    ? AppColors.purple
                                     : Colors.blue.shade700,
                               ),
                               const SizedBox(width: 4),
@@ -5531,7 +5573,7 @@ class _RoleList extends StatelessWidget {
                                 isPrivate ? AppLocalizations.of(context)!.invitation : 'Available',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: isPrivate
-                                      ? const Color(0xFF9333EA)
+                                      ? AppColors.purple
                                       : Colors.blue.shade700,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 11,
@@ -5648,7 +5690,7 @@ class _RoleList extends StatelessWidget {
                               Icons.calendar_today,
                               size: 16,
                               color: isPrivate
-                                  ? const Color(0xFF9333EA)  // Pure purple for invitations
+                                  ? AppColors.purple  // Pure purple for invitations
                                   : Colors.blue.shade600,
                             ),
                             const SizedBox(width: 8),
@@ -5688,7 +5730,7 @@ class _RoleList extends StatelessWidget {
                               Icons.business,
                               size: 14,
                               color: isPrivate
-                                  ? const Color(0xFF9333EA)  // Purple for invitations
+                                  ? AppColors.purple  // Purple for invitations
                                   : Colors.blue.shade600,  // Blue for available
                             ),
                             const SizedBox(width: 6),
@@ -5730,7 +5772,7 @@ class _RoleList extends StatelessWidget {
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
                                     color: isPrivate
-                                        ? const Color(0xFF9333EA)  // Purple for invitations
+                                        ? AppColors.purple  // Purple for invitations
                                         : Colors.blue.shade700,
                                   ),
                                 ),
@@ -5758,7 +5800,7 @@ class _RoleList extends StatelessWidget {
               size: const Size(40, 40),
               painter: _TrianglePainter(
                 color: isPrivate
-                    ? const Color(0xFF9333EA).withOpacity(0.15)  // Purple for invitations
+                    ? AppColors.purple.withOpacity(0.15)  // Purple for invitations
                     : Colors.blue.shade100.withOpacity(0.6),
               ),
             ),
@@ -5881,7 +5923,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                                             right: 2,
                                           ),
                                           decoration: const BoxDecoration(
-                                            color: Color(0xFF8B5CF6),
+                                            color: AppColors.purpleLight,
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -5913,7 +5955,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 selectedDecoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
-                                      Color(0xFF8B5CF6),
+                                      AppColors.purpleLight,
                                       Color(0xFFEC4899),
                                     ],
                                   ),
@@ -6175,7 +6217,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
-                                      Color(0xFF8B5CF6),
+                                      AppColors.purpleLight,
                                       Color(0xFFEC4899),
                                     ],
                                   ),
@@ -6397,7 +6439,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                       height: 6,
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                          colors: [AppColors.purpleLight, Color(0xFFEC4899)],
                         ),
                         shape: BoxShape.circle,
                       ),

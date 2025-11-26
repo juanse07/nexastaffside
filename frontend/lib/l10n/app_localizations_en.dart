@@ -170,7 +170,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signOut => 'Sign out';
 
   @override
-  String get welcomeToNexaStaff => 'Welcome to Nexa Staff!';
+  String get welcomeToNexaStaff => 'Welcome to Tie Staff!';
 
   @override
   String get pleaseCompleteProfileToGetStarted =>

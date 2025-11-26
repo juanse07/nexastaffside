@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
+import '../../../shared/presentation/theme/theme.dart';
 import '../services/staff_chat_service.dart';
 
 /// Fast animated widget for AI chat messages (ChatGPT-style)
@@ -219,7 +220,7 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: AppColors.shadowLight,
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -245,7 +246,7 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                           child: Text(
                             timeFormat.format(widget.message.timestamp),
                             style: TextStyle(
-                              color: Colors.grey.shade500,
+                              color: AppColors.textMuted,
                               fontSize: 11,
                             ),
                           ),
@@ -288,8 +289,8 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                   child: Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF6366F1),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondaryPurple,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -316,12 +317,12 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: isTyping
-                  ? [const Color(0xFF9061FC), const Color(0xFF7343E9)]
-                  : [const Color(0xFF7A3AFB), const Color(0xFF5B27D8)],
+                  ? [AppColors.purpleLight, AppColors.purple]
+                  : [AppColors.purple, AppColors.purpleDark],
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7A3AFB).withOpacity(isTyping ? 0.5 : 0.3),
+                color: AppColors.purple.withOpacity(isTyping ? 0.5 : 0.3),
                 blurRadius: isTyping ? 10 : 6,
                 offset: const Offset(0, 2),
               ),
@@ -355,24 +356,24 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
               data: displayedText,
               styleSheet: MarkdownStyleSheet(
                 p: const TextStyle(
-                  color: Color(0xFF0F172A),
+                  color: AppColors.textDark,
                   fontSize: 15,
                   height: 1.4,
                 ),
                 strong: const TextStyle(
-                  color: Color(0xFF0F172A),
+                  color: AppColors.textDark,
                   fontSize: 15,
                   height: 1.4,
                   fontWeight: FontWeight.bold,
                 ),
                 em: const TextStyle(
-                  color: Color(0xFF0F172A),
+                  color: AppColors.textDark,
                   fontSize: 15,
                   height: 1.4,
                   fontStyle: FontStyle.italic,
                 ),
                 listBullet: const TextStyle(
-                  color: Color(0xFF0F172A),
+                  color: AppColors.textDark,
                 ),
               ),
             );
@@ -402,11 +403,11 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                               (_shimmerAnimation.value + 0.4).clamp(0.0, 1.0),
                             ],
                             colors: const [
-                              Color(0xFF0F172A),
-                              Color(0xFF8B5CF6), // Soft violet
-                              Color(0xFFC084FC), // Bright purple
-                              Color(0xFF8B5CF6), // Soft violet
-                              Color(0xFF0F172A),
+                              AppColors.textDark,
+                              AppColors.primaryIndigo, // Yellow/gold
+                              AppColors.secondaryPurple, // Blue
+                              AppColors.primaryIndigo, // Yellow/gold
+                              AppColors.textDark,
                             ],
                           ).createShader(bounds);
                         },
@@ -430,13 +431,13 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                             (_shimmerAnimation.value + 0.5).clamp(0.0, 1.0),
                           ],
                           colors: const [
-                            Color(0xFF0F172A), // Dark base
-                            Color(0xFF6366F1), // Indigo
-                            Color(0xFF8B5CF6), // Purple
-                            Color(0xFFEC4899), // Pink highlight peak
-                            Color(0xFF8B5CF6), // Purple
-                            Color(0xFF6366F1), // Indigo
-                            Color(0xFF0F172A), // Dark base
+                            AppColors.textDark, // Dark base
+                            AppColors.indigoPurple, // Indigo
+                            AppColors.purple, // Purple
+                            AppColors.pinkAccent, // Pink highlight peak
+                            AppColors.purple, // Purple
+                            AppColors.indigoPurple, // Indigo
+                            AppColors.textDark, // Dark base
                           ],
                         ).createShader(bounds);
                       },

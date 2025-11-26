@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../shared/presentation/theme/theme.dart';
 import '../services/staff_chat_service.dart';
 
 /// Widget to display a single chat message bubble
@@ -39,11 +40,11 @@ class ChatMessageWidget extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
+                  colors: [AppColors.purple, AppColors.purpleDark],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7A3AFB).withOpacity(0.3),
+                    color: AppColors.purple.withOpacity(0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -116,15 +117,15 @@ class ChatMessageWidget extends StatelessWidget {
                     gradient: isUser
                         ? const LinearGradient(
                             colors: [
-                              Color(0xFF7C3AED), // Light purple
-                              Color(0xFF6366F1), // Medium purple
-                              Color(0xFF4F46E5), // Darker purple
+                              AppColors.primaryIndigo, // Yellow
+                              AppColors.secondaryPurple, // Blue
+                              AppColors.primaryPurple, // Navy
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           )
                         : null,
-                    color: isUser ? null : Colors.white,
+                    color: isUser ? null : AppColors.backgroundWhite,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -134,7 +135,7 @@ class ChatMessageWidget extends StatelessWidget {
                     boxShadow: [
                       BoxShadow(
                         color: isUser
-                            ? const Color(0xFF7C3AED).withOpacity(0.3)
+                            ? AppColors.primaryIndigo.withOpacity(0.3)
                             : Colors.black.withOpacity(0.08),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
@@ -149,8 +150,8 @@ class ChatMessageWidget extends StatelessWidget {
                   children: [
                     Text(
                       timeFormat.format(message.timestamp),
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
                         fontSize: 11,
                       ),
                     ),
@@ -166,7 +167,7 @@ class ChatMessageWidget extends StatelessWidget {
                           color: message.provider == AIProvider.claude
                               ? Colors.orange.shade100
                               : message.provider == AIProvider.groq
-                                  ? Colors.purple.shade100
+                                  ? const Color(0xFFFFF9E5)
                                   : Colors.blue.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -180,7 +181,7 @@ class ChatMessageWidget extends StatelessWidget {
                             color: message.provider == AIProvider.claude
                                 ? Colors.orange.shade900
                                 : message.provider == AIProvider.groq
-                                    ? Colors.purple.shade900
+                                    ? const Color(0xFF2C3E50)
                                     : Colors.blue.shade900,
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
@@ -199,7 +200,7 @@ class ChatMessageWidget extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFF6366F1),
+                color: AppColors.primaryIndigo,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: userProfilePicture != null && userProfilePicture!.isNotEmpty
@@ -299,7 +300,7 @@ class ChatMessageWidget extends StatelessWidget {
       return Text(
         text,
         style: TextStyle(
-          color: isUser ? Colors.white : const Color(0xFF0F172A),
+          color: isUser ? Colors.white : AppColors.textDark,
           fontSize: 15,
           height: 1.4,
         ),
@@ -316,7 +317,7 @@ class ChatMessageWidget extends StatelessWidget {
         spans.add(TextSpan(
           text: text.substring(lastEnd, match.start),
           style: TextStyle(
-            color: isUser ? Colors.white : const Color(0xFF0F172A),
+            color: isUser ? Colors.white : AppColors.textDark,
             fontSize: 15,
             height: 1.4,
           ),
@@ -327,7 +328,7 @@ class ChatMessageWidget extends StatelessWidget {
       spans.add(TextSpan(
         text: match.group(1)!, // The text inside **...**
         style: TextStyle(
-          color: isUser ? Colors.white : const Color(0xFF0F172A),
+          color: isUser ? Colors.white : AppColors.textDark,
           fontSize: 15,
           height: 1.4,
           fontWeight: FontWeight.bold,
@@ -342,7 +343,7 @@ class ChatMessageWidget extends StatelessWidget {
       spans.add(TextSpan(
         text: text.substring(lastEnd),
         style: TextStyle(
-          color: isUser ? Colors.white : const Color(0xFF0F172A),
+          color: isUser ? Colors.white : AppColors.textDark,
           fontSize: 15,
           height: 1.4,
         ),
@@ -369,7 +370,7 @@ class ChatMessageWidget extends StatelessWidget {
           child: Text(
             linkText,
             style: TextStyle(
-              color: isUser ? Colors.white : const Color(0xFF3B82F6),
+              color: isUser ? Colors.white : AppColors.secondaryPurple,
               fontSize: 15,
               height: 1.4,
               decoration: TextDecoration.underline,
@@ -405,7 +406,7 @@ class ChatMessageWidget extends StatelessWidget {
                     child: Text(
                       address,
                       style: TextStyle(
-                        color: isUser ? Colors.white : const Color(0xFF3B82F6),
+                        color: isUser ? Colors.white : AppColors.secondaryPurple,
                         fontSize: 15,
                         height: 1.4,
                         decoration: TextDecoration.underline,
@@ -417,7 +418,7 @@ class ChatMessageWidget extends StatelessWidget {
                   Icon(
                     Icons.location_on,
                     size: 16,
-                    color: isUser ? Colors.white : const Color(0xFF3B82F6),
+                    color: isUser ? Colors.white : AppColors.secondaryPurple,
                   ),
                 ],
               ),

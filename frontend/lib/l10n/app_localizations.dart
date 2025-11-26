@@ -413,7 +413,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeToNexaStaff.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to Nexa Staff!'**
+  /// **'Welcome to Tie Staff!'**
   String get welcomeToNexaStaff;
 
   /// No description provided for @pleaseCompleteProfileToGetStarted.

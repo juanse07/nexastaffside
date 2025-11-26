@@ -171,7 +171,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get signOut => 'Cerrar sesión';
 
   @override
-  String get welcomeToNexaStaff => '¡Bienvenido a Nexa Staff!';
+  String get welcomeToNexaStaff => '¡Bienvenido a Tie Staff!';
 
   @override
   String get pleaseCompleteProfileToGetStarted =>

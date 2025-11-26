@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../models/conversation.dart';
 import '../services/chat_service.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 import 'chat_page.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 
@@ -82,7 +83,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: Colors.grey[900],
+                      color: AppColors.textDark,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -111,11 +112,11 @@ class _ConversationsPageState extends State<ConversationsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
+            Icon(Icons.error_outline, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 16),
             Text(
               l10n.failedToLoadConversations,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             TextButton(
@@ -142,20 +143,20 @@ class _ConversationsPageState extends State<ConversationsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[300]),
+                  Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.borderLight),
                   const SizedBox(height: 16),
                   Text(
                     l10n.noConversationsYet,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l10n.yourManagerWillAppearHere,
-                    style: TextStyle(color: Colors.grey[500]),
+                    style: TextStyle(color: AppColors.textMuted),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -200,7 +201,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.errorManagerIdMissing),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return;
@@ -337,7 +338,7 @@ class _ConversationTile extends StatelessWidget {
                     conversation.lastMessagePreview ?? AppLocalizations.of(context)!.noMessagesYet,
                     style: TextStyle(
                       fontSize: 14,
-                      color: hasUnread ? Colors.black87 : Colors.grey[600],
+                      color: hasUnread ? AppColors.textDark : AppColors.textSecondary,
                       fontWeight:
                           hasUnread ? FontWeight.w500 : FontWeight.normal,
                     ),
@@ -384,8 +385,8 @@ class _ValerioAssistantTile extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF7A3AFB).withOpacity(0.08),
-              const Color(0xFF5B27D8).withOpacity(0.08),
+              AppColors.purple.withOpacity(0.08),
+              AppColors.purpleDark.withOpacity(0.08),
             ],
           ),
         ),
@@ -400,11 +401,11 @@ class _ValerioAssistantTile extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF7A3AFB), Color(0xFF5B27D8)],
+                  colors: [AppColors.purple, AppColors.purpleDark],
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7A3AFB).withOpacity(0.3),
+                    color: AppColors.purple.withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -477,7 +478,7 @@ class _ValerioAssistantTile extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF1F2937),
+                          color: AppColors.charcoal,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -485,7 +486,7 @@ class _ValerioAssistantTile extends StatelessWidget {
                       Icon(
                         Icons.push_pin,
                         size: 16,
-                        color: const Color(0xFF7A3AFB).withOpacity(0.7),
+                        color: AppColors.purple.withOpacity(0.7),
                       ),
                     ],
                   ),
@@ -494,7 +495,7 @@ class _ValerioAssistantTile extends StatelessWidget {
                     l10n.valerioAssistantDescription,
                     style: const TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF6B7280),
+                      color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                     maxLines: 2,

@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
+import '../services/subscription_service.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 import 'root_page.dart';
 
 class StaffOnboardingGate extends StatefulWidget {
@@ -49,6 +51,15 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
         print('[ONBOARDING GATE] ✅ Notifications initialized successfully');
       } catch (e) {
         print('[ONBOARDING GATE] ❌ Failed to initialize notifications: $e');
+      }
+
+      // Initialize subscription service (Qonversion)
+      print('[ONBOARDING GATE] Initializing subscription...');
+      try {
+        await SubscriptionService().initialize();
+        print('[ONBOARDING GATE] ✅ Subscription initialized successfully');
+      } catch (e) {
+        print('[ONBOARDING GATE] ❌ Failed to initialize subscription: $e');
       }
 
       setState(() {
@@ -123,13 +134,13 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
                   const Icon(
                     Icons.error_outline,
                     size: 64,
-                    color: Colors.redAccent,
+                    color: AppColors.error,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     _error!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.redAccent),
+                    style: const TextStyle(color: AppColors.error),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -279,7 +290,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.profileSavedSuccessfully),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
 
@@ -310,7 +321,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
             onPressed: widget.onSignOut,
             child: Text(
               l10n.signOut,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textLight),
             ),
           ),
         ],
@@ -346,7 +357,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                         l10n.pleaseCompleteProfileToGetStarted,
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -425,7 +436,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                         l10n.chooseWhichScreenToShow,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -502,17 +513,17 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Card(
-                    color: Colors.red[50],
+                    color: AppColors.surfaceRed,
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red),
+                          const Icon(Icons.error_outline, color: AppColors.error),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               _error!,
-                              style: const TextStyle(color: Colors.red),
+                              style: const TextStyle(color: AppColors.error),
                             ),
                           ),
                         ],
@@ -548,7 +559,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
                 l10n.requiredFields,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: AppColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../providers/terminology_provider.dart';
+import '../../../shared/presentation/theme/theme.dart';
 import '../../../services/subscription_service.dart';
 import '../services/staff_chat_service.dart';
 import '../widgets/animated_ai_message_widget.dart';
@@ -12,6 +13,7 @@ import '../widgets/availability_confirmation_card.dart';
 import '../widgets/chat_input_widget.dart';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/shift_action_card.dart';
+import 'subscription_paywall_screen.dart';
 
 /// Staff AI Assistant Chat Screen
 /// Main interface for staff to interact with AI assistant
@@ -30,7 +32,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   bool _isInitialized = false;
   String _subscriptionTier = 'free';
   int _aiMessagesUsed = 0;
-  int _aiMessagesLimit = 50;
+  int _aiMessagesLimit = 20; // Free tier limit (changed from 50 to reduce costs)
   String _selectedModel = 'llama'; // 'llama' (default) or 'gpt-oss'
 
   @override
@@ -95,9 +97,9 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       // Show error
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to get AI response. Please try again.'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text('Failed to get AI response. Please try again.'),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -139,7 +141,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Availability marked for ${(availabilityData['dates'] as List).length} date(s)!'),
-        backgroundColor: Colors.green,
+        backgroundColor: AppColors.success,
       ),
     );
 
@@ -164,7 +166,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
               ? 'Shift accepted: $eventName'
               : 'Shift declined: $eventName'
         ),
-        backgroundColor: action == 'accept' ? Colors.green : Colors.orange,
+        backgroundColor: action == 'accept' ? AppColors.success : AppColors.warning,
       ),
     );
 
@@ -219,7 +221,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
               );
               setState(() {});
             },
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+            child: const Text('Clear', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -263,7 +265,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1F2937),
+                color: AppColors.charcoal,
               ),
             ),
           ),
@@ -290,11 +292,11 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.surfaceLight,
       appBar: AppBar(
         title: const Text('AI Assistant'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: AppColors.backgroundWhite,
+        foregroundColor: AppColors.textDark,
         elevation: 0,
         actions: [
           // Usage indicator for free tier
@@ -302,24 +304,29 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: GestureDetector(
-                onTap: () {
-                  // TODO: Navigate to upgrade screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Upgrade to Pro for unlimited AI messages!'),
-                      duration: Duration(seconds: 2),
+                onTap: () async {
+                  // Navigate to subscription paywall
+                  final upgraded = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SubscriptionPaywallScreen(),
                     ),
                   );
+
+                  // Refresh status if user upgraded
+                  if (upgraded == true && mounted) {
+                    await _loadSubscriptionStatus();
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _aiMessagesUsed >= 40
+                    color: _aiMessagesUsed >= 16 // 80% of 20 message limit
                         ? Colors.orange.shade100
                         : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _aiMessagesUsed >= 40
+                      color: _aiMessagesUsed >= 16
                           ? Colors.orange.shade300
                           : Colors.grey.shade300,
                       width: 1,
@@ -331,7 +338,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                       Icon(
                         Icons.chat_bubble_outline,
                         size: 14,
-                        color: _aiMessagesUsed >= 40
+                        color: _aiMessagesUsed >= 16
                             ? Colors.orange.shade900
                             : Colors.grey.shade700,
                       ),
@@ -341,7 +348,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: _aiMessagesUsed >= 40
+                          color: _aiMessagesUsed >= 16
                               ? Colors.orange.shade900
                               : Colors.grey.shade700,
                         ),
@@ -356,7 +363,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
           PopupMenuButton<String>(
             icon: Icon(
               _selectedModel == 'llama' ? Icons.bolt : Icons.speed,
-              color: const Color(0xFF6366F1),
+              color: AppColors.indigoPurple,
             ),
             tooltip: 'Select AI Model',
             onSelected: (String value) {
@@ -374,7 +381,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                 SnackBar(
                   content: Text(modelInfo),
                   duration: const Duration(seconds: 2),
-                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundColor: AppColors.indigoPurple,
                 ),
               );
             },
@@ -386,7 +393,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                     Icon(
                       Icons.bolt,
                       size: 20,
-                      color: _selectedModel == 'llama' ? const Color(0xFF6366F1) : Colors.grey,
+                      color: _selectedModel == 'llama' ? AppColors.indigoPurple : AppColors.textMuted,
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -400,13 +407,13 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                         ),
                         Text(
                           'Fast & economical',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                         ),
                       ],
                     ),
                     const SizedBox(width: 8),
                     if (_selectedModel == 'llama')
-                      const Icon(Icons.check, size: 16, color: Color(0xFF6366F1)),
+                      const Icon(Icons.check, size: 16, color: AppColors.indigoPurple),
                   ],
                 ),
               ),
@@ -418,7 +425,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                     Icon(
                       Icons.speed,
                       size: 20,
-                      color: _selectedModel == 'gpt-oss' ? const Color(0xFF6366F1) : Colors.grey,
+                      color: _selectedModel == 'gpt-oss' ? AppColors.indigoPurple : AppColors.textMuted,
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -432,13 +439,13 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                         ),
                         Text(
                           'More powerful',
-                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
                         ),
                       ],
                     ),
                     const SizedBox(width: 8),
                     if (_selectedModel == 'gpt-oss')
-                      const Icon(Icons.check, size: 16, color: Color(0xFF6366F1)),
+                      const Icon(Icons.check, size: 16, color: AppColors.indigoPurple),
                   ],
                 ),
               ),
@@ -579,8 +586,8 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              const Color(0xFFF8FAFC).withOpacity(0.3),
-                              const Color(0xFFF8FAFC).withOpacity(0.6),
+                              AppColors.surfaceLight.withOpacity(0.3),
+                              AppColors.surfaceLight.withOpacity(0.6),
                             ],
                             stops: const [0.0, 0.5, 1.0],
                           ),
@@ -626,7 +633,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    color: Colors.white,
+                    color: AppColors.backgroundWhite,
                     padding: EdgeInsets.only(
                       bottom: MediaQuery.of(context).padding.bottom > 0
                         ? MediaQuery.of(context).padding.bottom

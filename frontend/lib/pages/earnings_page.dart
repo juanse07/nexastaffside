@@ -6,6 +6,7 @@ import '../services/earnings_service.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
 import '../providers/terminology_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 
 /// Earnings page with optimized performance and pagination
 class EarningsPage extends StatefulWidget {
@@ -820,10 +821,10 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
     final monthlyEvents = earningsService.getMonthlyEvents(yearMonth);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.surfaceLight,
       appBar: AppBar(
         title: Text(monthName),
-        backgroundColor: const Color(0xFF6B46C1),
+        backgroundColor: AppColors.purple,
         foregroundColor: Colors.white,
       ),
       body: monthlyEvents.isEmpty
@@ -893,14 +894,14 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF6B46C1).withValues(alpha: 0.1),
+                    color: AppColors.purple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '\$${eventData.earnings.toStringAsFixed(2)}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6B46C1),
+                      color: AppColors.purple,
                     ),
                   ),
                 ),
@@ -942,7 +943,7 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
+                color: AppColors.surfaceLight,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -991,7 +992,7 @@ class _DetailRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: const Color(0xFF6B46C1).withValues(alpha: 0.7)),
+        Icon(icon, size: 20, color: AppColors.purple.withValues(alpha: 0.7)),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -1036,7 +1037,7 @@ class _EventStat extends StatelessWidget {
     final theme = Theme.of(context);
     return Column(
       children: [
-        Icon(icon, size: 24, color: const Color(0xFF6B46C1)),
+        Icon(icon, size: 24, color: AppColors.purple),
         const SizedBox(height: 8),
         Text(
           value,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/presentation/theme/theme.dart';
+
 /// Card for confirming shift accept/decline actions
 /// Shows shift details and confirmation buttons
 class ShiftActionCard extends StatelessWidget {
@@ -260,8 +262,8 @@ class ShiftActionCard extends StatelessWidget {
       case 'accept':
         return {
           'gradient': [
-            const Color(0xFF10B981), // Green
-            const Color(0xFF059669), // Darker green
+            AppColors.successLight, // Green
+            AppColors.success, // Darker green
           ],
           'icon': Icons.check_circle,
           'title': 'Accept Shift',
@@ -269,8 +271,8 @@ class ShiftActionCard extends StatelessWidget {
       case 'decline':
         return {
           'gradient': [
-            const Color(0xFFEF4444), // Red
-            const Color(0xFFDC2626), // Darker red
+            AppColors.error, // Red
+            AppColors.errorDark, // Darker red
           ],
           'icon': Icons.cancel,
           'title': 'Decline Shift',
@@ -278,8 +280,8 @@ class ShiftActionCard extends StatelessWidget {
       default:
         return {
           'gradient': [
-            const Color(0xFF6366F1), // Blue
-            const Color(0xFF4F46E5), // Darker blue
+            AppColors.indigoPurple, // Blue
+            AppColors.indigo, // Darker blue
           ],
           'icon': Icons.event,
           'title': 'Shift Action',

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/terminology_provider.dart';
+import '../../../shared/presentation/theme/theme.dart';
 import '../services/audio_transcription_service.dart';
 
 /// Widget for chat input with text field, microphone, and send button
@@ -108,10 +109,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Microphone permission required for voice input'),
-            duration: Duration(seconds: 3),
-            backgroundColor: Colors.orange,
+          SnackBar(
+            content: const Text('Microphone permission required for voice input'),
+            duration: const Duration(seconds: 3),
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -153,7 +154,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Voice input failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -208,22 +209,22 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                 duration: const Duration(milliseconds: 300),
                 decoration: BoxDecoration(
                   color: _isRecording
-                      ? const Color(0xFFFFF5F5) // Very light coral background when recording
-                      : Colors.white,
+                      ? AppColors.surfaceRed // Very light coral background when recording
+                      : AppColors.backgroundWhite,
                   borderRadius: BorderRadius.circular(24),
                   border: _isRecording
                       ? Border.all(
-                          color: const Color(0xFFFF6B6B),
+                          color: AppColors.coralRed,
                           width: 2,
                         )
                       : Border.all(
-                          color: Colors.grey.shade200,
+                          color: AppColors.borderLight,
                           width: 1,
                         ),
                   boxShadow: [
                     BoxShadow(
                       color: _isRecording
-                          ? const Color(0xFFFF6B6B).withOpacity(0.2)
+                          ? AppColors.coralRed.withOpacity(0.2)
                           : Colors.black.withOpacity(0.08),
                       blurRadius: _isRecording ? 12 : 8,
                       offset: const Offset(0, 1),
@@ -240,8 +241,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                     hintText: hintText,
                     hintStyle: TextStyle(
                       color: _isRecording
-                          ? Colors.red.shade400
-                          : Colors.grey.shade400,
+                          ? AppColors.error
+                          : AppColors.textMuted,
                     ),
                     filled: true,
                     fillColor: Colors.transparent,
@@ -263,10 +264,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
             if (_keyboardVisible && !kIsWeb)
               Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: [
-                      Color(0xFFE0E7FF),  // Light indigo
-                      Color(0xFFC7D2FE),  // Medium indigo
+                      AppColors.surfaceBlue,  // Light indigo
+                      AppColors.borderLight,  // Medium indigo
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -291,7 +292,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                       alignment: Alignment.center,
                       child: const Icon(
                         Icons.keyboard_hide,
-                        color: Color(0xFF4F46E5),
+                        color: AppColors.indigoPurple,
                         size: 20,
                       ),
                     ),
@@ -309,27 +310,27 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                     return Container(
                       decoration: BoxDecoration(
                         gradient: _isRecording
-                            ? const LinearGradient(
+                            ? LinearGradient(
                                 colors: [
-                                  Color(0xFFFF6B6B),  // Bright coral red
-                                  Color(0xFFFF8787),  // Light coral
+                                  AppColors.coralRed,  // Bright coral red
+                                  AppColors.coralOrange,  // Light coral
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               )
                             : _isTranscribing
-                                ? const LinearGradient(
+                                ? LinearGradient(
                                     colors: [
-                                      Color(0xFF4ECDC4),  // Teal
-                                      Color(0xFF44A8A0),  // Darker teal
+                                      AppColors.tealInfo,  // Teal
+                                      AppColors.tealLight,  // Lighter teal
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   )
-                                : const LinearGradient(
+                                : LinearGradient(
                                     colors: [
-                                      Color(0xFFFF9A8B),  // Soft coral pink
-                                      Color(0xFFFECFB2),  // Peach
+                                      AppColors.coralRed.withOpacity(0.6),  // Soft coral pink
+                                      AppColors.coralOrange.withOpacity(0.5),  // Peach
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
@@ -338,7 +339,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                         boxShadow: _isRecording
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFFF6B6B).withOpacity(0.5 * _pulseAnimation.value),
+                                  color: AppColors.coralRed.withOpacity(0.5 * _pulseAnimation.value),
                                   blurRadius: 20 * _pulseAnimation.value,
                                   spreadRadius: 6 * _pulseAnimation.value,
                                 ),
@@ -387,17 +388,17 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
             Container(
               decoration: BoxDecoration(
                 gradient: _hasText && !widget.isLoading
-                    ? const LinearGradient(
+                    ? LinearGradient(
                         colors: [
-                          Color(0xFF7C3AED), // Light purple
-                          Color(0xFF6366F1), // Medium purple
-                          Color(0xFF4F46E5), // Darker purple
+                          AppColors.purple, // Light purple
+                          AppColors.secondaryPurple, // Medium purple
+                          AppColors.indigoPurple, // Darker purple
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
                     : null,
-                color: !_hasText || widget.isLoading ? Colors.grey.shade300 : null,
+                color: !_hasText || widget.isLoading ? AppColors.borderMedium : null,
                 shape: BoxShape.circle,
                 boxShadow: _hasText && !widget.isLoading
                     ? [
@@ -432,7 +433,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                           )
                         : Icon(
                             Icons.send,
-                            color: _hasText ? const Color(0xFFB8860B) : Colors.grey.shade500,
+                            color: _hasText ? AppColors.primaryIndigo : AppColors.textMuted,
                             size: 18,
                           ),
                   ),

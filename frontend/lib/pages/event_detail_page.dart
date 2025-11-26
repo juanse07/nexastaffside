@@ -13,6 +13,7 @@ import '../auth_service.dart';
 import '../services/data_service.dart';
 import '../utils/id.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 import 'event_team_chat_page.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -359,15 +360,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.textDark,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: !showRespondActions
             ? [
                 IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline, color: Colors.black),
+                  icon: const Icon(Icons.chat_bubble_outline, color: AppColors.textDark),
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -662,12 +663,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: Colors.deepPurple.withOpacity(0.1),
+                                  color: AppColors.purple.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
                                   Icons.monetization_on_rounded,
-                                  color: Colors.deepPurple,
+                                  color: AppColors.purple,
                                   size: 24,
                                 ),
                               ),
@@ -686,7 +687,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     Text(
                                       l10n.tapToViewRateDetails,
                                       style: theme.textTheme.bodySmall?.copyWith(
-                                        color: Colors.deepPurple.withOpacity(0.8),
+                                        color: AppColors.purple.withOpacity(0.8),
                                       ),
                                     ),
                                   ],
@@ -694,7 +695,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               ),
                               const Icon(
                                 Icons.chevron_right,
-                                color: Colors.deepPurple,
+                                color: AppColors.purple,
                               ),
                             ],
                           ),
@@ -757,7 +758,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 color: theme.colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: AppColors.textDark.withOpacity(0.1),
                     blurRadius: 10,
                     offset: const Offset(0, -5),
                   ),
@@ -826,7 +827,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 color: theme.colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: AppColors.textDark.withOpacity(0.05),
                     blurRadius: 6,
                     offset: const Offset(0, -3),
                   ),
@@ -1038,7 +1039,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   : errorMessage ?? 'Failed to $response event',
             ),
             backgroundColor: success
-                ? (response == 'accept' ? Colors.green : Colors.orange)
+                ? (response == 'accept' ? AppColors.success : AppColors.warning)
                 : theme.colorScheme.error,
             duration: success ? const Duration(seconds: 2) : const Duration(seconds: 4),
           ),

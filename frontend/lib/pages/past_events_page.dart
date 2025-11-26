@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'event_detail_page.dart';
 import '../utils/accepted_staff.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 
 class PastEventsPage extends StatefulWidget {
   final List<Map<String, dynamic>> events; // Now contains shifts data
@@ -381,13 +382,13 @@ class _PastEventsPageState extends State<PastEventsPage> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF6B7280), // Gray
-                          Color(0xFF4B5563), // Darker gray
+                          AppColors.textSecondary, // Gray
+                          AppColors.charcoal, // Darker gray
                         ],
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6B7280).withOpacity(0.3),
+                          color: AppColors.textSecondary.withOpacity(0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                         ),

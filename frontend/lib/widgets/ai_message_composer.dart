@@ -258,7 +258,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                colors: [Color(0xFFFFC107), Color(0xFF3B82F6)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -314,14 +314,14 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                 avatar: Text(scenario.emoji, style: const TextStyle(fontSize: 18)),
                 label: Text(scenario.displayName),
                 backgroundColor: isSelected
-                    ? const Color(0xFF667eea).withOpacity(0.1)
+                    ? const Color(0xFFFFC107).withOpacity(0.1)
                     : Colors.grey[100],
                 side: BorderSide(
-                  color: isSelected ? const Color(0xFF667eea) : Colors.grey[300]!,
+                  color: isSelected ? const Color(0xFFFFC107) : Colors.grey[300]!,
                   width: isSelected ? 2 : 1,
                 ),
                 labelStyle: TextStyle(
-                  color: isSelected ? const Color(0xFF667eea) : const Color(0xFF4A5568),
+                  color: isSelected ? const Color(0xFFFFC107) : const Color(0xFF4A5568),
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
                 onPressed: () {
@@ -425,7 +425,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                     height: 60,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                        colors: [Color(0xFFFFC107), Color(0xFF3B82F6)],
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -498,12 +498,12 @@ class _AiMessageComposerState extends State<AiMessageComposer>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isPrimary
-            ? const Color(0xFF667eea).withOpacity(0.05)
+            ? const Color(0xFFFFC107).withOpacity(0.05)
             : Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isPrimary
-              ? const Color(0xFF667eea).withOpacity(0.3)
+              ? const Color(0xFFFFC107).withOpacity(0.3)
               : Colors.grey[200]!,
           width: isPrimary ? 2 : 1,
         ),
@@ -518,7 +518,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isPrimary ? const Color(0xFF667eea) : const Color(0xFF718096),
+                  color: isPrimary ? const Color(0xFFFFC107) : const Color(0xFF718096),
                 ),
               ),
               const Spacer(),
@@ -526,7 +526,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                 icon: Icon(
                   Icons.content_copy,
                   size: 18,
-                  color: isPrimary ? const Color(0xFF667eea) : Colors.grey[600],
+                  color: isPrimary ? const Color(0xFFFFC107) : Colors.grey[600],
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -580,7 +580,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                       icon: const Icon(Icons.business_center, size: 16),
                       label: const Text('Professional & Friendly'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF667eea),
+                        foregroundColor: const Color(0xFFFFC107),
                         side: BorderSide(color: Colors.grey[300]!),
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                         shape: RoundedRectangleBorder(
@@ -596,7 +596,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                       icon: const Icon(Icons.emoji_emotions, size: 16),
                       label: const Text('Casual & Friendly'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF667eea),
+                        foregroundColor: const Color(0xFFFFC107),
                         side: BorderSide(color: Colors.grey[300]!),
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                         shape: RoundedRectangleBorder(
@@ -616,7 +616,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
           icon: const Icon(Icons.check_circle),
           label: const Text('Use Message'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF667eea),
+            backgroundColor: const Color(0xFFFFC107),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
@@ -632,8 +632,8 @@ class _AiMessageComposerState extends State<AiMessageComposer>
             icon: const Icon(Icons.translate),
             label: const Text('Use Both (Original + Translation)'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF667eea),
-              side: const BorderSide(color: Color(0xFF667eea)),
+              foregroundColor: const Color(0xFFFFC107),
+              side: const BorderSide(color: Color(0xFFFFC107)),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

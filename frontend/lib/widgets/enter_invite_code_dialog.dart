@@ -91,7 +91,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
     return AlertDialog(
       title: const Row(
         children: [
-          Icon(Icons.group_add, color: Color(0xFF7C3AED)),
+          Icon(Icons.group_add, color: Color(0xFFFFC107)),
           SizedBox(width: 8),
           Text('Join a Team'),
         ],
@@ -142,7 +142,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
                 child: ElevatedButton(
                   onPressed: _validating ? null : _validateCode,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C3AED),
+                    backgroundColor: const Color(0xFFFFC107),
                     foregroundColor: Colors.white,
                   ),
                   child: _validating
@@ -165,7 +165,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F3FF),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF7C3AED), width: 2),
+                  border: Border.all(color: const Color(0xFFFFC107), width: 2),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +266,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF7C3AED)),
+        Icon(icon, size: 16, color: const Color(0xFFFFC107)),
         const SizedBox(width: 8),
         Expanded(
           child: RichText(

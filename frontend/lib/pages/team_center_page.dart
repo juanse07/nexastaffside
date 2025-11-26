@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/data_service.dart';
+import '../shared/presentation/theme/theme.dart';
 import '../widgets/enter_invite_code_dialog.dart';
 
 class TeamCenterPage extends StatefulWidget {
@@ -129,7 +130,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
               children: [
                 const Icon(
                   Icons.mark_email_unread_outlined,
-                  color: Color(0xFF7C3AED),
+                  color: AppColors.purple,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -151,13 +152,13 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                 'No pending invites right now. New invitations will appear here.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _processing ? null : () => _showEnterInviteCodeDialog(service),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
+                  backgroundColor: AppColors.purple,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
@@ -174,7 +175,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                   margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color: const Color(0xFFF5F3FF),
+                    color: AppColors.purpleLight.withOpacity(0.3),
                   ),
                   child: ListTile(
                     title: Text(teamName),
@@ -184,14 +185,14 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                         if (invite['teamDescription'] != null)
                           Text(
                             invite['teamDescription'].toString(),
-                            style: TextStyle(color: Colors.grey.shade700),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         if (managerId.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
                               'Manager: \$managerId',
-                              style: TextStyle(color: Colors.grey.shade600),
+                              style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
                         if (expiresAt != null)
@@ -200,7 +201,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                             child: Text(
                               'Expires: \$expiresAt',
                               style: TextStyle(
-                                color: Colors.grey.shade500,
+                                color: AppColors.textMuted,
                                 fontSize: 12,
                               ),
                             ),
@@ -215,7 +216,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                               ? null
                               : () => _acceptInvite(service, token),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7C3AED),
+                            backgroundColor: AppColors.purple,
                             minimumSize: const Size(90, 36),
                           ),
                           child: const Text('Accept'),
@@ -247,7 +248,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.groups_outlined, color: Color(0xFF2563EB)),
+                const Icon(Icons.groups_outlined, color: AppColors.secondaryPurple),
                 const SizedBox(width: 8),
                 Text(
                   'My teams',
@@ -261,7 +262,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                 'You have not joined any teams yet.',
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
               )
             else
               Wrap(
@@ -279,7 +280,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: AppColors.shadowLight,
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -299,7 +300,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                         if (description.isNotEmpty)
                           Text(
                             description,
-                            style: TextStyle(color: Colors.grey.shade700),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         if (joinedAt != null)
                           Padding(
@@ -307,7 +308,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                             child: Text(
                               'Joined: \$joinedAt',
                               style: TextStyle(
-                                color: Colors.grey.shade500,
+                                color: AppColors.textMuted,
                                 fontSize: 12,
                               ),
                             ),

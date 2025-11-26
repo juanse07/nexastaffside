@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/presentation/theme/theme.dart';
+
 /// Card for confirming availability marking actions
 /// Shows dates being marked and confirmation buttons
 class AvailabilityConfirmationCard extends StatelessWidget {
@@ -222,8 +224,8 @@ class AvailabilityConfirmationCard extends StatelessWidget {
       case 'available':
         return {
           'gradient': [
-            const Color(0xFF10B981), // Green
-            const Color(0xFF059669), // Darker green
+            AppColors.successLight, // Green
+            AppColors.success, // Darker green
           ],
           'icon': Icons.check_circle,
           'title': 'Mark as Available',
@@ -231,8 +233,8 @@ class AvailabilityConfirmationCard extends StatelessWidget {
       case 'unavailable':
         return {
           'gradient': [
-            const Color(0xFFEF4444), // Red
-            const Color(0xFFDC2626), // Darker red
+            AppColors.error, // Red
+            AppColors.errorDark, // Darker red
           ],
           'icon': Icons.cancel,
           'title': 'Mark as Unavailable',
@@ -240,8 +242,8 @@ class AvailabilityConfirmationCard extends StatelessWidget {
       case 'preferred':
         return {
           'gradient': [
-            const Color(0xFF8B5CF6), // Purple
-            const Color(0xFF7C3AED), // Darker purple
+            AppColors.purple, // Purple
+            AppColors.purpleDark, // Darker purple
           ],
           'icon': Icons.star,
           'title': 'Mark as Preferred',
@@ -249,8 +251,8 @@ class AvailabilityConfirmationCard extends StatelessWidget {
       default:
         return {
           'gradient': [
-            const Color(0xFF6366F1), // Blue
-            const Color(0xFF4F46E5), // Darker blue
+            AppColors.secondaryPurple, // Blue
+            AppColors.indigoPurple, // Darker blue
           ],
           'icon': Icons.info,
           'title': 'Update Availability',

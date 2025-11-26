@@ -11,6 +11,7 @@ import '../models/chat_message.dart';
 import '../services/chat_service.dart';
 import '../services/data_service.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 import '../widgets/ai_message_composer.dart';
 import '../widgets/event_invitation_card.dart';
 
@@ -196,7 +197,7 @@ class _ChatPageState extends State<ChatPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.failedToSendMessage(e.toString())),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -222,7 +223,7 @@ class _ChatPageState extends State<ChatPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(l10n.pleaseLoginToUseAI),
-              backgroundColor: Colors.orange,
+              backgroundColor: AppColors.warning,
             ),
           );
         }
@@ -252,7 +253,7 @@ class _ChatPageState extends State<ChatPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.failedToOpenAIComposer(e.toString())),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -327,14 +328,14 @@ class _ChatPageState extends State<ChatPage> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF7C3AED), // Purple 600
-                Color(0xFF6366F1), // Indigo 500
-                Color(0xFF8B5CF6), // Purple 500
+                AppColors.purple, // Purple 600
+                AppColors.indigoPurple, // Indigo 500
+                AppColors.purpleLight, // Purple 500
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7C3AED).withOpacity(0.3),
+                color: AppColors.purple.withOpacity(0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -506,7 +507,7 @@ class _ChatPageState extends State<ChatPage> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF7C3AED).withOpacity(0.85),
+                      color: AppColors.purple.withOpacity(0.85),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -545,7 +546,7 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
+            Icon(Icons.error_outline, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 16),
             Text(l10n.failedToLoadMessages),
             const SizedBox(height: 8),
@@ -564,16 +565,16 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.chat_outlined, size: 64, color: Colors.grey[300]),
+            Icon(Icons.chat_outlined, size: 64, color: AppColors.borderLight),
             const SizedBox(height: 16),
             Text(
               l10n.noMessagesYetTitle,
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             Text(
               l10n.sendMessageToStart,
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              style: TextStyle(color: AppColors.textMuted, fontSize: 12),
             ),
           ],
         ),
@@ -645,7 +646,7 @@ class _ChatPageState extends State<ChatPage> {
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -829,7 +830,7 @@ class _ChatPageState extends State<ChatPage> {
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: FilledButton.styleFrom(
-              backgroundColor: Colors.grey.shade700,
+              backgroundColor: AppColors.textSecondary,
             ),
             child: Text(l10n.declineInvitation),
           ),
@@ -931,7 +932,7 @@ class _ChatPageState extends State<ChatPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.failedToRespond(e.toString())),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -958,19 +959,19 @@ class _ChatPageState extends State<ChatPage> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: TextField(
                   controller: _messageController,
                   decoration: InputDecoration(
                     hintText: l10n.typeAMessage,
-                    hintStyle: TextStyle(color: Colors.grey[500]),
+                    hintStyle: TextStyle(color: AppColors.textMuted),
                     suffixIcon: IconButton(
                       icon: Icon(
                         Icons.edit_outlined,
                         size: 20,
-                        color: Colors.grey[400],
+                        color: AppColors.textMuted,
                       ),
                       tooltip: l10n.aiMessageAssistant,
                       onPressed: _showAiComposer,
@@ -993,8 +994,8 @@ class _ChatPageState extends State<ChatPage> {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [
-                    Color(0xFF7C3AED), // Light purple
-                    Color(0xFF6366F1), // Medium purple
+                    AppColors.purple, // Light purple
+                    AppColors.indigoPurple, // Medium purple
                     Color(0xFF4F46E5), // Darker purple
                   ],
                   begin: Alignment.topLeft,

@@ -5,6 +5,7 @@ import '../services/notification_service.dart';
 import '../providers/terminology_provider.dart';
 import '../utils/terminology_helper.dart';
 import '../l10n/app_localizations.dart';
+import '../shared/presentation/theme/theme.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -101,7 +102,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ? AppLocalizations.of(context)!.testNotificationSent
                 : AppLocalizations.of(context)!.failedToSendTestNotification,
           ),
-          backgroundColor: success ? Colors.green : Colors.red,
+          backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
       setState(() => _sendingTest = false);
@@ -133,7 +134,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : Text(l10n.save, style: const TextStyle(color: Colors.white)),
+                : Text(l10n.save, style: const TextStyle(color: AppColors.textLight)),
           ),
         ],
       ),
@@ -151,7 +152,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: Text(_error!,
-                          style: const TextStyle(color: Colors.red)),
+                          style: const TextStyle(color: AppColors.error)),
                     ),
                   TextField(
                     controller: _firstNameCtrl,
@@ -398,10 +399,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final url = _pictureCtrl.text.trim();
     return CircleAvatar(
       radius: 48,
-      backgroundColor: const Color(0xFF430172),
+      backgroundColor: AppColors.purpleDark,
       backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
       child: url.isEmpty
-          ? const Icon(Icons.person, color: Colors.white, size: 48)
+          ? const Icon(Icons.person, color: AppColors.textLight, size: 48)
           : null,
     );
   }
