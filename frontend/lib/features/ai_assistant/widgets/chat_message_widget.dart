@@ -37,14 +37,10 @@ class ChatMessageWidget extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.purple, AppColors.purpleDark],
-                ),
+                color: AppColors.primaryPurple, // Navy blue background
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.purple.withOpacity(0.3),
+                    color: AppColors.primaryPurple.withOpacity(0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -54,26 +50,26 @@ class ChatMessageWidget extends StatelessWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Outer circle shape
+                    // Outer circle shape - yellow
                     Container(
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.4),
+                          color: AppColors.yellow.withOpacity(0.6),
                           width: 1,
                         ),
                         shape: BoxShape.circle,
                       ),
                     ),
-                    // Inner diamond shape
+                    // Inner diamond shape - yellow
                     Transform.rotate(
                       angle: 0.785398, // 45 degrees
                       child: Container(
                         width: 7,
                         height: 7,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.yellow,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.1),
@@ -83,13 +79,13 @@ class ChatMessageWidget extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Connecting lines
+                    // Connecting lines - yellow
                     Positioned(
                       top: 6,
                       child: Container(
                         width: 0.8,
                         height: 3.5,
-                        color: Colors.white.withOpacity(0.6),
+                        color: AppColors.yellow.withOpacity(0.7),
                       ),
                     ),
                     Positioned(
@@ -97,7 +93,7 @@ class ChatMessageWidget extends StatelessWidget {
                       child: Container(
                         width: 0.8,
                         height: 3.5,
-                        color: Colors.white.withOpacity(0.6),
+                        color: AppColors.yellow.withOpacity(0.7),
                       ),
                     ),
                   ],

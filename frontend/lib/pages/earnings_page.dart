@@ -14,7 +14,7 @@ class EarningsPage extends StatefulWidget {
   final String? userKey;
   final bool loading;
   final Widget profileMenu;
-  final Widget Function({required String title, required Widget profileMenu}) buildAppBar;
+  final Widget Function({required BuildContext context, required String title, required Widget profileMenu}) buildAppBar;
 
   const EarningsPage({
     super.key,
@@ -199,6 +199,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
       return CustomScrollView(
         slivers: [
           widget.buildAppBar(
+            context: context,
             title: l10n.myEarnings,
             profileMenu: widget.profileMenu,
           ),
@@ -219,6 +220,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
       return CustomScrollView(
         slivers: [
           widget.buildAppBar(
+            context: context,
             title: l10n.myEarnings,
             profileMenu: widget.profileMenu,
           ),
@@ -241,6 +243,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
           return CustomScrollView(
             slivers: [
               widget.buildAppBar(
+                context: context,
                 title: l10n.myEarnings,
                 profileMenu: widget.profileMenu,
               ),
@@ -265,6 +268,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
           return CustomScrollView(
             slivers: [
               widget.buildAppBar(
+                context: context,
                 title: l10n.myEarnings,
                 profileMenu: widget.profileMenu,
               ),
@@ -319,6 +323,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               widget.buildAppBar(
+                context: context,
                 title: l10n.myEarnings,
                 profileMenu: widget.profileMenu,
               ),

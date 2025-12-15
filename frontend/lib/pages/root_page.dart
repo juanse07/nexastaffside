@@ -915,8 +915,8 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 onShowBottomBar: _showBottomBar,
               ), // Shifts tab (index 0) - Default/first tab for better UX
               ConversationsPage(
-                profileMenu: _buildProfileMenu(context, pendingInvites),
-              ), // Chats tab (index 1)
+                profileMenu: _buildProfileMenu(context, pendingInvites, borderColor: AppColors.primaryPurple),
+              ), // Chats tab (index 1) - Navy blue border for profile picture
               EarningsPage(
                 events: dataService.events,
                 userKey: _userKey,
@@ -1177,7 +1177,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     return summaries;
   }
 
-  Widget _buildProfileMenu(BuildContext context, int pendingInvites) {
+  Widget _buildProfileMenu(BuildContext context, int pendingInvites, {Color? borderColor}) {
     return PopupMenuButton<_AccountMenuAction>(
       tooltip: 'Account',
       onSelected: (value) async {
@@ -1279,7 +1279,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
             ? Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primaryIndigo, width: 2),
+                  border: Border.all(color: borderColor ?? AppColors.primaryIndigo, width: 2),
                 ),
                 child: CircleAvatar(
                   radius: 16,
@@ -1453,11 +1453,15 @@ class AppBarClipper extends CustomClipper<Path> {
 // Fixed pinned header - always visible, doesn't collapse
 // Note: Subtitle is deprecated for Shifts section (kept for backward compatibility with other sections)
 Widget buildStyledAppBar({
+  required BuildContext context,
   required String title,
   required Widget profileMenu,
   String? subtitle, // Optional subtitle (deprecated for Shifts, still used by Clock In/Earnings)
   Widget? bottomWidget,
 }) {
+  // Get the safe area top padding for proper positioning on notched devices
+  final topPadding = MediaQuery.of(context).padding.top;
+
   // If subtitle is provided, create a Text widget for bottomWidget
   // This maintains backward compatibility with sections still using subtitle
   Widget? effectiveBottomWidget = bottomWidget;
@@ -1478,6 +1482,7 @@ Widget buildStyledAppBar({
       title: title,
       profileMenu: profileMenu,
       bottomWidget: effectiveBottomWidget,
+      topPadding: topPadding,
     ),
   );
 }
@@ -1487,18 +1492,20 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   final String title;
   final Widget profileMenu;
   final Widget? bottomWidget; // Optional widget at bottom (e.g., filter toggle)
+  final double topPadding; // Safe area top padding
 
   _FixedAppBarDelegate({
     required this.title,
     required this.profileMenu,
     this.bottomWidget,
+    required this.topPadding,
   });
 
   @override
-  double get minExtent => 100.0; // Compact AppBar height
+  double get minExtent => topPadding + 56.0; // Safe area + content height
 
   @override
-  double get maxExtent => 100.0;
+  double get maxExtent => topPadding + 56.0;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -1523,29 +1530,31 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
                 ),
               ),
             ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Row(
-                  children: [
-                    // Title
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: topPadding + 8, // Safe area + extra padding
+                left: 20,
+                right: 20,
+                bottom: 12,
+              ),
+              child: Row(
+                children: [
+                  // Title
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(width: 12),
-                    // Eye icon toggle (for Available view)
-                    if (bottomWidget != null) bottomWidget!,
-                    const Spacer(),
-                    // Profile menu
-                    profileMenu,
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Eye icon toggle (for Available view)
+                  if (bottomWidget != null) bottomWidget!,
+                  const Spacer(),
+                  // Profile menu
+                  profileMenu,
+                ],
               ),
             ),
           ),
@@ -1558,7 +1567,8 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_FixedAppBarDelegate oldDelegate) {
     return title != oldDelegate.title ||
         profileMenu != oldDelegate.profileMenu ||
-        bottomWidget != oldDelegate.bottomWidget;
+        bottomWidget != oldDelegate.bottomWidget ||
+        topPadding != oldDelegate.topPadding;
   }
 }
 
@@ -2476,6 +2486,7 @@ class _HomeTabState extends State<_HomeTab> {
         physics: const BouncingScrollPhysics(),
         slivers: [
           buildStyledAppBar(
+            context: context,
             title: 'Clock In',
             subtitle: widget.countdownText,
             profileMenu: widget.profileMenu,
@@ -3794,8 +3805,9 @@ class _RolesSectionState extends State<_RolesSection> {
         break;
     }
 
-    // Calculate header heights
-    const double appBarHeight = 100.0; // Compact AppBar height (matches _FixedAppBarDelegate minExtent/maxExtent)
+    // Calculate header heights - account for safe area (notch/Dynamic Island)
+    final double safeAreaTop = MediaQuery.of(context).padding.top;
+    final double appBarHeight = safeAreaTop + 56.0; // Safe area + content height
     const double chipsHeight = 60.0;
     const double toggleHeight = 34.0; // Unavailable dates toggle height (only in Available view)
     final double totalHeaderHeight = appBarHeight + chipsHeight + (_selectedView == _ViewMode.available ? toggleHeight : 0);
@@ -3838,27 +3850,29 @@ class _RolesSectionState extends State<_RolesSection> {
                           ),
                         ),
                       ),
-                      child: SafeArea(
-                        bottom: false,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  appBarTitle,
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.95),
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.5,
-                                  ),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: safeAreaTop + 8, // Safe area + extra padding
+                          left: 20,
+                          right: 20,
+                          bottom: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                appBarTitle,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.95),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                              const Spacer(),
-                              widget.profileMenu,
-                            ],
-                          ),
+                            ),
+                            const Spacer(),
+                            widget.profileMenu,
+                          ],
                         ),
                       ),
                     ),

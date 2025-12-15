@@ -313,16 +313,10 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isTyping
-                  ? [AppColors.purpleLight, AppColors.purple]
-                  : [AppColors.purple, AppColors.purpleDark],
-            ),
+            color: AppColors.primaryPurple, // Navy blue background
             boxShadow: [
               BoxShadow(
-                color: AppColors.purple.withOpacity(isTyping ? 0.5 : 0.3),
+                color: AppColors.primaryPurple.withOpacity(isTyping ? 0.5 : 0.3),
                 blurRadius: isTyping ? 10 : 6,
                 offset: const Offset(0, 2),
               ),
@@ -334,7 +328,7 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
               duration: const Duration(milliseconds: 300),
               child: const Icon(
                 Icons.auto_awesome,
-                color: Colors.white,
+                color: AppColors.yellow, // Yellow icon
                 size: 18,
               ),
             ),

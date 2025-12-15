@@ -219,9 +219,9 @@ class _LoginPageState extends State<LoginPage> {
                           ],
                         ),
                         child: Image.asset(
-                          'assets/appbar_logo.png',
-                          height: 80,
-                          width: 80,
+                          'assets/welcomeLogo.png',
+                          height: 100,
+                          width: 100,
                         ),
                       ),
                       const SizedBox(height: 48),

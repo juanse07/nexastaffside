@@ -253,22 +253,31 @@ class _ConversationTile extends StatelessWidget {
             // Avatar
             Stack(
               children: <Widget>[
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: theme.primaryColor.withOpacity(0.1),
-                  backgroundImage: conversation.displayPicture != null
-                      ? NetworkImage(conversation.displayPicture!)
-                      : null,
-                  child: conversation.displayPicture == null
-                      ? Text(
-                          _getInitials(conversation.displayName),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: theme.primaryColor,
-                          ),
-                        )
-                      : null,
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primaryPurple, // Navy blue border
+                      width: 2,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppColors.primaryPurple, // Navy blue background for initials
+                    backgroundImage: conversation.displayPicture != null
+                        ? NetworkImage(conversation.displayPicture!)
+                        : null,
+                    child: conversation.displayPicture == null
+                        ? Text(
+                            _getInitials(conversation.displayName),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 if (hasUnread)
                   Positioned(
@@ -324,9 +333,7 @@ class _ConversationTile extends StatelessWidget {
                           timeago.format(conversation.lastMessageAt!),
                           style: TextStyle(
                             fontSize: 12,
-                            color: hasUnread
-                                ? theme.primaryColor
-                                : Colors.grey[600],
+                            color: AppColors.textMuted, // Grey for all timestamps
                             fontWeight:
                                 hasUnread ? FontWeight.w600 : FontWeight.normal,
                           ),
@@ -385,27 +392,23 @@ class _ValerioAssistantTile extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.purple.withOpacity(0.08),
-              AppColors.purpleDark.withOpacity(0.08),
+              AppColors.primaryPurple.withOpacity(0.08), // Navy blue tint
+              AppColors.primaryPurple.withOpacity(0.05),
             ],
           ),
         ),
         child: Row(
           children: <Widget>[
-            // Valerio Avatar with custom geometric icon
+            // Valerio Avatar with custom geometric icon - Navy blue background with yellow icon
             Container(
               width: 56,
               height: 56,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.purple, AppColors.purpleDark],
-                ),
+                color: AppColors.primaryPurple, // Navy blue background
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.purple.withOpacity(0.3),
+                    color: AppColors.primaryPurple.withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -415,26 +418,26 @@ class _ValerioAssistantTile extends StatelessWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Outer circle shape
+                    // Outer circle shape - yellow
                     Container(
                       width: 24,
                       height: 24,
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.4),
+                          color: AppColors.yellow.withOpacity(0.6),
                           width: 1.5,
                         ),
                         shape: BoxShape.circle,
                       ),
                     ),
-                    // Inner diamond shape
+                    // Inner diamond shape - yellow
                     Transform.rotate(
                       angle: 0.785398, // 45 degrees
                       child: Container(
                         width: 12,
                         height: 12,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.yellow,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.1),
@@ -444,13 +447,13 @@ class _ValerioAssistantTile extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Connecting lines
+                    // Connecting lines - yellow
                     Positioned(
                       top: 10,
                       child: Container(
                         width: 1,
                         height: 6,
-                        color: Colors.white.withOpacity(0.6),
+                        color: AppColors.yellow.withOpacity(0.7),
                       ),
                     ),
                     Positioned(
@@ -458,7 +461,7 @@ class _ValerioAssistantTile extends StatelessWidget {
                       child: Container(
                         width: 1,
                         height: 6,
-                        color: Colors.white.withOpacity(0.6),
+                        color: AppColors.yellow.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -486,7 +489,7 @@ class _ValerioAssistantTile extends StatelessWidget {
                       Icon(
                         Icons.push_pin,
                         size: 16,
-                        color: AppColors.purple.withOpacity(0.7),
+                        color: AppColors.textMuted, // Grey pin icon
                       ),
                     ],
                   ),

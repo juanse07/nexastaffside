@@ -264,18 +264,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
             if (_keyboardVisible && !kIsWeb)
               Container(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppColors.surfaceBlue,  // Light indigo
-                      AppColors.borderLight,  // Medium indigo
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: AppColors.primaryPurple, // Navy blue background
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: AppColors.primaryPurple.withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -292,7 +285,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                       alignment: Alignment.center,
                       child: const Icon(
                         Icons.keyboard_hide,
-                        color: AppColors.indigoPurple,
+                        color: AppColors.yellow, // Yellow icon
                         size: 20,
                       ),
                     ),
@@ -387,23 +380,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
             // Send button
             Container(
               decoration: BoxDecoration(
-                gradient: _hasText && !widget.isLoading
-                    ? LinearGradient(
-                        colors: [
-                          AppColors.purple, // Light purple
-                          AppColors.secondaryPurple, // Medium purple
-                          AppColors.indigoPurple, // Darker purple
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: !_hasText || widget.isLoading ? AppColors.borderMedium : null,
+                color: _hasText && !widget.isLoading
+                    ? AppColors.primaryPurple // Navy blue when active
+                    : AppColors.borderMedium, // Grey when inactive
                 shape: BoxShape.circle,
                 boxShadow: _hasText && !widget.isLoading
                     ? [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: AppColors.primaryPurple.withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                           spreadRadius: 0,
@@ -433,7 +417,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                           )
                         : Icon(
                             Icons.send,
-                            color: _hasText ? AppColors.primaryIndigo : AppColors.textMuted,
+                            color: _hasText ? AppColors.yellow : AppColors.textMuted, // Yellow icon when active
                             size: 18,
                           ),
                   ),

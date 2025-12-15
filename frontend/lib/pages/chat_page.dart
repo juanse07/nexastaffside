@@ -324,18 +324,18 @@ class _ChatPageState extends State<ChatPage> {
         preferredSize: const Size.fromHeight(65),
         child: Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppColors.purple, // Purple 600
-                AppColors.indigoPurple, // Indigo 500
-                AppColors.purpleLight, // Purple 500
+                AppColors.primaryPurple, // Navy blue
+                AppColors.primaryPurple.withOpacity(0.9),
+                AppColors.primaryPurple.withOpacity(0.8),
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.purple.withOpacity(0.3),
+                color: AppColors.primaryPurple.withOpacity(0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -400,7 +400,7 @@ class _ChatPageState extends State<ChatPage> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: AppColors.yellow, // Yellow border for visibility
                           width: 2,
                         ),
                         boxShadow: [
@@ -413,7 +413,7 @@ class _ChatPageState extends State<ChatPage> {
                       ),
                       child: CircleAvatar(
                         radius: 18,
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: AppColors.yellow.withOpacity(0.2), // Yellow tint background
                         backgroundImage: widget.managerPicture != null
                             ? NetworkImage(widget.managerPicture!)
                             : null,
@@ -507,7 +507,7 @@ class _ChatPageState extends State<ChatPage> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.purple.withOpacity(0.85),
+                      color: AppColors.textMuted.withOpacity(0.9), // Grey date chip
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -992,19 +992,11 @@ class _ChatPageState extends State<ChatPage> {
             const SizedBox(width: 8),
             Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    AppColors.purple, // Light purple
-                    AppColors.indigoPurple, // Medium purple
-                    Color(0xFF4F46E5), // Darker purple
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: AppColors.primaryPurple, // Navy blue solid background
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: AppColors.primaryPurple.withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                     spreadRadius: 0,
@@ -1028,7 +1020,7 @@ class _ChatPageState extends State<ChatPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Icon(Icons.send, color: Color(0xFFB8860B), size: 22),
+                      : const Icon(Icons.send, color: AppColors.yellow, size: 22), // Yellow icon
                   onPressed: _sending ? null : _sendMessage,
                 ),
               ),
@@ -1059,9 +1051,17 @@ class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMe;
 
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) {
+      return parts[0].isNotEmpty ? parts[0].substring(0, 1).toUpperCase() : '?';
+    }
+    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
     final maxBubbleWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.75;
 
@@ -1079,22 +1079,31 @@ class _MessageBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               if (!isMe) ...<Widget>[
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: theme.primaryColor.withOpacity(0.1),
-                  backgroundImage: message.senderPicture != null
-                      ? NetworkImage(message.senderPicture!)
-                      : null,
-                  child: message.senderPicture == null
-                      ? Text(
-                          (message.senderName ?? '?')[0].toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.primaryColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        )
-                      : null,
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.textMuted, // Grey border for received messages
+                      width: 1.5,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 13,
+                    backgroundColor: AppColors.textMuted.withOpacity(0.15), // Grey background
+                    backgroundImage: message.senderPicture != null
+                        ? NetworkImage(message.senderPicture!)
+                        : null,
+                    child: message.senderPicture == null
+                        ? Text(
+                            _getInitials(message.senderName ?? '?'),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -1104,7 +1113,7 @@ class _MessageBubble extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: isMe ? theme.primaryColor : Colors.grey[200],
+                      color: isMe ? AppColors.primaryPurple : Colors.grey[200], // Navy blue for sent
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(20),
                         topRight: const Radius.circular(20),
