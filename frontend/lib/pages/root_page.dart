@@ -6227,12 +6227,21 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 height: 64,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                     colors: [
-                                      AppColors.purpleLight,
-                                      Color(0xFFEC4899),
+                                      AppColors.navySpaceCadet,
+                                      AppColors.oceanBlue,
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(32),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.oceanBlue.withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
                                 child: const Icon(
                                   Icons.event_busy,
