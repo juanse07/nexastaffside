@@ -3403,14 +3403,40 @@ class _RolesSectionState extends State<_RolesSection> {
   _ViewMode _selectedView = _ViewMode.available;
   String? _currentWeekLabel;
   DateTime _selectedWeekStart = DateTime.now();
-  final ScrollController _scrollController = ScrollController();
   bool _hideUnavailableDates = true; // Default: hide unavailable dates
   bool _didInitializeLabel = false;
+  bool _showToggle = true; // Controls visibility of "hide unavailable dates" toggle
+  double _lastScrollOffset = 0;
 
   @override
   void initState() {
     super.initState();
     _loadFilterPreference();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  /// Handles scroll notifications from child scrollable widgets
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      final currentOffset = notification.metrics.pixels;
+      final scrollingDown = currentOffset > _lastScrollOffset;
+      final scrollingUp = currentOffset < _lastScrollOffset;
+
+      // Only trigger if scrolled more than 10 pixels to avoid jitter
+      if ((currentOffset - _lastScrollOffset).abs() > 10) {
+        if (scrollingDown && _showToggle && currentOffset > 50) {
+          setState(() => _showToggle = false);
+        } else if (scrollingUp && !_showToggle) {
+          setState(() => _showToggle = true);
+        }
+        _lastScrollOffset = currentOffset;
+      }
+    }
+    return false; // Don't stop notification propagation
   }
 
   @override
@@ -3815,8 +3841,12 @@ class _RolesSectionState extends State<_RolesSection> {
     return Stack(
       children: [
         // Full-screen scrollable content (starts from top:0 to scroll behind headers)
+        // Wrapped in NotificationListener to detect scroll and hide toggle
         Positioned.fill(
-          child: content,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: _onScrollNotification,
+            child: content,
+          ),
         ),
 
         // Floating transparent headers on top
@@ -3902,7 +3932,11 @@ class _RolesSectionState extends State<_RolesSection> {
                             ),
                             selected: _selectedView == _ViewMode.available,
                             onSelected: (selected) {
-                              if (selected) setState(() => _selectedView = _ViewMode.available);
+                              if (selected) setState(() {
+                                _selectedView = _ViewMode.available;
+                                _showToggle = true; // Reset toggle visibility
+                                _lastScrollOffset = 0;
+                              });
                             },
                             backgroundColor: Colors.white.withOpacity(0.7),
                             selectedColor: AppColors.primaryIndigo,
@@ -3987,37 +4021,45 @@ class _RolesSectionState extends State<_RolesSection> {
                 ),
               ),
 
-              // Unavailable dates toggle (only shown in Available view)
+              // Unavailable dates toggle (only shown in Available view, hides on scroll)
               if (_selectedView == _ViewMode.available)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _hideUnavailableDates = !_hideUnavailableDates;
-                      });
-                      _saveFilterPreference(_hideUnavailableDates);
-                    },
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _hideUnavailableDates
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                          size: 18,
+                AnimatedSlide(
+                  duration: const Duration(milliseconds: 200),
+                  offset: _showToggle ? Offset.zero : const Offset(0, -1),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: _showToggle ? 1.0 : 0.0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _hideUnavailableDates = !_hideUnavailableDates;
+                          });
+                          _saveFilterPreference(_hideUnavailableDates);
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _hideUnavailableDates
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Hide unavailable dates',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Hide unavailable dates',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
