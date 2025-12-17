@@ -4351,6 +4351,7 @@ class _MyEventsListState extends State<_MyEventsList> {
       showLastRefreshTime: false,
       child: CustomScrollView(
         controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
@@ -5140,6 +5141,7 @@ class _RoleList extends StatelessWidget {
       return EnhancedRefreshIndicator(
         showLastRefreshTime: false,
         child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverFillRemaining(
               child: Center(
@@ -5181,6 +5183,7 @@ class _RoleList extends StatelessWidget {
     return EnhancedRefreshIndicator(
       showLastRefreshTime: false,
       child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
@@ -5895,6 +5898,7 @@ class _CalendarTabState extends State<_CalendarTab> {
         return EnhancedRefreshIndicator(
           showLastRefreshTime: false,
           child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               // Calendar widget
               widget.loading
