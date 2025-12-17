@@ -33,7 +33,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   String _subscriptionTier = 'free';
   int _aiMessagesUsed = 0;
   int _aiMessagesLimit = 20; // Free tier limit (changed from 50 to reduce costs)
-  String _selectedModel = 'llama'; // 'llama' (default) or 'gpt-oss'
 
   // Scroll-based chips visibility
   bool _showChips = true;
@@ -109,7 +108,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // Pass model preference and terminology to chat service
     final response = await _chatService.sendMessage(
       message,
-      modelPreference: _selectedModel,
+      modelPreference: 'llama', // Default to fast model
       terminology: terminology,
     );
     if (response != null) {
@@ -386,99 +385,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                 ),
               ),
             ),
-
-          // Model selector (llama vs gpt-oss)
-          PopupMenuButton<String>(
-            icon: Icon(
-              _selectedModel == 'llama' ? Icons.bolt : Icons.speed,
-              color: AppColors.indigoPurple,
-            ),
-            tooltip: 'Select AI Model',
-            onSelected: (String value) {
-              setState(() {
-                _selectedModel = value;
-              });
-              // Show snackbar with model info
-              String modelInfo;
-              if (value == 'llama') {
-                modelInfo = 'Llama 3.1 8B: Fast & economical (560 T/sec)';
-              } else {
-                modelInfo = 'GPT-OSS 20B: More capable (1000 T/sec)';
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(modelInfo),
-                  duration: const Duration(seconds: 2),
-                  backgroundColor: AppColors.indigoPurple,
-                ),
-              );
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              PopupMenuItem<String>(
-                value: 'llama',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.bolt,
-                      size: 20,
-                      color: _selectedModel == 'llama' ? AppColors.indigoPurple : AppColors.textMuted,
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Llama 3.1 8B',
-                          style: TextStyle(
-                            fontWeight: _selectedModel == 'llama' ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        Text(
-                          'Fast & economical',
-                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 8),
-                    if (_selectedModel == 'llama')
-                      const Icon(Icons.check, size: 16, color: AppColors.indigoPurple),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem<String>(
-                value: 'gpt-oss',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.speed,
-                      size: 20,
-                      color: _selectedModel == 'gpt-oss' ? AppColors.indigoPurple : AppColors.textMuted,
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'GPT-OSS 20B',
-                          style: TextStyle(
-                            fontWeight: _selectedModel == 'gpt-oss' ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        Text(
-                          'More powerful',
-                          style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 8),
-                    if (_selectedModel == 'gpt-oss')
-                      const Icon(Icons.check, size: 16, color: AppColors.indigoPurple),
-                  ],
-                ),
-              ),
-            ],
-          ),
 
           // Clear conversation
           IconButton(
