@@ -16,6 +16,7 @@ class UserProfile {
   final String? picture;
   final String? appId;
   final String? phoneNumber;
+  final String? eventTerminology; // 'shift', 'job', or 'event'
 
   UserProfile({
     this.id,
@@ -26,6 +27,7 @@ class UserProfile {
     this.picture,
     this.appId,
     this.phoneNumber,
+    this.eventTerminology,
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
@@ -38,6 +40,7 @@ class UserProfile {
       picture: map['picture']?.toString(),
       appId: map['appId']?.toString(),
       phoneNumber: map['phoneNumber']?.toString(),
+      eventTerminology: map['eventTerminology']?.toString(),
     );
   }
 }
@@ -137,6 +140,7 @@ class UserService {
     String? phoneNumber,
     String? appId,
     String? picture,
+    String? eventTerminology,
   }) async {
     final token = await _getJwt();
     if (token == null) {
@@ -149,6 +153,7 @@ class UserService {
     if (phoneNumber != null && phoneNumber.isNotEmpty) payload['phoneNumber'] = phoneNumber;
     if (appId != null && appId.isNotEmpty) payload['appId'] = appId;
     if (picture != null && picture.isNotEmpty) payload['picture'] = picture;
+    if (eventTerminology != null && eventTerminology.isNotEmpty) payload['eventTerminology'] = eventTerminology;
 
     _log('Update payload: ${jsonEncode(payload)}');
 

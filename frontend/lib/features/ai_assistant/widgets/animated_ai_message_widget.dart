@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../shared/presentation/theme/theme.dart';
 import '../services/staff_chat_service.dart';
@@ -346,35 +347,45 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
         return ValueListenableBuilder<bool>(
           valueListenable: _showShimmerNotifier,
           builder: (context, showShimmer, _) {
-            final textWidget = MarkdownBody(
-              data: displayedText,
-              styleSheet: MarkdownStyleSheet(
-                p: const TextStyle(
-                  color: AppColors.textDark,
-                  fontSize: 15,
-                  height: 1.4,
+            // Check if text contains [LINK:...] patterns
+            final hasLinks = displayedText.contains('[LINK:');
+
+            final Widget textWidget;
+            if (hasLinks) {
+              // Build custom widget with clickable venue links
+              textWidget = _buildTextWithLinks(displayedText);
+            } else {
+              // Use standard MarkdownBody for text without links
+              textWidget = MarkdownBody(
+                data: displayedText,
+                styleSheet: MarkdownStyleSheet(
+                  p: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                  strong: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 15,
+                    height: 1.4,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  em: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 15,
+                    height: 1.4,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  listBullet: const TextStyle(
+                    color: AppColors.textDark,
+                  ),
                 ),
-                strong: const TextStyle(
-                  color: AppColors.textDark,
-                  fontSize: 15,
-                  height: 1.4,
-                  fontWeight: FontWeight.bold,
-                ),
-                em: const TextStyle(
-                  color: AppColors.textDark,
-                  fontSize: 15,
-                  height: 1.4,
-                  fontStyle: FontStyle.italic,
-                ),
-                listBullet: const TextStyle(
-                  color: AppColors.textDark,
-                ),
-              ),
-            );
+              );
+            }
 
             if (!showShimmer) return textWidget;
 
-            // Apply sophisticated multi-color shimmer with glow
+            // Apply navy blue / ocean blue / grey shimmer
             return AnimatedBuilder(
               animation: _shimmerAnimation,
               builder: (context, child) {
@@ -397,11 +408,11 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                               (_shimmerAnimation.value + 0.4).clamp(0.0, 1.0),
                             ],
                             colors: const [
-                              AppColors.textDark,
-                              AppColors.primaryIndigo, // Yellow/gold
-                              AppColors.secondaryPurple, // Blue
-                              AppColors.primaryIndigo, // Yellow/gold
-                              AppColors.textDark,
+                              AppColors.textDark, // Dark base
+                              AppColors.navySpaceCadet, // Navy blue
+                              AppColors.oceanBlue, // Ocean blue highlight
+                              AppColors.navySpaceCadet, // Navy blue
+                              AppColors.textDark, // Dark base
                             ],
                           ).createShader(bounds);
                         },
@@ -426,11 +437,11 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                           ],
                           colors: const [
                             AppColors.textDark, // Dark base
-                            AppColors.indigoPurple, // Indigo
-                            AppColors.purple, // Purple
-                            AppColors.pinkAccent, // Pink highlight peak
-                            AppColors.purple, // Purple
-                            AppColors.indigoPurple, // Indigo
+                            AppColors.navySpaceCadet, // Navy blue
+                            AppColors.oceanBlue, // Ocean blue
+                            AppColors.oceanBlue, // Ocean blue highlight peak
+                            AppColors.oceanBlue, // Ocean blue
+                            AppColors.navySpaceCadet, // Navy blue
                             AppColors.textDark, // Dark base
                           ],
                         ).createShader(bounds);
@@ -446,5 +457,172 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
         );
       },
     );
+  }
+
+  /// Build text content with clickable venue links
+  Widget _buildTextWithLinks(String text) {
+    final lines = text.split('\n');
+    final widgets = <Widget>[];
+
+    for (final line in lines) {
+      if (line.trim().isEmpty) {
+        widgets.add(const SizedBox(height: 8));
+        continue;
+      }
+
+      // Check for [LINK:...] pattern
+      final linkPattern = RegExp(r'\[LINK:([^\]]+)\]');
+      final match = linkPattern.firstMatch(line);
+
+      if (match != null) {
+        // Line contains a venue link
+        final beforeLink = line.substring(0, match.start);
+        final venueName = match.group(1)!;
+        final afterLink = line.substring(match.end);
+
+        widgets.add(
+          Wrap(
+            children: [
+              if (beforeLink.isNotEmpty)
+                Text(
+                  beforeLink,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+              GestureDetector(
+                onTap: () => _openMaps(venueName),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      venueName,
+                      style: const TextStyle(
+                        color: AppColors.oceanBlue,
+                        fontSize: 15,
+                        height: 1.4,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.oceanBlue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: AppColors.oceanBlue,
+                    ),
+                  ],
+                ),
+              ),
+              if (afterLink.isNotEmpty)
+                Text(
+                  afterLink,
+                  style: const TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+            ],
+          ),
+        );
+      } else {
+        // Regular text line - handle markdown bold
+        widgets.add(_buildMarkdownText(line));
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widgets,
+    );
+  }
+
+  /// Parse and render simple markdown (bold text with **)
+  Widget _buildMarkdownText(String text) {
+    final boldPattern = RegExp(r'\*\*(.+?)\*\*');
+    final matches = boldPattern.allMatches(text);
+
+    if (matches.isEmpty) {
+      return Text(
+        text,
+        style: const TextStyle(
+          color: AppColors.textDark,
+          fontSize: 15,
+          height: 1.4,
+        ),
+      );
+    }
+
+    // Build TextSpans with bold sections
+    final spans = <TextSpan>[];
+    int lastEnd = 0;
+
+    for (final match in matches) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start),
+          style: const TextStyle(
+            color: AppColors.textDark,
+            fontSize: 15,
+            height: 1.4,
+          ),
+        ));
+      }
+
+      spans.add(TextSpan(
+        text: match.group(1)!,
+        style: const TextStyle(
+          color: AppColors.textDark,
+          fontSize: 15,
+          height: 1.4,
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+
+      lastEnd = match.end;
+    }
+
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastEnd),
+        style: const TextStyle(
+          color: AppColors.textDark,
+          fontSize: 15,
+          height: 1.4,
+        ),
+      ));
+    }
+
+    return RichText(text: TextSpan(children: spans));
+  }
+
+  /// Open Google Maps with the venue name
+  Future<void> _openMaps(String venueName) async {
+    final encodedAddress = Uri.encodeComponent(venueName);
+
+    // Try multiple URL schemes for best compatibility
+    final urls = [
+      'comgooglemaps://?q=$encodedAddress',
+      'https://maps.apple.com/?q=$encodedAddress',
+      'https://www.google.com/maps/search/?api=1&query=$encodedAddress',
+    ];
+
+    for (final urlString in urls) {
+      final url = Uri.parse(urlString);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        return;
+      }
+    }
+
+    // Final fallback
+    final fallbackUrl = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$encodedAddress',
+    );
+    await launchUrl(fallbackUrl, mode: LaunchMode.externalApplication);
   }
 }
