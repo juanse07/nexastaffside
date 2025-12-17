@@ -35,17 +35,41 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   int _aiMessagesLimit = 20; // Free tier limit (changed from 50 to reduce costs)
   String _selectedModel = 'llama'; // 'llama' (default) or 'gpt-oss'
 
+  // Scroll-based chips visibility
+  bool _showChips = true;
+  double _lastScrollOffset = 0;
+
   @override
   void initState() {
     super.initState();
     _initializeChat();
     _loadSubscriptionStatus();
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Handle scroll to hide/show chips bar
+  void _onScroll() {
+    final currentOffset = _scrollController.offset;
+    // Note: With reverse: true, scrolling "up" (to older messages) increases offset
+    // Scrolling "down" (to newer messages) decreases offset toward 0
+    final scrollingToOlder = currentOffset > _lastScrollOffset;
+    final scrollingToNewer = currentOffset < _lastScrollOffset;
+
+    if ((currentOffset - _lastScrollOffset).abs() > 10) {
+      if (scrollingToOlder && _showChips && currentOffset > 50) {
+        setState(() => _showChips = false);
+      } else if (scrollingToNewer && !_showChips) {
+        setState(() => _showChips = true);
+      }
+      _lastScrollOffset = currentOffset;
+    }
   }
 
   Future<void> _initializeChat() async {
@@ -572,7 +596,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                   ],
                 ),
 
-                // Floating chips layer (positioned over messages)
+                // Floating chips layer (positioned over messages, hides on scroll)
                 if (!_chatService.isLoading)
                   Positioned(
                     left: 0,
@@ -580,51 +604,59 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                     bottom: 60 + (MediaQuery.of(context).padding.bottom > 0
                       ? MediaQuery.of(context).padding.bottom
                       : 8),
-                    child: IgnorePointer(
-                      ignoring: false,
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              AppColors.surfaceLight.withOpacity(0.3),
-                              AppColors.surfaceLight.withOpacity(0.6),
-                            ],
-                            stops: const [0.0, 0.5, 1.0],
-                          ),
-                        ),
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildSuggestionChip(
-                                '📋 Next 7 Jobs',
-                                'Show my next 7 jobs',
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 200),
+                      offset: _showChips ? Offset.zero : const Offset(0, 1),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _showChips ? 1.0 : 0.0,
+                        child: IgnorePointer(
+                          ignoring: !_showChips,
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  AppColors.surfaceLight.withOpacity(0.3),
+                                  AppColors.surfaceLight.withOpacity(0.6),
+                                ],
+                                stops: const [0.0, 0.5, 1.0],
                               ),
-                              const SizedBox(width: 8),
-                              _buildSuggestionChip(
-                                '🔜 Next Shift',
-                                'When is my next shift?',
+                            ),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _buildSuggestionChip(
+                                    '📋 Next 7 Jobs',
+                                    'Show my next 7 jobs',
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildSuggestionChip(
+                                    '🔜 Next Shift',
+                                    'When is my next shift?',
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildSuggestionChip(
+                                    '📅 Last Month',
+                                    'Show all my shifts from last month',
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildSuggestionChip(
+                                    '💰 Earnings',
+                                    'How much have I earned this month?',
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildSuggestionChip(
+                                    '📍 Upcoming',
+                                    'What are my upcoming events?',
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              _buildSuggestionChip(
-                                '📅 Last Month',
-                                'Show all my shifts from last month',
-                              ),
-                              const SizedBox(width: 8),
-                              _buildSuggestionChip(
-                                '💰 Earnings',
-                                'How much have I earned this month?',
-                              ),
-                              const SizedBox(width: 8),
-                              _buildSuggestionChip(
-                                '📍 Upcoming',
-                                'What are my upcoming events?',
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
