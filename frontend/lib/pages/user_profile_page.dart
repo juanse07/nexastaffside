@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/user_service.dart';
-import '../services/notification_service.dart';
 import '../providers/terminology_provider.dart';
 import '../utils/terminology_helper.dart';
 import '../l10n/app_localizations.dart';
@@ -23,7 +22,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   bool _loading = true;
   bool _saving = false;
-  bool _sendingTest = false;
   String? _error;
 
   @override
@@ -86,26 +84,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
       setState(() {
         _saving = false;
       });
-    }
-  }
-
-  Future<void> _sendTestNotification() async {
-    setState(() => _sendingTest = true);
-
-    final success = await NotificationService().sendTestNotification();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? AppLocalizations.of(context)!.testNotificationSent
-                : AppLocalizations.of(context)!.failedToSendTestNotification,
-          ),
-          backgroundColor: success ? AppColors.success : AppColors.error,
-        ),
-      );
-      setState(() => _sendingTest = false);
     }
   }
 
@@ -236,43 +214,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                 Text('• ${l10n.importantSystemAlerts}'),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _sendingTest ? null : _sendTestNotification,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              icon: _sendingTest
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : const Icon(Icons.send),
-                              label: Text(
-                                _sendingTest
-                                    ? l10n.sendingTest
-                                    : l10n.sendTestNotification,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.tapToVerifyNotifications,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
