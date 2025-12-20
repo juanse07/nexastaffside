@@ -19,6 +19,22 @@ class ChatMessageWidget extends StatelessWidget {
     this.userProfilePicture,
   });
 
+  /// Strips JSON command blocks from message content for display
+  /// These blocks are used by the service but shouldn't be shown to users
+  /// This is a safety net in case messages in history still contain JSON
+  String _stripJsonBlocks(String content) {
+    // Pattern to match command blocks like:
+    // AVAILABILITY_MARK { ... }
+    // SHIFT_ACCEPT { ... }
+    // SHIFT_DECLINE { ... }
+    final commandPattern = RegExp(
+      r'\n*(AVAILABILITY_MARK|SHIFT_ACCEPT|SHIFT_DECLINE)\s*\{[\s\S]*?\}(?:\s*\})*',
+      multiLine: true,
+    );
+
+    return content.replaceAll(commandPattern, '').trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isUser = message.role == 'user';
@@ -235,7 +251,8 @@ class ChatMessageWidget extends StatelessWidget {
 
   /// Build message content with support for clickable links and addresses
   Widget _buildMessageContent(bool isUser) {
-    final content = message.content;
+    // Strip JSON command blocks before displaying (safety net for old messages)
+    final content = _stripJsonBlocks(message.content);
     final lines = content.split('\n');
     final widgets = <Widget>[];
 

@@ -5,6 +5,7 @@ import '../models/conversation.dart';
 import '../services/chat_service.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../shared/widgets/initials_avatar.dart';
 import 'chat_page.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 
@@ -253,31 +254,10 @@ class _ConversationTile extends StatelessWidget {
             // Avatar
             Stack(
               children: <Widget>[
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.primaryPurple, // Navy blue border
-                      width: 2,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    radius: 26,
-                    backgroundColor: AppColors.primaryPurple, // Navy blue background for initials
-                    backgroundImage: conversation.displayPicture != null
-                        ? NetworkImage(conversation.displayPicture!)
-                        : null,
-                    child: conversation.displayPicture == null
-                        ? Text(
-                            _getInitials(conversation.displayName),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
-                  ),
+                UserAvatar(
+                  imageUrl: conversation.displayPicture,
+                  fullName: conversation.displayName,
+                  radius: 28,
                 ),
                 if (hasUnread)
                   Positioned(
@@ -361,14 +341,6 @@ class _ConversationTile extends StatelessWidget {
     );
   }
 
-  String _getInitials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      return parts[0].substring(0, 1).toUpperCase();
-    }
-    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
-  }
 }
 
 /// Pinned Valerio Assistant chat tile

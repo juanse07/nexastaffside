@@ -556,6 +556,16 @@ class DataService extends ChangeNotifier {
           } catch (e) {
             debugPrint('[SOCKET] Error handling chat message: $e');
           }
+
+          // If this is an event invitation, refresh events so it appears in Available tab
+          final messageType = data['messageType']?.toString();
+          if (messageType == 'eventInvitation') {
+            debugPrint('[SOCKET] Event invitation received - refreshing events list');
+            // Use brief delay for smoother UX (avoids rapid API calls)
+            Future.delayed(const Duration(milliseconds: 500), () {
+              _fetchEvents(silent: true, forceFullSync: true);
+            });
+          }
         }
       });
 
@@ -889,6 +899,7 @@ class DataService extends ChangeNotifier {
   /// Apply audience visibility rules client-side
   /// - If event.audience_user_keys is empty or missing: everyone sees all roles
   /// - If non-empty: show roles only if current userKey is listed, or role.visible_for_all is true
+  /// - If server set 'assigned_role', trust the server's filtered roles (for private invitations)
   List<Map<String, dynamic>> _filterEventsForAudience(
     List<Map<String, dynamic>> events,
     String? userKey,
@@ -908,6 +919,15 @@ class DataService extends ChangeNotifier {
           .toList();
 
       final isAccepted = isAcceptedByUser(evt, userKey);
+
+      // If server already filtered roles for this user (via assigned_role),
+      // trust the server's filtering - this happens for private direct invitations
+      final assignedRole = evt['assigned_role']?.toString();
+      if (assignedRole != null && assignedRole.isNotEmpty) {
+        // Server has already filtered roles for this private invitation
+        filtered.add(evt);
+        continue;
+      }
 
       final isGlobalAudience = audienceUsers.isEmpty && audienceTeams.isEmpty;
       final bool inAudienceUsers =

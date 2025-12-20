@@ -12,6 +12,7 @@ import '../services/chat_service.dart';
 import '../services/data_service.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../shared/widgets/initials_avatar.dart';
 import '../widgets/ai_message_composer.dart';
 import '../widgets/event_invitation_card.dart';
 
@@ -411,22 +412,10 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ],
                       ),
-                      child: CircleAvatar(
+                      child: UserAvatar(
+                        imageUrl: widget.managerPicture,
+                        fullName: widget.managerName,
                         radius: 18,
-                        backgroundColor: AppColors.yellow.withOpacity(0.2), // Yellow tint background
-                        backgroundImage: widget.managerPicture != null
-                            ? NetworkImage(widget.managerPicture!)
-                            : null,
-                        child: widget.managerPicture == null
-                            ? Text(
-                                _getInitials(widget.managerName),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : null,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1031,14 +1020,6 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  String _getInitials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      return parts[0].substring(0, 1).toUpperCase();
-    }
-    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
-  }
 }
 
 class _MessageBubble extends StatelessWidget {
@@ -1050,15 +1031,6 @@ class _MessageBubble extends StatelessWidget {
 
   final ChatMessage message;
   final bool isMe;
-
-  String _getInitials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      return parts[0].isNotEmpty ? parts[0].substring(0, 1).toUpperCase() : '?';
-    }
-    return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1079,31 +1051,10 @@ class _MessageBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               if (!isMe) ...<Widget>[
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.textMuted, // Grey border for received messages
-                      width: 1.5,
-                    ),
-                  ),
-                  child: CircleAvatar(
-                    radius: 13,
-                    backgroundColor: AppColors.textMuted.withOpacity(0.15), // Grey background
-                    backgroundImage: message.senderPicture != null
-                        ? NetworkImage(message.senderPicture!)
-                        : null,
-                    child: message.senderPicture == null
-                        ? Text(
-                            _getInitials(message.senderName ?? '?'),
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          )
-                        : null,
-                  ),
+                UserAvatar(
+                  imageUrl: message.senderPicture,
+                  fullName: message.senderName,
+                  radius: 13,
                 ),
                 const SizedBox(width: 8),
               ],

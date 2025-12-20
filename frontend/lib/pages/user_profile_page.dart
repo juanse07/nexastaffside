@@ -5,6 +5,7 @@ import '../providers/terminology_provider.dart';
 import '../utils/terminology_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../shared/widgets/initials_avatar.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -337,14 +338,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildAvatar() {
-    final url = _pictureCtrl.text.trim();
-    return CircleAvatar(
+    return InitialsAvatar(
+      imageUrl: _pictureCtrl.text.trim(),
+      firstName: _firstNameCtrl.text.trim(),
+      lastName: _lastNameCtrl.text.trim(),
       radius: 48,
-      backgroundColor: AppColors.purpleDark,
-      backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
-      child: url.isEmpty
-          ? const Icon(Icons.person, color: AppColors.textLight, size: 48)
-          : null,
     );
   }
 }
