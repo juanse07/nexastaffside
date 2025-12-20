@@ -50,11 +50,18 @@ class StaffChatService {
   Map<String, dynamic>? _pendingAvailability;
   Map<String, dynamic>? _pendingShiftAction;
 
+  // Conversation tracking for summaries
+  DateTime? _conversationStartTime;
+  String _inputSource = 'text'; // 'text' or 'voice'
+  String _aiModel = 'llama-3.1-8b-instant';
+  String _aiProvider = 'groq';
+
   List<ChatMessage> get conversationHistory => List.unmodifiable(_conversationHistory);
   AIProvider get selectedProvider => _selectedProvider;
   bool get isLoading => _isLoading;
   Map<String, dynamic>? get pendingAvailability => _pendingAvailability;
   Map<String, dynamic>? get pendingShiftAction => _pendingShiftAction;
+  DateTime? get conversationStartTime => _conversationStartTime;
 
   /// Initialize the service (load system instructions)
   Future<void> initialize() async {
@@ -369,13 +376,16 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
         if (content != null && content.isNotEmpty) {
           print('[StaffChatService] AI response received: ${content.substring(0, content.length > 100 ? 100 : content.length)}...');
 
-          // Parse response for special commands
+          // Parse response for special commands (uses raw content)
           _parseResponseForActions(content);
 
-          // Add AI response to history
+          // Strip JSON command blocks before storing for display
+          final userFacingContent = _extractUserFriendlyMessage(content);
+
+          // Add AI response to history (with cleaned content)
           final aiMessage = ChatMessage(
             role: 'assistant',
-            content: content,
+            content: userFacingContent,
             provider: provider == 'claude'
                 ? AIProvider.claude
                 : provider == 'groq'
@@ -408,6 +418,40 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
       _isLoading = false;
       return null;
     }
+  }
+
+  /// Extract user-friendly message by removing technical markers and JSON
+  /// This hides AVAILABILITY_MARK, SHIFT_ACCEPT, SHIFT_DECLINE from users
+  /// while still processing the JSON in the background
+  String _extractUserFriendlyMessage(String content) {
+    // List of technical markers with their fallback messages
+    final markersWithFallbacks = {
+      'AVAILABILITY_MARK': '✅ Your availability has been updated!',
+      'SHIFT_ACCEPT': '🎉 Great! You\'ve accepted the shift.',
+      'SHIFT_DECLINE': '👍 No problem, the shift has been declined.',
+    };
+
+    String cleaned = content;
+    String? fallbackMessage;
+
+    // Check if any marker exists in the response
+    for (final entry in markersWithFallbacks.entries) {
+      final marker = entry.key;
+      if (cleaned.contains(marker)) {
+        // Extract everything BEFORE the marker (the friendly message)
+        final markerIndex = cleaned.indexOf(marker);
+        cleaned = cleaned.substring(0, markerIndex).trim();
+        fallbackMessage = entry.value;
+        break;
+      }
+    }
+
+    // If the friendly message is empty, use the fallback
+    if (cleaned.isEmpty && fallbackMessage != null) {
+      return fallbackMessage;
+    }
+
+    return cleaned;
   }
 
   /// Parse AI response for action commands
@@ -488,7 +532,48 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
     _conversationHistory.clear();
     _pendingAvailability = null;
     _pendingShiftAction = null;
+    // Reset conversation tracking
+    _conversationStartTime = DateTime.now();
+    _inputSource = 'text';
     print('[StaffChatService] Conversation cleared');
+  }
+
+  /// Set input source for conversation tracking
+  void setInputSource(String source) {
+    if (source == 'text' || source == 'voice') {
+      _inputSource = source;
+      print('[StaffChatService] Input source set to: $_inputSource');
+    }
+  }
+
+  /// Export conversation data for saving to database
+  Map<String, dynamic> exportConversationSummary({
+    required String outcome,
+    String? outcomeReason,
+    Map<String, dynamic>? actionData,
+  }) {
+    final now = DateTime.now();
+    final durationMs = _conversationStartTime != null
+        ? now.difference(_conversationStartTime!).inMilliseconds
+        : 0;
+
+    return {
+      'messages': _conversationHistory.map((msg) => {
+        'role': msg.role,
+        'content': msg.content,
+        'timestamp': msg.timestamp.toIso8601String(),
+      }).toList(),
+      'outcome': outcome,
+      'outcomeReason': outcomeReason,
+      'durationMs': durationMs,
+      'toolsUsed': <String>[],
+      'inputSource': _inputSource,
+      'aiModel': _aiModel,
+      'aiProvider': _aiProvider,
+      'conversationStartedAt': _conversationStartTime?.toIso8601String() ?? now.toIso8601String(),
+      'conversationEndedAt': now.toIso8601String(),
+      'actionData': actionData ?? {},
+    };
   }
 
   /// Refresh staff context (force reload)

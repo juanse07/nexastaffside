@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/terminology_provider.dart';
 import '../../../shared/presentation/theme/theme.dart';
 import '../../../services/subscription_service.dart';
+import '../services/chat_summary_service.dart';
 import '../services/staff_chat_service.dart';
 import '../widgets/animated_ai_message_widget.dart';
 import '../widgets/availability_confirmation_card.dart';
@@ -26,6 +27,7 @@ class StaffAIChatScreen extends StatefulWidget {
 
 class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   final StaffChatService _chatService = StaffChatService();
+  final ChatSummaryService _summaryService = ChatSummaryService();
   final ScrollController _scrollController = ScrollController();
   final SubscriptionService _subscriptionService = SubscriptionService();
 
@@ -168,6 +170,12 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       ),
     );
 
+    // Save conversation summary (fire-and-forget)
+    _saveChatSummary(
+      outcome: 'availability_marked',
+      actionData: availabilityData,
+    );
+
     _chatService.clearPendingAvailability();
     _chatService.addSystemMessage('✅ Your availability has been updated successfully!');
     setState(() {});
@@ -191,6 +199,12 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
         ),
         backgroundColor: action == 'accept' ? AppColors.success : AppColors.warning,
       ),
+    );
+
+    // Save conversation summary (fire-and-forget)
+    _saveChatSummary(
+      outcome: action == 'accept' ? 'shift_accepted' : 'shift_declined',
+      actionData: shiftAction,
     );
 
     _chatService.clearPendingShiftAction();
@@ -233,6 +247,15 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
           ),
           TextButton(
             onPressed: () {
+              // Save summary before clearing if there was meaningful conversation
+              // (more than just the welcome message)
+              if (_chatService.conversationHistory.length > 1) {
+                _saveChatSummary(
+                  outcome: 'question_answered',
+                  outcomeReason: 'User cleared conversation',
+                );
+              }
+
               _chatService.clearConversation();
               AnimatedAiMessageWidget.clearAnimationTracking(); // Clear animation tracking
               Navigator.pop(context);
@@ -249,6 +272,23 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
         ],
       ),
     );
+  }
+
+  /// Save conversation summary to database (fire-and-forget)
+  void _saveChatSummary({
+    required String outcome,
+    String? outcomeReason,
+    Map<String, dynamic>? actionData,
+  }) {
+    // Export conversation data from chat service
+    final summaryData = _chatService.exportConversationSummary(
+      outcome: outcome,
+      outcomeReason: outcomeReason,
+      actionData: actionData,
+    );
+
+    // Fire-and-forget save (don't await)
+    _summaryService.saveSummary(summaryData);
   }
 
   /// Build a suggestion chip for quick actions
