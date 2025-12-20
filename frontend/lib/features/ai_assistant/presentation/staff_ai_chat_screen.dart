@@ -50,9 +50,32 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
 
   @override
   void dispose() {
+    // Save conversation summary when leaving the screen
+    // Only save if there's meaningful content (more than just welcome message)
+    _saveOnExit();
+
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Save conversation when user leaves the screen
+  void _saveOnExit() {
+    // Count user messages (excluding system welcome message)
+    final userMessages = _chatService.conversationHistory
+        .where((msg) => msg.role == 'user')
+        .length;
+
+    // Only save if user actually sent at least one message
+    if (userMessages > 0) {
+      print('[StaffAIChatScreen] Saving conversation on exit (${userMessages} user messages)');
+      _saveChatSummary(
+        outcome: 'question_answered',
+        outcomeReason: 'User left chat screen',
+      );
+    } else {
+      print('[StaffAIChatScreen] No user messages - skipping save on exit');
+    }
   }
 
   /// Handle scroll to hide/show chips bar
