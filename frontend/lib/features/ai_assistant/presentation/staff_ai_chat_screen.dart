@@ -133,7 +133,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // Pass model preference and terminology to chat service
     final response = await _chatService.sendMessage(
       message,
-      modelPreference: 'llama', // Default to fast model
+      modelPreference: 'gpt-oss', // Default to GPT-OSS 20B (supports function calling)
       terminology: terminology,
     );
     if (response != null) {

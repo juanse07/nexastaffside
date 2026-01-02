@@ -53,7 +53,7 @@ class StaffChatService {
   // Conversation tracking for summaries
   DateTime? _conversationStartTime;
   String _inputSource = 'text'; // 'text' or 'voice'
-  String _aiModel = 'llama-3.1-8b-instant';
+  String _aiModel = 'openai/gpt-oss-20b';
   String _aiProvider = 'groq';
 
   List<ChatMessage> get conversationHistory => List.unmodifiable(_conversationHistory);
