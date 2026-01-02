@@ -126,6 +126,374 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return results.first;
   }
 
+  /// Modern immersive map section with floating venue card
+  Widget _buildModernMapSection({
+    required double lat,
+    required double lng,
+    required String venueName,
+    required String venueAddress,
+    required ThemeData theme,
+    required AppLocalizations l10n,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          height: 260,
+          child: Stack(
+            children: [
+              // Map layer
+              Positioned.fill(
+                child: _buildMapLayer(lat, lng),
+              ),
+              // Gradient overlay at bottom
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 140,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.7),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Custom animated marker
+              Positioned(
+                top: 75,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: _buildModernMarker(),
+                ),
+              ),
+              // Floating venue info card
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 20,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          // Venue icon
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.tealDark, AppColors.tealMedium],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.location_on_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Venue info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  venueName.isNotEmpty ? venueName : l10n.venue,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textDark,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (venueAddress.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    venueAddress,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.textTertiary,
+                                      fontSize: 11,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Directions button
+                          GestureDetector(
+                            onTap: () {
+                              final address = venueAddress.isNotEmpty ? venueAddress : venueName;
+                              if (address.isNotEmpty) {
+                                _launchMapUrl(address);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: AppColors.tealDark,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.directions_rounded,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Go',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Modern floating marker with pulse effect
+  Widget _buildModernMarker() {
+    return SizedBox(
+      width: 60,
+      height: 70,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          // Shadow
+          Positioned(
+            bottom: 0,
+            child: Container(
+              width: 20,
+              height: 6,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          // Pin
+          Container(
+            width: 44,
+            height: 54,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.tealDark, AppColors.tealMedium],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(22),
+                topRight: Radius.circular(22),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(4),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.tealDark.withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.work_outline_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                SizedBox(height: 2),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Raw map layer widget
+  Widget _buildMapLayer(double lat, double lng) {
+    if (Platform.isIOS) {
+      return apple_maps.AppleMap(
+        initialCameraPosition: apple_maps.CameraPosition(
+          target: apple_maps.LatLng(lat, lng),
+          zoom: 15,
+        ),
+        rotateGesturesEnabled: false,
+        pitchGesturesEnabled: false,
+        scrollGesturesEnabled: false,
+        zoomGesturesEnabled: false,
+        myLocationEnabled: false,
+        myLocationButtonEnabled: false,
+        trafficEnabled: false,
+        // No annotations - we use custom marker overlay
+      );
+    }
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: LatLng(lat, lng),
+        initialZoom: 15,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.none,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.nexa.staffside',
+        ),
+        // No markers - we use custom marker overlay
+      ],
+    );
+  }
+
+  /// Fallback venue card when map can't be loaded
+  Widget _buildVenueCardFallback({
+    required String venueName,
+    required String venueAddress,
+    required ThemeData theme,
+    required AppLocalizations l10n,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.tealDark, AppColors.tealMedium],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.location_on_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  venueName.isNotEmpty ? venueName : l10n.venue,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (venueAddress.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    venueAddress,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () {
+              final address = venueAddress.isNotEmpty ? venueAddress : venueName;
+              if (address.isNotEmpty) {
+                _launchMapUrl(address);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.tealDark,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.directions_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Go',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Legacy method kept for backwards compatibility
   Widget _buildMapPreview(double lat, double lng) {
     if (Platform.isIOS) {
       return ClipRRect(
@@ -313,9 +681,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
     double? lng = double.tryParse(event['venue_longitude']?.toString() ?? '');
     bool hasCoords = lat != null && lng != null;
 
-    final eventName = event['event_name']?.toString() ?? l10n.untitledEvent;
+    final eventName = event['event_name']?.toString() ?? roleName ?? l10n.untitledEvent;
     final clientName = event['client_name']?.toString() ?? '';
-    final headcount = event['headcount_total']?.toString() ?? '0';
     final dateStr = event['date']?.toString();
     final startTimeStr = event['start_time']?.toString();
     final endTimeStr = event['end_time']?.toString();
@@ -356,47 +723,116 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surfaceContainerLowest,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        foregroundColor: AppColors.textDark,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: !showRespondActions
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.chat_bubble_outline, color: AppColors.textDark),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => EventTeamChatPage(
-                          eventId: (event['_id'] ?? event['id'] ?? '').toString(),
-                          eventName: eventName,
-                          chatEnabled: event['chatEnabled'] == true,
-                        ),
-                      ),
-                    );
-                  },
-                  tooltip: l10n.teamChat,
-                ),
-              ]
-            : null,
-        flexibleSpace: ClipRect(
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: ClipRRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [
-                    Colors.white.withOpacity(0.9),
-                    Colors.white.withOpacity(0.0),
+                    Colors.white.withValues(alpha: 0.85),
+                    Colors.white.withValues(alpha: 0.7),
                   ],
-                  stops: const [0.0, 1.0],
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.border.withValues(alpha: 0.3),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      // Back button
+                      IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceGray,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 18,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      // Title section
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              eventName,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textDark,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (clientName.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                clientName,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      // Chat button (only for accepted events)
+                      if (!showRespondActions)
+                        IconButton(
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppColors.tealDark, AppColors.tealMedium],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => EventTeamChatPage(
+                                  eventId: (event['_id'] ?? event['id'] ?? '').toString(),
+                                  eventName: eventName,
+                                  chatEnabled: event['chatEnabled'] == true,
+                                ),
+                              ),
+                            );
+                          },
+                          tooltip: l10n.teamChat,
+                        )
+                      else
+                        const SizedBox(width: 48), // Balance the layout
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -407,7 +843,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + kToolbarHeight + 12, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -481,8 +917,16 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     );
                   }),
                   const SizedBox(height: 16),
+                  // Modern immersive map section
                   if (hasCoords) ...[
-                    _buildMapPreview(lat!, lng!),
+                    _buildModernMapSection(
+                      lat: lat!,
+                      lng: lng!,
+                      venueName: venue,
+                      venueAddress: venueAddress,
+                      theme: theme,
+                      l10n: l10n,
+                    ),
                     const SizedBox(height: 16),
                   ] else if (venueAddress.isNotEmpty) ...[
                     FutureBuilder<List<geocoding.Location>>(
@@ -490,51 +934,55 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return Container(
-                            height: 180,
+                            height: 260,
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(12),
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Center(child: CircularProgressIndicator()),
+                            child: const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 12),
+                                  Text('Loading map...'),
+                                ],
+                              ),
+                            ),
                           );
                         }
                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                           final loc = snapshot.data!.first;
                           return Column(
                             children: [
-                              _buildMapPreview(loc.latitude, loc.longitude),
+                              _buildModernMapSection(
+                                lat: loc.latitude,
+                                lng: loc.longitude,
+                                venueName: venue,
+                                venueAddress: venueAddress,
+                                theme: theme,
+                                l10n: l10n,
+                              ),
                               const SizedBox(height: 16),
                             ],
                           );
                         }
-                        return const SizedBox.shrink();
+                        // Fallback: show venue card without map
+                        return _buildVenueCardFallback(
+                          venueName: venue,
+                          venueAddress: venueAddress,
+                          theme: theme,
+                          l10n: l10n,
+                        );
                       },
                     ),
-                  ],
-                  if (venue.isNotEmpty || venueAddress.isNotEmpty) ...[
-                    Text(
-                      venue.isNotEmpty ? venue : l10n.venue,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    if (venueAddress.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(venueAddress, style: theme.textTheme.bodyMedium),
-                    ],
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          final address = venueAddress.isNotEmpty ? venueAddress : venue;
-                          if (address.isNotEmpty) {
-                            _launchMapUrl(address);
-                          }
-                        },
-                        icon: const Icon(Icons.directions, color: Colors.white),
-                        label: Text(l10n.followRouteInMaps),
-                      ),
+                  ] else if (venue.isNotEmpty) ...[
+                    // No address but have venue name - show simple card
+                    _buildVenueCardFallback(
+                      venueName: venue,
+                      venueAddress: venueAddress,
+                      theme: theme,
+                      l10n: l10n,
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -577,24 +1025,39 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       ),
                     ),
                   ],
-                  Card(
-                    child: ListTile(
-                      title: Text(
-                        (roleName != null && roleName!.isNotEmpty) 
-                            ? roleName! 
-                            : eventName, 
-                        style: theme.textTheme.titleLarge
-                      ),
-                      subtitle: Text(eventName),
-                      trailing: Text(l10n.guestsCount(headcount)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Pay tariff section (if available)
+                  // Event & Role info card with estimated pay
                   Builder(builder: (context) {
-                    // First check if there's tariff data in the role
+                    // Calculate shift duration in hours - try multiple field names
+                    final startMins = _parseTimeMinutes(startTimeStr)
+                        ?? _parseTimeMinutes(event['startTime']?.toString())
+                        ?? _parseTimeMinutes(event['shift_start']?.toString());
+                    final endMins = _parseTimeMinutes(endTimeStr)
+                        ?? _parseTimeMinutes(event['endTime']?.toString())
+                        ?? _parseTimeMinutes(event['shift_end']?.toString());
+
+                    double? shiftHours;
+                    if (startMins != null && endMins != null) {
+                      // Handle overnight shifts (end < start means next day)
+                      int duration = endMins - startMins;
+                      if (duration <= 0) {
+                        duration += 24 * 60; // Add 24 hours for overnight
+                      }
+                      shiftHours = duration / 60.0;
+                    }
+
+                    // Also try to get duration directly from event data
+                    if (shiftHours == null) {
+                      final durationHrs = double.tryParse(event['duration_hours']?.toString() ?? '');
+                      final durationMins = double.tryParse(event['duration_minutes']?.toString() ?? '');
+                      if (durationHrs != null) {
+                        shiftHours = durationHrs + (durationMins ?? 0) / 60.0;
+                      }
+                    }
+
+                    // Get tariff data for rate calculation
                     Map<String, dynamic>? tariffData;
-                    bool hasTariff = false;
+                    double? hourlyRate;
+                    String? totalPayDisplay;
 
                     if (roleName != null && roleName!.isNotEmpty) {
                       final roles = event['roles'];
@@ -604,7 +1067,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             final tariff = r['tariff'];
                             if (tariff is Map) {
                               tariffData = Map<String, dynamic>.from(tariff);
-                              hasTariff = true;
+                              hourlyRate = double.tryParse(tariff['hourlyRate']?.toString() ?? '');
                             }
                             break;
                           }
@@ -612,90 +1075,237 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       }
                     }
 
-                    // Fall back to legacy pay_rate_info if no tariff found
-                    if (!hasTariff) {
+                    // Fall back to legacy pay_rate_info
+                    if (hourlyRate == null) {
                       final payInfo = event['pay_rate_info'];
-                      if (payInfo != null) {
-                        String? payLabel;
-                        if (payInfo is Map) {
-                          final rate = payInfo['rate'] ?? payInfo['amount'] ?? payInfo['hourly'];
-                          final currency = payInfo['currency'] ?? '\$';
-                          final type = (payInfo['type'] ?? payInfo['basis'] ?? 'hour').toString();
-                          if (rate != null) {
-                            payLabel = '$currency$rate/${type.toLowerCase()}';
-                          }
-                        } else if (payInfo is String && payInfo.trim().isNotEmpty) {
-                          payLabel = payInfo.trim();
-                        }
-
-                        if (payLabel != null) {
-                          // Show legacy format as before
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ListTile(
-                              leading: const Icon(Icons.attach_money),
-                              title: Text(l10n.shiftPay),
-                              subtitle: Text(payLabel),
-                            ),
-                          );
-                        }
+                      if (payInfo is Map) {
+                        hourlyRate = double.tryParse(
+                          (payInfo['rate'] ?? payInfo['amount'] ?? payInfo['hourly'] ?? payInfo['hourlyRate'])?.toString() ?? ''
+                        );
+                      } else if (payInfo is num) {
+                        hourlyRate = payInfo.toDouble();
                       }
                     }
 
-                    if (!hasTariff) return const SizedBox.shrink();
+                    // Try direct event fields for hourly rate
+                    if (hourlyRate == null) {
+                      hourlyRate = double.tryParse(event['hourlyRate']?.toString() ?? '')
+                          ?? double.tryParse(event['hourly_rate']?.toString() ?? '')
+                          ?? double.tryParse(event['rate']?.toString() ?? '')
+                          ?? double.tryParse(event['payRate']?.toString() ?? '');
+                    }
+
+                    // Calculate total pay
+                    if (hourlyRate != null && shiftHours != null) {
+                      final totalPay = hourlyRate * shiftHours;
+                      totalPayDisplay = '\$${totalPay.toStringAsFixed(2)}';
+                    } else if (hourlyRate != null) {
+                      totalPayDisplay = '\$${hourlyRate.toStringAsFixed(2)}/hr';
+                    }
+
+                    // Debug: print what we found
+                    debugPrint('[EventDetail] startMins=$startMins, endMins=$endMins, shiftHours=$shiftHours, hourlyRate=$hourlyRate');
+                    debugPrint('[EventDetail] event keys: ${event.keys.toList()}');
 
                     return Card(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 0,
+                      color: theme.colorScheme.surface,
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
-                          _showTariffDetails(context, theme, tariffData!, roleName ?? '', l10n);
-                        },
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: tariffData != null
+                            ? () => _showTariffDetails(context, theme, tariffData!, roleName ?? '', l10n)
+                            : null,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: AppColors.purple.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.monetization_on_rounded,
-                                  color: AppColors.purple,
-                                  size: 24,
-                                ),
+                              // Role name
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [AppColors.tealDark, AppColors.tealMedium],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.work_outline_rounded,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          (roleName != null && roleName!.isNotEmpty)
+                                              ? roleName!
+                                              : 'Your Role',
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textDark,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          eventName,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: AppColors.textTertiary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
+                              // Payment section - show both hourly and total
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successLight.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: AppColors.success.withValues(alpha: 0.2),
+                                  ),
+                                ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      l10n.shiftPay,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
+                                    // Hourly rate row
+                                    if (hourlyRate != null) ...[
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.schedule_outlined,
+                                                size: 18,
+                                                color: AppColors.textTertiary,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Hourly Rate',
+                                                style: theme.textTheme.bodyMedium?.copyWith(
+                                                  color: AppColors.textTertiary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            '\$${hourlyRate.toStringAsFixed(2)}/hr',
+                                            style: theme.textTheme.titleSmall?.copyWith(
+                                              color: AppColors.textSecondary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      l10n.tapToViewRateDetails,
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: AppColors.purple.withOpacity(0.8),
+                                      const SizedBox(height: 12),
+                                      Container(
+                                        height: 1,
+                                        color: AppColors.success.withValues(alpha: 0.15),
                                       ),
+                                      const SizedBox(height: 12),
+                                    ],
+                                    // Total payment row (prominent)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.success.withValues(alpha: 0.15),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(
+                                                Icons.payments_outlined,
+                                                size: 18,
+                                                color: AppColors.success,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              shiftHours != null ? 'Total Payment' : 'Estimated Pay',
+                                              style: theme.textTheme.bodyMedium?.copyWith(
+                                                color: AppColors.textSecondary,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          (hourlyRate != null && shiftHours != null)
+                                              ? '\$${(hourlyRate * shiftHours).toStringAsFixed(2)}'
+                                              : (hourlyRate != null ? '\$${hourlyRate.toStringAsFixed(2)}/hr' : '--'),
+                                          style: theme.textTheme.headlineSmall?.copyWith(
+                                            color: AppColors.success,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                    // Duration info if available
+                                    if (shiftHours != null) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '${shiftHours.toStringAsFixed(1)} hours × \$${hourlyRate?.toStringAsFixed(2) ?? "0"}/hr',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                    // Tap for details
+                                    if (tariffData != null) ...[
+                                      const SizedBox(height: 12),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.info_outline_rounded,
+                                              size: 14,
+                                              color: AppColors.tealDark,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              l10n.tapToViewRateDetails,
+                                              style: theme.textTheme.bodySmall?.copyWith(
+                                                color: AppColors.tealDark,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.chevron_right_rounded,
+                                              size: 16,
+                                              color: AppColors.tealDark,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
-                              ),
-                              const Icon(
-                                Icons.chevron_right,
-                                color: AppColors.purple,
                               ),
                             ],
                           ),
@@ -753,68 +1363,131 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
           if (showRespondActions)
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.textDark.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
+                    color: AppColors.textDark.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, -4),
                   ),
                 ],
               ),
               child: SafeArea(
-                child: Row(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: FilledButton.tonal(
-                        onPressed: _isResponding
-                            ? null
-                            : () => _respond(context, theme, 'decline'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: theme.colorScheme.errorContainer,
-                          foregroundColor: theme.colorScheme.onErrorContainer,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isResponding
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Text(l10n.decline),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: (_isResponding || isRoleFull || hasConflict)
-                            ? null
-                            : () => _respond(context, theme, 'accept'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: theme.colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: _isResponding
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Text(
-                                isRoleFull
-                                    ? l10n.full
-                                    : (hasConflict ? l10n.conflict : l10n.accept),
+                    // Status hint for disabled states
+                    if (isRoleFull || hasConflict)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              isRoleFull ? Icons.group_off_outlined : Icons.schedule_outlined,
+                              size: 16,
+                              color: AppColors.warning,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              isRoleFull
+                                  ? 'This role has reached capacity'
+                                  : 'You have a scheduling conflict',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textTertiary,
+                                fontWeight: FontWeight.w500,
                               ),
+                            ),
+                          ],
+                        ),
                       ),
+                    // Action buttons
+                    Row(
+                      children: [
+                        // Decline button - outlined style
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _isResponding
+                                ? null
+                                : () => _respond(context, theme, 'decline'),
+                            icon: _isResponding
+                                ? const SizedBox.shrink()
+                                : const Icon(Icons.close_rounded, size: 18),
+                            label: _isResponding
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(l10n.decline),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              side: BorderSide(
+                                color: _isResponding
+                                    ? AppColors.borderMedium
+                                    : AppColors.error.withOpacity(0.5),
+                                width: 1.5,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Accept button - filled with success green
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton.icon(
+                            onPressed: (_isResponding || isRoleFull || hasConflict)
+                                ? null
+                                : () => _respond(context, theme, 'accept'),
+                            icon: _isResponding
+                                ? const SizedBox.shrink()
+                                : Icon(
+                                    isRoleFull || hasConflict
+                                        ? Icons.block_outlined
+                                        : Icons.check_rounded,
+                                    size: 20,
+                                  ),
+                            label: _isResponding
+                                ? const SizedBox(
+                                    height: 18,
+                                    width: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    isRoleFull
+                                        ? l10n.full
+                                        : (hasConflict ? l10n.conflict : l10n.accept),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: (isRoleFull || hasConflict)
+                                  ? AppColors.textMuted
+                                  : AppColors.success,
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: AppColors.borderMedium,
+                              disabledForegroundColor: AppColors.textMuted,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

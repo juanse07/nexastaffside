@@ -282,6 +282,78 @@ class EventInvitationCard extends StatelessWidget {
               ),
             ],
 
+            // Payment info - Hourly & Total
+            if (rate != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF059669).withOpacity(0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Hourly rate
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.schedule_outlined,
+                            size: 16,
+                            color: Color(0xFF6B7280),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '\$${rate!.toStringAsFixed(2)}/hr',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Divider
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: const Color(0xFF059669).withOpacity(0.2),
+                    ),
+                    // Total payment
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          const Icon(
+                            Icons.payments_outlined,
+                            size: 16,
+                            color: Color(0xFF059669),
+                          ),
+                          const SizedBox(width: 6),
+                          Builder(builder: (context) {
+                            final hours = endDate.difference(startDate).inMinutes / 60.0;
+                            final total = rate! * hours;
+                            return Text(
+                              '\$${total.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF059669),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Accept/Decline buttons for pending invitations
             if (isPending) ...[
               const SizedBox(height: 16),
