@@ -1628,7 +1628,8 @@ class _HomeTabState extends State<_HomeTab> {
   }
 
   void _startElapsedTimer() {
-    _clockInTime = DateTime.now();
+    // Only set _clockInTime if not already set (e.g., restored from server)
+    _clockInTime ??= DateTime.now();
     _elapsedTimer?.cancel();
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_clockInTime != null && mounted) {
@@ -1662,9 +1663,18 @@ class _HomeTabState extends State<_HomeTab> {
 
   void _computeUpcoming() async {
     print('[CLOCK-IN] _computeUpcoming called - userKey: ${widget.userKey}, total events: ${widget.events.length}');
+
+    // Preserve clock-in state if already clocked in (don't reset mid-shift)
+    final preserveClockIn = _status == 'clocked_in' && _clockInTime != null;
+    final previousStatus = _status;
+    final previousClockInTime = _clockInTime;
+
     setState(() {
       _upcoming = null;
-      _status = null;
+      // Don't reset status if we're actively clocked in
+      if (!preserveClockIn) {
+        _status = null;
+      }
       _acceptedRole = null;
     });
     if (widget.userKey == null) {
@@ -1721,10 +1731,38 @@ class _HomeTabState extends State<_HomeTab> {
       _loading = true;
     });
     final resp = await AuthService.getMyAttendanceStatus(eventId: id);
+    final isClockedIn = resp?['isClockedIn'] == true;
+    final lastClockInAt = resp?['lastClockInAt']?.toString();
+
     setState(() {
       _loading = false;
-      _status = resp?['status']?.toString();
+
+      // If we were clocked in and have an active timer, preserve local state
+      if (preserveClockIn) {
+        _status = previousStatus;
+        _clockInTime = previousClockInTime;
+        print('[CLOCK-IN] Preserved clock-in state: $_status');
+      }
+      // If server says we're clocked in, restore the timer from server time
+      else if (isClockedIn && lastClockInAt != null) {
+        _status = 'clocked_in';
+        try {
+          _clockInTime = DateTime.parse(lastClockInAt).toLocal();
+          print('[CLOCK-IN] Restored clock-in from server: $_clockInTime');
+        } catch (e) {
+          _clockInTime = DateTime.now();
+          print('[CLOCK-IN] Failed to parse clockInAt, using now: $e');
+        }
+      } else {
+        _status = resp?['status']?.toString();
+      }
     });
+
+    // Start elapsed timer if we're clocked in (restored from server)
+    if (_status == 'clocked_in' && _clockInTime != null && !preserveClockIn) {
+      _startElapsedTimer();
+      print('[CLOCK-IN] ✓ Timer restored from server with clockInTime: $_clockInTime');
+    }
 
     // Validate clock-in conditions after loading
     if (_status == null) {

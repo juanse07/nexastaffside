@@ -76,9 +76,10 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   badges: ^3.1.1
 
-  # Firebase (Crash Reporting)
+  # Firebase (Crash Reporting + Phone Auth)
   firebase_core: ^3.8.1
   firebase_crashlytics: ^4.3.1
+  firebase_auth: ^5.3.4
 
 dev_dependencies:
   flutter_test:

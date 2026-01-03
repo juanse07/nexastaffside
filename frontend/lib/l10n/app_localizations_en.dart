@@ -319,6 +319,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Get help with shifts 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, check your schedule 📅, and more ✨';
 
   @override
+  String get newChat => 'New Chat';
+
+  @override
+  String get failedToLoadManagers => 'Failed to load managers';
+
+  @override
+  String get noManagersAssigned => 'No managers assigned';
+
+  @override
+  String get joinTeamToChat => 'Join a team to start chatting with managers';
+
+  @override
+  String get contactMyManagers => 'Contact My Managers';
+
+  @override
   String get untitledEvent => 'Untitled Event';
 
   @override

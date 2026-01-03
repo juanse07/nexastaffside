@@ -367,11 +367,16 @@ class AuthService {
 
   /// Clocks in the user for an event
   /// Returns the response data or null if not authenticated or request fails
+  ///
+  /// [source] or [locationSource] can be: 'manual', 'geofence', 'voice_assistant'
+  /// Response may include gamification data: pointsEarned, newStreak, isNewRecord
   static Future<Map<String, dynamic>?> clockIn({
     required String eventId,
     String? role,
     double? latitude,
     double? longitude,
+    double? accuracy,
+    String? source,
     String? locationSource,
   }) async {
     if (eventId.isEmpty) {
@@ -381,12 +386,16 @@ class AuthService {
     final token = await getJwt();
     if (token == null) return null;
 
+    // Use locationSource if provided, otherwise fall back to source
+    final effectiveSource = locationSource ?? source;
+
     try {
       final body = <String, dynamic>{};
       if (role != null) body['role'] = role;
       if (latitude != null) body['latitude'] = latitude;
       if (longitude != null) body['longitude'] = longitude;
-      if (locationSource != null) body['locationSource'] = locationSource;
+      if (accuracy != null) body['accuracy'] = accuracy;
+      if (effectiveSource != null) body['source'] = effectiveSource;
 
       final resp = await _makeRequest(
         request: () => http.post(
@@ -399,11 +408,21 @@ class AuthService {
         ),
         operation: 'Clock in',
       );
+
       if (resp.statusCode == 200 ||
           resp.statusCode == 201 ||
           resp.statusCode == 409) {
         return json.decode(resp.body) as Map<String, dynamic>;
       }
+
+      // Handle geofence violation error
+      if (resp.statusCode == 403) {
+        final errorData = json.decode(resp.body) as Map<String, dynamic>;
+        if (errorData['code'] == 'GEOFENCE_VIOLATION') {
+          return errorData; // Return error data for UI to handle
+        }
+      }
+
       return null;
     } catch (e) {
       _log('Failed to clock in: $e', isError: true);
@@ -413,8 +432,13 @@ class AuthService {
 
   /// Clocks out the user from an event
   /// Returns the response data or null if not authenticated or request fails
+  ///
+  /// Response includes hoursWorked and autoClockOut fields
   static Future<Map<String, dynamic>?> clockOut({
     required String eventId,
+    double? latitude,
+    double? longitude,
+    double? accuracy,
   }) async {
     if (eventId.isEmpty) {
       throw ArgumentError('eventId cannot be empty');
@@ -424,10 +448,19 @@ class AuthService {
     if (token == null) return null;
 
     try {
+      final body = <String, dynamic>{};
+      if (latitude != null) body['latitude'] = latitude;
+      if (longitude != null) body['longitude'] = longitude;
+      if (accuracy != null) body['accuracy'] = accuracy;
+
       final resp = await _makeRequest(
         request: () => http.post(
           Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/$eventId/clock-out'),
-          headers: {'Authorization': 'Bearer $token'},
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(body),
         ),
         operation: 'Clock out',
       );
@@ -437,6 +470,30 @@ class AuthService {
       return null;
     } catch (e) {
       _log('Failed to clock out: $e', isError: true);
+      return null;
+    }
+  }
+
+  /// Gets the current user's gamification stats (points, streaks)
+  /// Returns null if not authenticated or request fails
+  static Future<Map<String, dynamic>?> getGamificationStats() async {
+    final token = await getJwt();
+    if (token == null) return null;
+
+    try {
+      final resp = await _makeRequest(
+        request: () => http.get(
+          Uri.parse('$_apiBaseUrl$_apiPathPrefix/users/me/gamification'),
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+        operation: 'Get gamification stats',
+      );
+      if (resp.statusCode == 200) {
+        return json.decode(resp.body) as Map<String, dynamic>;
+      }
+      return null;
+    } catch (e) {
+      _log('Failed to get gamification stats: $e', isError: true);
       return null;
     }
   }

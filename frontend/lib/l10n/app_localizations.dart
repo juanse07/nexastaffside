@@ -686,6 +686,36 @@ abstract class AppLocalizations {
   /// **'Get help with shifts 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, check your schedule 📅, and more ✨'**
   String get valerioAssistantDescription;
 
+  /// No description provided for @newChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New Chat'**
+  String get newChat;
+
+  /// No description provided for @failedToLoadManagers.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load managers'**
+  String get failedToLoadManagers;
+
+  /// No description provided for @noManagersAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'No managers assigned'**
+  String get noManagersAssigned;
+
+  /// No description provided for @joinTeamToChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a team to start chatting with managers'**
+  String get joinTeamToChat;
+
+  /// No description provided for @contactMyManagers.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact My Managers'**
+  String get contactMyManagers;
+
   /// No description provided for @untitledEvent.
   ///
   /// In en, this message translates to:

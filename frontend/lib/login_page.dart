@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'auth_service.dart';
 import 'pages/staff_onboarding_page.dart';
+import 'widgets/phone_login_widget.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -57,6 +58,36 @@ class _LoginPageState extends State<LoginPage> {
         (route) => false,
       );
     }
+  }
+
+  void _handlePhone() {
+    setState(() => _error = null);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: PhoneLoginWidget(
+          onSuccess: () {
+            Navigator.pop(context); // Close bottom sheet
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const StaffOnboardingGate()),
+              (route) => false,
+            );
+          },
+          onCancel: () => Navigator.pop(context),
+        ),
+      ),
+    );
   }
 
   @override
@@ -408,6 +439,69 @@ class _LoginPageState extends State<LoginPage> {
                                         ),
                                 ),
                               ),
+
+                            // Phone Login Divider
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Divider(
+                                    color: theme.colorScheme.outlineVariant,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Text(
+                                    'OR',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Divider(
+                                    color: theme.colorScheme.outlineVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Phone Login Button
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                onPressed: _handlePhone,
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: theme.colorScheme.onSurface,
+                                  side: BorderSide(
+                                    color: theme.colorScheme.outline.withOpacity(0.5),
+                                    width: 1.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.phone_android,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Continue with Phone',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),

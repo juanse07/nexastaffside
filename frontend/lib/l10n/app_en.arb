@@ -139,6 +139,11 @@
   "noMessagesYet": "No messages yet",
   "valerioAssistant": "Valerio Assistant",
   "valerioAssistantDescription": "Get help with shifts 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, check your schedule 📅, and more ✨",
+  "newChat": "New Chat",
+  "failedToLoadManagers": "Failed to load managers",
+  "noManagersAssigned": "No managers assigned",
+  "joinTeamToChat": "Join a team to start chatting with managers",
+  "contactMyManagers": "Contact My Managers",
 
   "@@ Event Detail": {},
   "untitledEvent": "Untitled Event",
