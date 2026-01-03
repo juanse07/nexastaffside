@@ -60,6 +60,7 @@ dependencies:
   intl: ^0.20.2  # Updated for flutter_localizations compatibility
   record: ^5.1.1  # Has Android namespace support, allows compatible updates
   path_provider: ^2.1.1
+  share_plus: ^10.0.0  # File sharing for exports
   permission_handler: ^11.3.0  # Runtime permissions for microphone
 
   # Subscription Management

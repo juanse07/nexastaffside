@@ -3,7 +3,9 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:provider/provider.dart';
 
 import '../services/earnings_service.dart';
+import '../services/export_service.dart';
 import '../widgets/enhanced_refresh_indicator.dart';
+import '../widgets/export_options_sheet.dart';
 import '../providers/terminology_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
@@ -33,6 +35,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
   late EarningsService _earningsService;
   bool _isVisible = false;
   bool _hasCalculated = false;
+  bool _isExporting = false;
 
   // Pagination state
   int _displayMonths = 12;
@@ -124,6 +127,61 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     });
   }
 
+  /// Show export options and perform export
+  Future<void> _showExportOptions() async {
+    final result = await showModalBottomSheet<StaffExportOptions>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StaffExportOptionsSheet(
+        selectedYear: _selectedYear?.toString(),
+      ),
+    );
+
+    if (result != null) {
+      await _performExport(result);
+    }
+  }
+
+  /// Perform the export
+  Future<void> _performExport(StaffExportOptions options) async {
+    setState(() => _isExporting = true);
+
+    try {
+      final exportResult = await ExportService.exportShiftsCsv(
+        period: options.period,
+        startDate: options.startDate,
+        endDate: options.endDate,
+      );
+
+      if (exportResult.success && exportResult.content != null) {
+        final now = DateTime.now();
+        final filename = 'shifts_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
+        final shared = await ExportService.shareExport(exportResult.content!, filename);
+
+        if (!shared && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Export created but sharing not available')),
+          );
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(exportResult.error ?? 'Export failed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
   /// Filter monthly data by selected year
   List<MonthlyEarnings> _filterMonthlyData(List<MonthlyEarnings> allMonths) {
     if (_selectedYear == null) return allMonths;
@@ -187,7 +245,33 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     return VisibilityDetector(
       key: const Key('earnings-page'),
       onVisibilityChanged: _onVisibilityChanged,
-      child: _buildContent(theme),
+      child: Stack(
+        children: [
+          _buildContent(theme),
+          // Export FAB - only show when user is logged in and has data
+          if (widget.userKey != null)
+            Positioned(
+              right: 16,
+              bottom: MediaQuery.of(context).padding.bottom + 80,
+              child: FloatingActionButton.extended(
+                onPressed: _isExporting ? null : _showExportOptions,
+                icon: _isExporting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Icon(Icons.download),
+                label: Text(_isExporting ? 'Exporting...' : 'Export'),
+                backgroundColor: AppColors.navySpaceCadet,
+                foregroundColor: Colors.white,
+              ),
+            ),
+        ],
+      ),
     );
   }
 
