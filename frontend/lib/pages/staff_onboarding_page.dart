@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/navigation/route_error_manager.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/subscription_service.dart';
@@ -111,7 +112,7 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
     const storage = FlutterSecureStorage();
     await storage.delete(key: 'auth_jwt');
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed('/login');
+    await RouteErrorManager.instance.pushNamedSafely(context, '/login');
   }
 
   @override

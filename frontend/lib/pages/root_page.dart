@@ -34,6 +34,7 @@ import 'conversations_page.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../core/navigation/route_error_manager.dart';
 
 enum _AccountMenuAction { profile, teams, settings, logout }
 
@@ -409,7 +410,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     try {
       final token = await AuthService.getJwt();
       if (token == null && mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        await RouteErrorManager.instance.pushNamedSafely(context, '/login');
         return;
       }
       final newToken = await AuthService.getJwt();
@@ -422,7 +423,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
       print('Secure storage error: $e');
       await AuthService.signOut(); // This will clear the corrupted storage
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        await RouteErrorManager.instance.pushNamedSafely(context, '/login');
       }
     }
 
@@ -520,7 +521,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
     _userKey = null;
     _checkingAuth = true;
-    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    await RouteErrorManager.instance.pushNamedAndRemoveAllSafely(context, '/login');
   }
 
   void _computeUpcoming(List<Map<String, dynamic>> events) {

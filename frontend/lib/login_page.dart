@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 
 import 'auth_service.dart';
+import 'core/navigation/route_error_manager.dart';
 import 'pages/staff_onboarding_page.dart';
 import 'widgets/phone_login_widget.dart';
 
@@ -35,9 +36,10 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     if (ok && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const StaffOnboardingGate()),
-        (route) => false,
+      await RouteErrorManager.instance.navigateSafely(
+        context,
+        () => const StaffOnboardingGate(),
+        clearStack: true,
       );
     }
   }
@@ -53,9 +55,10 @@ class _LoginPageState extends State<LoginPage> {
       if (!ok) _error = 'Apple sign-in failed';
     });
     if (ok && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const StaffOnboardingGate()),
-        (route) => false,
+      await RouteErrorManager.instance.navigateSafely(
+        context,
+        () => const StaffOnboardingGate(),
+        clearStack: true,
       );
     }
   }
@@ -69,22 +72,23 @@ class _LoginPageState extends State<LoginPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Padding(
+      builder: (sheetContext) => Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
           left: 24,
           right: 24,
           top: 24,
         ),
         child: PhoneLoginWidget(
           onSuccess: () {
-            Navigator.pop(context); // Close bottom sheet
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const StaffOnboardingGate()),
-              (route) => false,
+            Navigator.pop(sheetContext); // Close bottom sheet
+            RouteErrorManager.instance.navigateSafely(
+              context,
+              () => const StaffOnboardingGate(),
+              clearStack: true,
             );
           },
-          onCancel: () => Navigator.pop(context),
+          onCancel: () => Navigator.pop(sheetContext),
         ),
       ),
     );
