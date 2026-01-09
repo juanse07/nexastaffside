@@ -600,28 +600,28 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                               child: Row(
                                 children: [
                                   _buildSuggestionChip(
-                                    '📋 Next 7 Jobs',
-                                    'Show my next 7 jobs',
+                                    '📋 My Schedule',
+                                    'Show my upcoming shifts',
                                   ),
                                   const SizedBox(width: 8),
                                   _buildSuggestionChip(
                                     '🔜 Next Shift',
-                                    'When is my next shift?',
+                                    'What is my next shift?',
                                   ),
                                   const SizedBox(width: 8),
                                   _buildSuggestionChip(
-                                    '📅 Last Month',
-                                    'Show all my shifts from last month',
+                                    '📅 This Week',
+                                    'Show my shifts this week',
                                   ),
                                   const SizedBox(width: 8),
                                   _buildSuggestionChip(
                                     '💰 Earnings',
-                                    'How much have I earned this month?',
+                                    'How much did I earn this month?',
                                   ),
                                   const SizedBox(width: 8),
                                   _buildSuggestionChip(
-                                    '📍 Upcoming',
-                                    'What are my upcoming events?',
+                                    '📍 Where',
+                                    'Where is my next shift?',
                                   ),
                                 ],
                               ),
