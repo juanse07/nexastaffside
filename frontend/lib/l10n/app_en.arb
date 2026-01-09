@@ -13,6 +13,11 @@
   "pictureUrl": "Picture URL (optional)",
   "profileUpdated": "Profile updated",
   "failedToLoadProfile": "Failed to load profile",
+  "chooseFromGallery": "Choose from gallery",
+  "takePhoto": "Take a photo",
+  "removePhoto": "Remove photo",
+  "profilePictureUploaded": "Profile picture uploaded",
+  "failedToUploadPicture": "Failed to upload picture",
 
   "@@ Terminology Settings": {},
   "workTerminology": "Work Terminology",

@@ -42,6 +42,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToLoadProfile => 'Failed to load profile';
 
   @override
+  String get chooseFromGallery => 'Choose from gallery';
+
+  @override
+  String get takePhoto => 'Take a photo';
+
+  @override
+  String get removePhoto => 'Remove photo';
+
+  @override
+  String get profilePictureUploaded => 'Profile picture uploaded';
+
+  @override
+  String get failedToUploadPicture => 'Failed to upload picture';
+
+  @override
   String get workTerminology => 'Work Terminology';
 
   @override

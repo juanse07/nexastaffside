@@ -164,6 +164,36 @@ abstract class AppLocalizations {
   /// **'Failed to load profile'**
   String get failedToLoadProfile;
 
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get takePhoto;
+
+  /// No description provided for @removePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove photo'**
+  String get removePhoto;
+
+  /// No description provided for @profilePictureUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile picture uploaded'**
+  String get profilePictureUploaded;
+
+  /// No description provided for @failedToUploadPicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to upload picture'**
+  String get failedToUploadPicture;
+
   /// No description provided for @workTerminology.
   ///
   /// In en, this message translates to:

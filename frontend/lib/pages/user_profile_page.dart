@@ -165,8 +165,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _pictureCtrl,
-                    decoration: InputDecoration(
-                        labelText: l10n.pictureUrl),
+                    decoration: InputDecoration(labelText: l10n.pictureUrl),
                   ),
                   const SizedBox(height: 32),
                   const Divider(),
