@@ -82,6 +82,14 @@ class PhoneAuthService {
         },
         verificationFailed: (FirebaseAuthException e) {
           _log('Verification failed: ${e.code} - ${e.message}', isError: true);
+          // Print full error details to console for debugging
+          print('=== FIREBASE PHONE AUTH ERROR (STAFF) ===');
+          print('Code: ${e.code}');
+          print('Message: ${e.message}');
+          print('Plugin: ${e.plugin}');
+          print('StackTrace: ${e.stackTrace}');
+          print('==========================================');
+
           String message = 'Verification failed';
           if (e.code == 'invalid-phone-number') {
             message = 'Invalid phone number format. Use format: +1234567890';
@@ -89,6 +97,8 @@ class PhoneAuthService {
             message = 'Too many attempts. Please try again later.';
           } else if (e.code == 'quota-exceeded') {
             message = 'SMS quota exceeded. Please try again later.';
+          } else if (e.code == 'internal-error') {
+            message = 'Internal error: ${e.message ?? "Check console for details"}';
           } else if (e.message != null) {
             message = e.message!;
           }

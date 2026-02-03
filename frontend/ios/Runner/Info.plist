@@ -29,7 +29,14 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<!-- Google Sign-In (old project - keep for compatibility) -->
 				<string>com.googleusercontent.apps.832253199298-bct5e2pl3ohsogd3q3o0jcodjt2191hg</string>
+				<!-- Firebase Phone Auth (nexa-8e252 project) -->
+				<string>com.googleusercontent.apps.263339707561-1s5onenk9b9cek29vargsqth2bfkc14f</string>
+				<!-- Bundle ID for reCAPTCHA -->
+				<string>com.pymesoft.nexastaff</string>
+				<!-- Firebase Phone Auth ENCODED_APP_ID (required for reCAPTCHA) -->
+				<string>app-1-263339707561-ios-9d15f9797ebc4592e9edb8</string>
 			</array>
 		</dict>
 	</array>
