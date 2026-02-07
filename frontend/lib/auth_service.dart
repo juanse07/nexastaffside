@@ -212,8 +212,17 @@ class AuthService {
         dotenv.env['GOOGLE_WEB_CLIENT_ID'];
 
     if (serverClientId != null && serverClientId.isNotEmpty) {
+      // On iOS, pass clientId explicitly to prevent the Flutter plugin from
+      // falling back to CLIENT_ID in GoogleService-Info.plist (Firebase project),
+      // which differs from the OAuth project and causes invalid_audience errors.
+      String? clientId;
+      if (!kIsWeb && Platform.isIOS) {
+        clientId = dotenv.env['GOOGLE_CLIENT_ID_IOS'];
+      }
+
       return GoogleSignIn(
         scopes: const ['email', 'profile'],
+        clientId: clientId,
         serverClientId: serverClientId,
       );
     }

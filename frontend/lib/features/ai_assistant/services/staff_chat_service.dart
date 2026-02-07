@@ -13,12 +13,14 @@ class ChatMessage {
   final String content;
   final DateTime timestamp;
   final AIProvider? provider;
+  final String? reasoning;
 
   ChatMessage({
     required this.role,
     required this.content,
     DateTime? timestamp,
     this.provider,
+    this.reasoning,
   }) : timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
@@ -372,9 +374,13 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
         final data = jsonDecode(response.body);
         final content = data['content'] as String?;
         final provider = data['provider'] as String?;
+        final reasoning = data['reasoning'] as String?;
 
         if (content != null && content.isNotEmpty) {
           print('[StaffChatService] AI response received: ${content.substring(0, content.length > 100 ? 100 : content.length)}...');
+          if (reasoning != null) {
+            print('[StaffChatService] Reasoning received: ${reasoning.length} chars');
+          }
 
           // Parse response for special commands (uses raw content)
           _parseResponseForActions(content);
@@ -386,6 +392,7 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
           final aiMessage = ChatMessage(
             role: 'assistant',
             content: userFacingContent,
+            reasoning: reasoning,
             provider: provider == 'claude'
                 ? AIProvider.claude
                 : provider == 'groq'

@@ -52,6 +52,9 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
   // Shimmer effect for typing animation
   final ValueNotifier<bool> _showShimmerNotifier = ValueNotifier<bool>(false);
 
+  // Reasoning expand/collapse state
+  final ValueNotifier<bool> _reasoningExpandedNotifier = ValueNotifier<bool>(false);
+
   // Track which messages have already been animated (persists across rebuilds)
   static final Set<String> _animatedMessages = {};
   bool _hasAnimated = false;
@@ -175,6 +178,7 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
     _displayedTextNotifier.dispose();
     _isTypingNotifier.dispose();
     _showShimmerNotifier.dispose();
+    _reasoningExpandedNotifier.dispose();
     _typingDotsController.dispose();
     _shimmerController.dispose();
 
@@ -233,7 +237,13 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                         builder: (context, isTyping, _) {
                           return isTyping
                             ? _buildTypingIndicator()
-                            : _buildMessageContent();
+                            : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildReasoningSection(),
+                                  _buildMessageContent(),
+                                ],
+                              );
                         },
                       ),
                     ),
@@ -261,6 +271,79 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildReasoningSection() {
+    if (widget.message.reasoning == null || widget.message.reasoning!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return ValueListenableBuilder<bool>(
+      valueListenable: _reasoningExpandedNotifier,
+      builder: (context, expanded, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              onTap: () => _reasoningExpandedNotifier.value = !expanded,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '\u{1F9E0}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'View thinking',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (expanded) ...[
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  widget.message.reasoning!,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                    height: 1.4,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+          ],
+        );
+      },
     );
   }
 
