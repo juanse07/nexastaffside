@@ -391,29 +391,26 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
     return ValueListenableBuilder<bool>(
       valueListenable: _isTypingNotifier,
       builder: (context, isTyping, _) {
-        return AnimatedContainer(
+        return AnimatedScale(
+          scale: isTyping ? 1.1 : 1.0,
           duration: const Duration(milliseconds: 300),
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.primaryPurple, // Navy blue background
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryPurple.withOpacity(isTyping ? 0.5 : 0.3),
-                blurRadius: isTyping ? 10 : 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: AnimatedScale(
-              scale: isTyping ? 1.1 : 1.0,
-              duration: const Duration(milliseconds: 300),
-              child: const Icon(
-                Icons.auto_awesome,
-                color: AppColors.yellow, // Yellow icon
-                size: 18,
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isTyping ? 0.2 : 0.1),
+                  blurRadius: isTyping ? 10 : 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/ai_assistant_logo.png',
+                fit: BoxFit.cover,
               ),
             ),
           ),

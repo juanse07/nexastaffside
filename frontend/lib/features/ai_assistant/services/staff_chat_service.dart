@@ -14,6 +14,7 @@ class ChatMessage {
   final DateTime timestamp;
   final AIProvider? provider;
   final String? reasoning;
+  final List<String> toolsUsed;
 
   ChatMessage({
     required this.role,
@@ -21,6 +22,7 @@ class ChatMessage {
     DateTime? timestamp,
     this.provider,
     this.reasoning,
+    this.toolsUsed = const [],
   }) : timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
@@ -375,15 +377,22 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
         final content = data['content'] as String?;
         final provider = data['provider'] as String?;
         final reasoning = data['reasoning'] as String?;
+        final toolsUsed = (data['toolsUsed'] as List?)?.cast<String>() ?? [];
 
         if (content != null && content.isNotEmpty) {
           print('[StaffChatService] AI response received: ${content.substring(0, content.length > 100 ? 100 : content.length)}...');
           if (reasoning != null) {
             print('[StaffChatService] Reasoning received: ${reasoning.length} chars');
           }
+          if (toolsUsed.isNotEmpty) {
+            print('[StaffChatService] Tools used: $toolsUsed');
+          }
 
-          // Parse response for special commands (uses raw content)
-          _parseResponseForActions(content);
+          // Only parse for text markers if no tools were used
+          // When tools are used, the backend already executed the action
+          if (toolsUsed.isEmpty) {
+            _parseResponseForActions(content);
+          }
 
           // Strip JSON command blocks before storing for display
           final userFacingContent = _extractUserFriendlyMessage(content);
@@ -393,6 +402,7 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
             role: 'assistant',
             content: userFacingContent,
             reasoning: reasoning,
+            toolsUsed: toolsUsed,
             provider: provider == 'claude'
                 ? AIProvider.claude
                 : provider == 'groq'

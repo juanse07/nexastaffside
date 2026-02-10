@@ -402,72 +402,24 @@ class _ValerioAssistantTile extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            // Valerio Avatar with custom geometric icon - Navy blue background with yellow icon
+            // Valerio Avatar - AI mascot logo
             Container(
               width: 56,
               height: 56,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primaryPurple, // Navy blue background
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryPurple.withOpacity(0.3),
+                    color: Colors.black.withOpacity(0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Outer circle shape - yellow
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: AppColors.yellow.withOpacity(0.6),
-                          width: 1.5,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    // Inner diamond shape - yellow
-                    Transform.rotate(
-                      angle: 0.785398, // 45 degrees
-                      child: Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: AppColors.yellow,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 2,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Connecting lines - yellow
-                    Positioned(
-                      top: 10,
-                      child: Container(
-                        width: 1,
-                        height: 6,
-                        color: AppColors.yellow.withOpacity(0.7),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 10,
-                      child: Container(
-                        width: 1,
-                        height: 6,
-                        color: AppColors.yellow.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/ai_assistant_logo.png',
+                  fit: BoxFit.cover,
                 ),
               ),
             ),

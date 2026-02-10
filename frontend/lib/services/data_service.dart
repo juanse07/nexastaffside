@@ -1160,6 +1160,14 @@ class DataService extends ChangeNotifier {
     debugPrint('🗑️  Events cache invalidated - next fetch will be full sync');
   }
 
+  /// Invalidate availability cache so next access fetches fresh data
+  /// Call after AI chat marks availability via tool
+  Future<void> invalidateAvailabilityCache() async {
+    _lastAvailabilityFetch = null;
+    await _fetchAvailability();
+    debugPrint('🗑️  Availability cache invalidated and refreshed');
+  }
+
   /// Utility method to compare two lists for equality
   bool _listsEqual(List<Map<String, dynamic>> a, List<Map<String, dynamic>> b) {
     if (a.length != b.length) return false;

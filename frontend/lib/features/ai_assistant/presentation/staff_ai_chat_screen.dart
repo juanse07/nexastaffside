@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../providers/terminology_provider.dart';
 import '../../../shared/presentation/theme/theme.dart';
+import '../../../services/data_service.dart';
 import '../../../services/subscription_service.dart';
 import '../services/chat_summary_service.dart';
 import '../services/staff_chat_service.dart';
@@ -36,16 +37,11 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   int _aiMessagesUsed = 0;
   int _aiMessagesLimit = 20; // Free tier limit (changed from 50 to reduce costs)
 
-  // Scroll-based chips visibility
-  bool _showChips = true;
-  double _lastScrollOffset = 0;
-
   @override
   void initState() {
     super.initState();
     _initializeChat();
     _loadSubscriptionStatus();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
@@ -54,7 +50,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // Only save if there's meaningful content (more than just welcome message)
     _saveOnExit();
 
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -75,24 +70,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       );
     } else {
       print('[StaffAIChatScreen] No user messages - skipping save on exit');
-    }
-  }
-
-  /// Handle scroll to hide/show chips bar
-  void _onScroll() {
-    final currentOffset = _scrollController.offset;
-    // Note: With reverse: true, scrolling "up" (to older messages) increases offset
-    // Scrolling "down" (to newer messages) decreases offset toward 0
-    final scrollingToOlder = currentOffset > _lastScrollOffset;
-    final scrollingToNewer = currentOffset < _lastScrollOffset;
-
-    if ((currentOffset - _lastScrollOffset).abs() > 10) {
-      if (scrollingToOlder && _showChips && currentOffset > 50) {
-        setState(() => _showChips = false);
-      } else if (scrollingToNewer && !_showChips) {
-        setState(() => _showChips = true);
-      }
-      _lastScrollOffset = currentOffset;
     }
   }
 
@@ -138,6 +115,10 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     );
     if (response != null) {
       setState(() {});
+      // Invalidate availability cache if AI tool modified it
+      if (response.toolsUsed.contains('mark_availability')) {
+        context.read<DataService>().invalidateAvailabilityCache();
+      }
       // With reverse: true, new messages appear at bottom automatically - no scroll needed!
       // Refresh usage stats after sending message
       _loadSubscriptionStatus();
@@ -318,40 +299,26 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   Widget _buildSuggestionChip(String label, String query) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withOpacity(0.7),
-            Colors.white.withOpacity(0.5),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withOpacity(0.8),
-          width: 1.5,
+          color: Colors.grey.shade300,
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           onTap: () => _sendMessage(query),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.charcoal,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade700,
               ),
             ),
           ),
@@ -378,6 +345,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.surfaceLight,
       appBar: AppBar(
         title: const Text(
@@ -469,9 +437,9 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                       child: ListView.builder(
                         controller: _scrollController,
                         reverse: true, // EXPERT: Makes new messages appear at bottom naturally
-                        padding: const EdgeInsets.only(
+                        padding: EdgeInsets.only(
                           top: 16,
-                          bottom: 140, // Extra padding for chips + input area
+                          bottom: 140 + keyboardHeight, // Extra padding for chips + input area + keyboard
                         ),
                         itemCount: _chatService.conversationHistory.length +
                             (_chatService.pendingAvailability != null ? 1 : 0) +
@@ -565,36 +533,25 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                   ],
                 ),
 
-                // Floating chips layer (positioned over messages, hides on scroll)
-                if (!_chatService.isLoading)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 60 + (MediaQuery.of(context).padding.bottom > 0
-                      ? MediaQuery.of(context).padding.bottom
-                      : 8),
-                    child: AnimatedSlide(
-                      duration: const Duration(milliseconds: 200),
-                      offset: _showChips ? Offset.zero : const Offset(0, 1),
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity: _showChips ? 1.0 : 0.0,
-                        child: IgnorePointer(
-                          ignoring: !_showChips,
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  AppColors.surfaceLight.withOpacity(0.3),
-                                  AppColors.surfaceLight.withOpacity(0.6),
-                                ],
-                                stops: const [0.0, 0.5, 1.0],
-                              ),
-                            ),
+                // Input field + chips layer (at bottom)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: keyboardHeight,
+                  child: Container(
+                    color: AppColors.backgroundWhite,
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).padding.bottom > 0
+                        ? MediaQuery.of(context).padding.bottom
+                        : 8,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Quick action chips (integrated above input)
+                        if (!_chatService.isLoading)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: Row(
@@ -603,22 +560,22 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                                     '📋 My Schedule',
                                     'Show my upcoming shifts',
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   _buildSuggestionChip(
                                     '🔜 Next Shift',
                                     'What is my next shift?',
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   _buildSuggestionChip(
                                     '📅 This Week',
                                     'Show my shifts this week',
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   _buildSuggestionChip(
                                     '💰 Earnings',
                                     'How much did I earn this month?',
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 6),
                                   _buildSuggestionChip(
                                     '📍 Where',
                                     'Where is my next shift?',
@@ -627,26 +584,12 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                               ),
                             ),
                           ),
+                        // Chat input
+                        ChatInputWidget(
+                          onSendMessage: _sendMessage,
+                          isLoading: _chatService.isLoading,
                         ),
-                      ),
-                    ),
-                  ),
-
-                // Input field layer (at bottom)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    color: AppColors.backgroundWhite,
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).padding.bottom > 0
-                        ? MediaQuery.of(context).padding.bottom
-                        : 8, // Extra padding if no safe area
-                    ),
-                    child: ChatInputWidget(
-                      onSendMessage: _sendMessage,
-                      isLoading: _chatService.isLoading,
+                      ],
                     ),
                   ),
                 ),
