@@ -7,6 +7,31 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+class CaricatureHistoryItem {
+  final String url;
+  final String role;
+  final String artStyle;
+  final DateTime createdAt;
+
+  CaricatureHistoryItem({
+    required this.url,
+    required this.role,
+    required this.artStyle,
+    required this.createdAt,
+  });
+
+  factory CaricatureHistoryItem.fromMap(Map<String, dynamic> map) {
+    return CaricatureHistoryItem(
+      url: map['url'] as String? ?? '',
+      role: map['role'] as String? ?? '',
+      artStyle: map['artStyle'] as String? ?? '',
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+}
+
 class UserProfile {
   final String? id;
   final String? email;
@@ -14,6 +39,8 @@ class UserProfile {
   final String? lastName;
   final String? name;
   final String? picture;
+  final String? originalPicture;
+  final List<CaricatureHistoryItem> caricatureHistory;
   final String? appId;
   final String? phoneNumber;
   final String? eventTerminology; // 'shift', 'job', or 'event'
@@ -25,12 +52,15 @@ class UserProfile {
     this.lastName,
     this.name,
     this.picture,
+    this.originalPicture,
+    this.caricatureHistory = const [],
     this.appId,
     this.phoneNumber,
     this.eventTerminology,
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
+    final historyRaw = map['caricatureHistory'] as List<dynamic>? ?? [];
     return UserProfile(
       id: map['id']?.toString(),
       email: map['email']?.toString(),
@@ -38,6 +68,10 @@ class UserProfile {
       lastName: map['lastName']?.toString(),
       name: map['name']?.toString(),
       picture: map['picture']?.toString(),
+      originalPicture: map['originalPicture']?.toString(),
+      caricatureHistory: historyRaw
+          .map((e) => CaricatureHistoryItem.fromMap(e as Map<String, dynamic>))
+          .toList(),
       appId: map['appId']?.toString(),
       phoneNumber: map['phoneNumber']?.toString(),
       eventTerminology: map['eventTerminology']?.toString(),
@@ -141,6 +175,7 @@ class UserService {
     String? appId,
     String? picture,
     String? eventTerminology,
+    bool isCaricature = false,
   }) async {
     final token = await _getJwt();
     if (token == null) {
@@ -154,6 +189,7 @@ class UserService {
     if (appId != null && appId.isNotEmpty) payload['appId'] = appId;
     if (picture != null && picture.isNotEmpty) payload['picture'] = picture;
     if (eventTerminology != null && eventTerminology.isNotEmpty) payload['eventTerminology'] = eventTerminology;
+    if (isCaricature) payload['isCaricature'] = true;
 
     _log('Update payload: ${jsonEncode(payload)}');
 
@@ -180,6 +216,54 @@ class UserService {
       } catch (_) {
         throw Exception('Failed to update profile: ${resp.statusCode}');
       }
+    }
+  }
+
+  /// Revert to the original (pre-caricature) picture.
+  static Future<UserProfile> revertPicture() async {
+    final token = await _getJwt();
+    if (token == null) throw Exception('Not authenticated');
+
+    final resp = await _makeRequest(
+      request: () => http.post(
+        Uri.parse('$_apiBaseUrl$_apiPathPrefix/users/me/revert-picture'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+      operation: 'Revert picture',
+    );
+
+    if (resp.statusCode == 200) {
+      final data = json.decode(resp.body) as Map<String, dynamic>;
+      return UserProfile(
+        picture: data['picture']?.toString(),
+        originalPicture: data['originalPicture']?.toString(),
+      );
+    } else {
+      throw Exception('Failed to revert picture: ${resp.statusCode}');
+    }
+  }
+
+  /// Delete a caricature from history by index.
+  static Future<List<CaricatureHistoryItem>> deleteCaricature(int index) async {
+    final token = await _getJwt();
+    if (token == null) throw Exception('Not authenticated');
+
+    final resp = await _makeRequest(
+      request: () => http.delete(
+        Uri.parse('$_apiBaseUrl$_apiPathPrefix/users/me/caricatures/$index'),
+        headers: {'Authorization': 'Bearer $token'},
+      ),
+      operation: 'Delete caricature',
+    );
+
+    if (resp.statusCode == 200) {
+      final data = json.decode(resp.body) as Map<String, dynamic>;
+      final historyRaw = data['caricatureHistory'] as List<dynamic>? ?? [];
+      return historyRaw
+          .map((e) => CaricatureHistoryItem.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      throw Exception('Failed to delete caricature: ${resp.statusCode}');
     }
   }
 }
