@@ -287,6 +287,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
       builder: (_) => CaricatureGeneratorSheet(
         currentPictureUrl: _pictureCtrl.text.trim(),
         onAccepted: _acceptCaricature,
+        userName: _firstNameCtrl.text.trim(),
+        userLastName: _lastNameCtrl.text.trim(),
       ),
     );
   }

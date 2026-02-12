@@ -65,11 +65,37 @@ class StylesResponse {
   final List<CaricatureArtStyle> artStyles;
 }
 
-/// Result of a caricature generation.
+/// Result of a caricature generation (preview — not yet saved).
+/// Contains multiple image options the user can swipe through,
+/// OR a single cached URL if the server found a cache hit.
 class CaricatureResult {
-  CaricatureResult({required this.url, required this.remaining});
-  final String url;
+  CaricatureResult({
+    required this.images,
+    required this.role,
+    required this.artStyle,
+    required this.model,
+    required this.remaining,
+    this.cached = false,
+    this.cacheKey,
+    this.cachedUrl,
+    this.overlayText,
+  });
+
+  final List<String> images; // base64-encoded PNGs (empty if cached)
+  final String role;
+  final String artStyle;
+  final String model;
   final int remaining;
+  final bool cached; // true = cache hit, no new generation
+  final String? cacheKey; // for accept flow
+  final String? cachedUrl; // R2 URL from cache hit
+  final String? overlayText;
+}
+
+/// Result of accepting a caricature (saved to storage).
+class CaricatureAcceptResult {
+  CaricatureAcceptResult({required this.url});
+  final String url;
 }
 
 /// Service for AI caricature generation via the backend API.
@@ -135,11 +161,16 @@ class CaricatureService {
 
   /// Generate a caricature with the given role and art style.
   /// Extended timeout since image generation takes 10-20 seconds.
-  static Future<CaricatureResult> generate(String roleId, String artStyleId) async {
+  static Future<CaricatureResult> generate(String roleId, String artStyleId, {String model = 'dev', String? name, String? tagline, bool forceNew = false}) async {
     final token = await _getJwt();
     if (token == null) throw Exception('Not authenticated');
 
-    _log('Generating caricature: role=$roleId, style=$artStyleId');
+    _log('Generating caricature: role=$roleId, style=$artStyleId, forceNew=$forceNew');
+
+    final body = <String, dynamic>{'role': roleId, 'artStyle': artStyleId, 'model': model};
+    if (name != null && name.isNotEmpty) body['name'] = name;
+    if (tagline != null && tagline.isNotEmpty) body['tagline'] = tagline;
+    if (forceNew) body['forceNew'] = true;
 
     final resp = await http.post(
       Uri.parse('$_apiBaseUrl$_apiPathPrefix/caricature/generate'),
@@ -147,7 +178,7 @@ class CaricatureService {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({'role': roleId, 'artStyle': artStyleId}),
+      body: jsonEncode(body),
     ).timeout(const Duration(seconds: 90));
 
     final data = json.decode(resp.body) as Map<String, dynamic>;
@@ -162,11 +193,73 @@ class CaricatureService {
       throw Exception(data['message'] ?? 'Generation failed');
     }
 
-    _log('Caricature generated: ${data['url']}');
+    final isCached = data['cached'] as bool? ?? false;
+
+    if (isCached) {
+      _log('Cache HIT — returning cached result');
+      return CaricatureResult(
+        images: const [],
+        role: data['role'] as String? ?? roleId,
+        artStyle: data['artStyle'] as String? ?? artStyleId,
+        model: data['model'] as String? ?? model,
+        remaining: data['remaining'] as int? ?? 0,
+        cached: true,
+        cachedUrl: data['url'] as String?,
+        cacheKey: data['cacheKey'] as String?,
+        overlayText: data['overlayText'] as String?,
+      );
+    }
+
+    _log('Caricature preview generated (new)');
+
+    final imagesRaw = data['images'] as List<dynamic>?;
+    if (imagesRaw == null || imagesRaw.isEmpty) {
+      throw Exception('Server returned no image data');
+    }
 
     return CaricatureResult(
-      url: data['url'] as String,
+      images: imagesRaw.map((e) => e.toString()).toList(),
+      role: data['role'] as String? ?? roleId,
+      artStyle: data['artStyle'] as String? ?? artStyleId,
+      model: data['model'] as String? ?? model,
       remaining: data['remaining'] as int? ?? 0,
+      cached: false,
+      cacheKey: data['cacheKey'] as String?,
     );
+  }
+
+  /// Accept a generated caricature — uploads to storage and saves to history.
+  static Future<CaricatureAcceptResult> accept(CaricatureResult preview, int selectedIndex) async {
+    final token = await _getJwt();
+    if (token == null) throw Exception('Not authenticated');
+
+    final body = <String, dynamic>{
+      'base64': preview.images[selectedIndex],
+      'role': preview.role,
+      'artStyle': preview.artStyle,
+      'model': preview.model,
+    };
+    if (preview.cacheKey != null) body['cacheKey'] = preview.cacheKey;
+    if (preview.overlayText != null) body['overlayText'] = preview.overlayText;
+
+    final resp = await http.post(
+      Uri.parse('$_apiBaseUrl$_apiPathPrefix/caricature/accept'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    ).timeout(const Duration(seconds: 30));
+
+    final data = json.decode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw Exception(data['message'] ?? 'Failed to save caricature');
+    }
+
+    final url = data['url'];
+    if (url == null || url is! String) {
+      throw Exception('Server returned no image URL');
+    }
+    return CaricatureAcceptResult(url: url);
   }
 }

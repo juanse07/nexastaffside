@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -66,6 +67,8 @@ const _iconMap = <String, IconData>{
   'science': Icons.science_rounded,
   'rocket_launch': Icons.rocket_launch_rounded,
   // Art style icons
+  'sentiment_very_satisfied': Icons.sentiment_very_satisfied_rounded,
+  'badge': Icons.badge_rounded,
   'brush': Icons.brush_rounded,
   'auto_awesome': Icons.auto_fix_high_rounded,
   'menu_book': Icons.menu_book_rounded,
@@ -112,16 +115,90 @@ const _loadingMessages = [
 /// How many roles to show before the "See More" button
 const _initialRoleCount = 12;
 
+/// Predefined taglines grouped by role category + generics.
+const _taglinesByCategory = <String, List<String>>{
+  '_generic': [
+    'Living the Dream',
+    'Built Different',
+    'On a Mission',
+    'Level Up',
+  ],
+  'Hospitality & Events': [
+    'Born to Host',
+    'Making Nights Happen',
+    'Service with Style',
+    'The Life of the Party',
+  ],
+  'Healthcare': [
+    'Saving Lives Daily',
+    'Always On Call',
+    'Heart of Gold',
+    'Healing Hands',
+  ],
+  'Legal & Business': [
+    'Closing Deals',
+    'Boss Moves Only',
+    'Making It Happen',
+    'The Closer',
+  ],
+  'Tech': [
+    'Code & Coffee',
+    'Shipping It',
+    'In My Element',
+    'Ctrl+Alt+Dominate',
+  ],
+  'Trades & Construction': [
+    'Built to Last',
+    'Skilled Hands',
+    'Getting It Done',
+    'Hard Work Pays Off',
+  ],
+  'Creative': [
+    'Creating Magic',
+    'Art Is Life',
+    'Born Creative',
+    'Vision to Reality',
+  ],
+  'Emergency & Service': [
+    'Courage Under Fire',
+    'Serving with Honor',
+    'Always Ready',
+    'First to Respond',
+  ],
+  'Education': [
+    'Shaping Minds',
+    'Knowledge Is Power',
+    'Born to Teach',
+    'Inspiring Futures',
+  ],
+  'Sports & Fitness': [
+    'No Days Off',
+    'Beast Mode',
+    'Stronger Every Day',
+    'All In',
+  ],
+  'Science': [
+    'For Science',
+    'Exploring the Unknown',
+    'Curious Mind',
+    'Discovery Mode',
+  ],
+};
+
 /// Bottom sheet for generating fun profile pictures.
 class CaricatureGeneratorSheet extends StatefulWidget {
   const CaricatureGeneratorSheet({
     super.key,
     required this.currentPictureUrl,
     required this.onAccepted,
+    this.userName,
+    this.userLastName,
   });
 
   final String currentPictureUrl;
   final ValueChanged<String> onAccepted;
+  final String? userName;
+  final String? userLastName;
 
   @override
   State<CaricatureGeneratorSheet> createState() => _CaricatureGeneratorSheetState();
@@ -134,10 +211,18 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   bool _loadingStyles = true;
   String? _selectedRoleId;
   String? _selectedArtStyleId;
-  String? _generatedUrl;
+  String _selectedModel = 'dev'; // 'dev' = Standard, 'pro' = HD
+  CaricatureResult? _preview;
+  int _selectedImageIndex = 0;
+  PageController? _pageController;
   bool _generating = false;
+  bool _accepting = false;
   String? _error;
   bool _showAllRoles = false;
+
+  // Text overlay chips
+  bool _includeNameChip = false;
+  String? _selectedTagline;
 
   // Loading message rotation
   int _loadingMessageIndex = 0;
@@ -165,6 +250,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   @override
   void dispose() {
     _loadingMessageTimer?.cancel();
+    _pageController?.dispose();
     _btnController.dispose();
     super.dispose();
   }
@@ -204,24 +290,51 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
     });
   }
 
-  Future<void> _generate() async {
+  /// Full name from first + last.
+  String? get _fullName {
+    final first = widget.userName ?? '';
+    final last = widget.userLastName ?? '';
+    final full = [first, last].where((s) => s.isNotEmpty).join(' ');
+    return full.isNotEmpty ? full : null;
+  }
+
+  /// Taglines for the currently selected role's category + generics.
+  List<String> _availableTaglines() {
+    final selectedRole = _roles.where((r) => r.id == _selectedRoleId).firstOrNull;
+    final category = selectedRole?.category;
+    final generic = _taglinesByCategory['_generic'] ?? <String>[];
+    final roleSpecific = category != null ? (_taglinesByCategory[category] ?? <String>[]) : <String>[];
+    return [...roleSpecific, ...generic];
+  }
+
+  Future<void> _generate({bool forceNew = false}) async {
     if (_selectedRoleId == null || _selectedArtStyleId == null) return;
 
     setState(() {
       _generating = true;
       _error = null;
-      _generatedUrl = null;
+      _preview = null;
+      _selectedImageIndex = 0;
     });
+    _pageController?.dispose();
+    _pageController = PageController();
 
     _startLoadingMessages();
     unawaited(HapticFeedback.mediumImpact());
 
     try {
-      final result = await CaricatureService.generate(_selectedRoleId!, _selectedArtStyleId!);
+      final result = await CaricatureService.generate(
+        _selectedRoleId!,
+        _selectedArtStyleId!,
+        model: _selectedModel,
+        name: _includeNameChip ? _fullName : null,
+        tagline: _selectedTagline,
+        forceNew: forceNew,
+      );
       if (!mounted) return;
       unawaited(HapticFeedback.heavyImpact());
       setState(() {
-        _generatedUrl = result.url;
+        _preview = result;
         _generating = false;
       });
       _loadingMessageTimer?.cancel();
@@ -235,16 +348,39 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
     }
   }
 
-  void _accept() {
-    if (_generatedUrl == null) return;
+  Future<void> _accept() async {
+    if (_preview == null) return;
+    setState(() => _accepting = true);
     HapticFeedback.mediumImpact();
-    widget.onAccepted(_generatedUrl!);
-    Navigator.of(context).pop();
+
+    try {
+      // Cache hit — URL already exists, skip upload
+      if (_preview!.cached && _preview!.cachedUrl != null) {
+        if (!mounted) return;
+        widget.onAccepted(_preview!.cachedUrl!);
+        Navigator.of(context).pop();
+        return;
+      }
+
+      final accepted = await CaricatureService.accept(_preview!, _selectedImageIndex);
+      if (!mounted) return;
+      widget.onAccepted(accepted.url);
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _accepting = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
   }
 
   void _tryAnother() {
+    _pageController?.dispose();
+    _pageController = null;
     setState(() {
-      _generatedUrl = null;
+      _preview = null;
+      _selectedImageIndex = 0;
       _error = null;
     });
   }
@@ -291,10 +427,16 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
                     _buildRoleSection(),
                     const SizedBox(height: 22),
                     _buildStyleSection(),
+                    const SizedBox(height: 18),
+                    _buildModelSection(),
+                    const SizedBox(height: 18),
+                    _buildTextOverlaySection(),
                     const SizedBox(height: 24),
                     _buildPreview(),
                     const SizedBox(height: 20),
                     if (_error != null) _buildError(),
+                    _buildAiDisclaimer(),
+                    const SizedBox(height: 12),
                     _buildActions(),
                   ],
                 ),
@@ -383,7 +525,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
               HapticFeedback.selectionClick();
               setState(() {
                 _selectedRoleId = role.id;
-                _generatedUrl = null;
+                _preview = null;
               });
             }
           : null,
@@ -622,7 +764,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
                         HapticFeedback.selectionClick();
                         setState(() {
                           _selectedArtStyleId = style.id;
-                          _generatedUrl = null;
+                          _preview = null;
                         });
                       }
                     : null,
@@ -675,9 +817,231 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
     );
   }
 
+  Widget _buildModelSection() {
+    if (_loadingStyles) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
+            const SizedBox(width: 8),
+            const Text(
+              'Quality',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primaryPurple,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<String>(
+            segments: const [
+              ButtonSegment<String>(
+                value: 'dev',
+                label: Text('Standard'),
+                icon: Icon(Icons.speed_rounded, size: 18),
+              ),
+              ButtonSegment<String>(
+                value: 'pro',
+                label: Text('HD'),
+                icon: Icon(Icons.hd_rounded, size: 18),
+              ),
+            ],
+            selected: {_selectedModel},
+            onSelectionChanged: _generating
+                ? null
+                : (selection) {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _selectedModel = selection.first;
+                      _preview = null;
+                    });
+                  },
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primaryPurple;
+                }
+                return Colors.white;
+              }),
+              foregroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                return AppColors.textSecondary;
+              }),
+              side: WidgetStateProperty.all(
+                const BorderSide(color: AppColors.border, width: 1.5),
+              ),
+              shape: WidgetStateProperty.all(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              textStyle: WidgetStateProperty.all(
+                const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ),
+        if (_selectedModel == 'pro')
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, size: 13, color: AppColors.primaryIndigo),
+                const SizedBox(width: 4),
+                Text(
+                  'Higher detail & better facial preservation',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTextOverlaySection() {
+    if (_loadingStyles) return const SizedBox.shrink();
+
+    final name = _fullName;
+    final taglines = _availableTaglines();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.text_fields_rounded, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
+            const SizedBox(width: 8),
+            const Text(
+              'Text in image',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primaryPurple,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceGray,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                'Optional',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            _buildToggleChip(
+              label: 'None',
+              selected: !_includeNameChip && _selectedTagline == null,
+              icon: Icons.block_rounded,
+              onTap: () => setState(() {
+                _includeNameChip = false;
+                _selectedTagline = null;
+                _preview = null;
+              }),
+            ),
+            if (name != null)
+              _buildToggleChip(
+                label: name,
+                selected: _includeNameChip,
+                icon: Icons.person_rounded,
+                onTap: () => setState(() {
+                  _includeNameChip = !_includeNameChip;
+                  _preview = null;
+                }),
+              ),
+            ...taglines.map((tagline) => _buildToggleChip(
+              label: tagline,
+              selected: _selectedTagline == tagline,
+              onTap: () => setState(() {
+                _selectedTagline = _selectedTagline == tagline ? null : tagline;
+                _preview = null;
+              }),
+            )),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToggleChip({
+    required String label,
+    required bool selected,
+    IconData? icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: !_generating ? () { HapticFeedback.selectionClick(); onTap(); } : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryPurple : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primaryPurple : AppColors.border,
+            width: 1.5,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryPurple.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selected)
+              Padding(
+                padding: const EdgeInsets.only(right: 5),
+                child: Icon(Icons.check_rounded, size: 14, color: AppColors.primaryIndigo),
+              )
+            else if (icon != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 5),
+                child: Icon(icon, size: 14, color: AppColors.textMuted),
+              ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: selected ? Colors.white : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPreview() {
     if (_generating) return _buildGeneratingState();
-    if (_generatedUrl != null) return _buildBeforeAfter();
+    if (_preview != null) return _buildBeforeAfter();
 
     return Container(
       padding: const EdgeInsets.all(28),
@@ -770,6 +1134,28 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primaryPurple),
           ),
         ),
+        if (_preview!.cached)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.bolt_rounded, size: 12, color: AppColors.success),
+                  const SizedBox(width: 4),
+                  Text(
+                    'From your history',
+                    style: TextStyle(fontSize: 11, color: AppColors.success),
+                  ),
+                ],
+              ),
+            ),
+          ),
         Row(
           children: [
             Expanded(child: _buildImageCard('Before', widget.currentPictureUrl, false)),
@@ -781,10 +1167,101 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
                 child: const Icon(Icons.arrow_forward_rounded, color: AppColors.primaryIndigo, size: 16),
               ),
             ),
-            Expanded(child: _buildImageCard('After', _generatedUrl!, true)),
+            Expanded(
+              child: Column(
+                children: [
+                  const Text(
+                    'After',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryPurple,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  if (_preview!.cached && _preview!.cachedUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        _preview!.cachedUrl!,
+                        height: 160,
+                        width: 160,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 160,
+                          width: 160,
+                          color: AppColors.surfaceGray,
+                          child: const Icon(Icons.broken_image, size: 40),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    SizedBox(
+                      height: 160,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: _preview!.images.length,
+                        onPageChanged: (i) => setState(() => _selectedImageIndex = i),
+                        itemBuilder: (_, i) => _buildBase64Image(_preview!.images[i]),
+                      ),
+                    ),
+                    if (_preview!.images.length > 1) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(_preview!.images.length, (i) {
+                          final isSelected = i == _selectedImageIndex;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 3),
+                            width: isSelected ? 20 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppColors.primaryPurple : AppColors.border,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildBase64Image(String base64Data) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryIndigo, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(13),
+        child: Image.memory(
+          base64Decode(base64Data),
+          height: 160,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            height: 160,
+            color: AppColors.surfaceGray,
+            child: const Icon(Icons.broken_image, size: 32, color: AppColors.textMuted),
+          ),
+        ),
+      ),
     );
   }
 
@@ -835,6 +1312,50 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
     );
   }
 
+  Widget _buildBase64ImageCard(String label, String base64Data) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryPurple,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primaryIndigo, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(13),
+            child: Image.memory(
+              base64Decode(base64Data),
+              height: 160,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                height: 160,
+                color: AppColors.surfaceGray,
+                child: const Icon(Icons.broken_image, size: 32, color: AppColors.textMuted),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildError() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -861,15 +1382,39 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
     );
   }
 
+  Widget _buildAiDisclaimer() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.info_outline_rounded, size: 14, color: AppColors.textMuted.withValues(alpha: 0.7)),
+        const SizedBox(width: 6),
+        Text(
+          'AI-generated images may not be accurate',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textMuted.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActions() {
-    if (_generatedUrl != null) {
+    if (_preview != null) {
       return Row(
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: _tryAnother,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Try Again'),
+              onPressed: _accepting
+                  ? null
+                  : _preview!.cached
+                      ? () => _generate(forceNew: true)
+                      : _tryAnother,
+              icon: Icon(
+                _preview!.cached ? Icons.auto_awesome_rounded : Icons.refresh_rounded,
+                size: 18,
+              ),
+              label: Text(_preview!.cached ? 'Generate New' : 'Try Again'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.textSecondary,
                 side: const BorderSide(color: AppColors.border),
@@ -882,9 +1427,11 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
           Expanded(
             flex: 2,
             child: ElevatedButton.icon(
-              onPressed: _accept,
-              icon: const Icon(Icons.check_rounded, size: 20),
-              label: const Text('Use This Photo'),
+              onPressed: _accepting ? null : _accept,
+              icon: _accepting
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.check_rounded, size: 20),
+              label: Text(_accepting ? 'Saving...' : 'Use This Photo'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryPurple,
                 foregroundColor: Colors.white,
