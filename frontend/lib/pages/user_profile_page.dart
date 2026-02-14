@@ -104,6 +104,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   /// Accept a caricature and save it immediately with the isCaricature flag.
   Future<void> _acceptCaricature(String caricatureUrl) async {
+    if (!mounted) return;
     setState(() {
       _pictureCtrl.text = caricatureUrl;
       _saving = true;
@@ -130,6 +131,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SnackBar(content: Text('New look saved!')),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = 'Failed to save: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -138,6 +140,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   /// Reuse a caricature from history as the current profile picture.
   Future<void> _reuseCaricature(CaricatureHistoryItem item) async {
+    if (!mounted) return;
     setState(() {
       _pictureCtrl.text = item.url;
       _saving = true;
@@ -160,6 +163,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SnackBar(content: Text('Profile picture updated!')),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = 'Failed to update: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -252,13 +256,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
         SnackBar(content: Text(AppLocalizations.of(context)!.profileUpdated)),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
       });
     } finally {
-      setState(() {
-        _saving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
     }
   }
 
@@ -370,20 +377,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         labelText: l10n.appId),
                     keyboardType: TextInputType.number,
                     maxLength: 9,
-                  ),
-                  const SizedBox(height: 4),
-                  // Collapsible URL field for manual entry
-                  ExpansionTile(
-                    title: Text(l10n.pictureUrl, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                    tilePadding: EdgeInsets.zero,
-                    childrenPadding: EdgeInsets.zero,
-                    children: [
-                      TextField(
-                        controller: _pictureCtrl,
-                        decoration: InputDecoration(labelText: l10n.pictureUrl),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: 16),
                   const Divider(),
@@ -775,7 +768,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           }
                         : () {
                             Navigator.pop(ctx);
-                            _reuseCaricature(item);
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _reuseCaricature(item);
+                            });
                           },
                     icon: Icon(isActive ? Icons.fullscreen_rounded : Icons.check_rounded, size: 20),
                     label: Text(isActive ? 'View Full Size' : 'Use This Photo'),

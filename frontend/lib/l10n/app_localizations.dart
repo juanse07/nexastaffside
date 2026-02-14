@@ -674,6 +674,18 @@ abstract class AppLocalizations {
   /// **'Chats'**
   String get chats;
 
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @noResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get noResults;
+
   /// No description provided for @failedToLoadConversations.
   ///
   /// In en, this message translates to:

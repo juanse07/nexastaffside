@@ -42,19 +42,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get failedToLoadProfile => 'Error al cargar el perfil';
 
   @override
-  String get chooseFromGallery => 'Choose from gallery';
+  String get chooseFromGallery => 'Elegir de la galería';
 
   @override
-  String get takePhoto => 'Take a photo';
+  String get takePhoto => 'Tomar una foto';
 
   @override
-  String get removePhoto => 'Remove photo';
+  String get removePhoto => 'Eliminar foto';
 
   @override
-  String get profilePictureUploaded => 'Profile picture uploaded';
+  String get profilePictureUploaded => 'Foto de perfil subida';
 
   @override
-  String get failedToUploadPicture => 'Failed to upload picture';
+  String get failedToUploadPicture => 'Error al subir la imagen';
 
   @override
   String get workTerminology => 'Terminología de Trabajo';
@@ -313,6 +313,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chats => 'Chats';
 
   @override
+  String get search => 'Buscar';
+
+  @override
+  String get noResults => 'No se encontraron resultados';
+
+  @override
   String get failedToLoadConversations => 'Error al cargar conversaciones';
 
   @override
@@ -336,19 +342,19 @@ class AppLocalizationsEs extends AppLocalizations {
       'Obtén ayuda con turnos 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, revisa tu horario 📅, y más ✨';
 
   @override
-  String get newChat => 'New Chat';
+  String get newChat => 'Nuevo Chat';
 
   @override
-  String get failedToLoadManagers => 'Failed to load managers';
+  String get failedToLoadManagers => 'Error al cargar gerentes';
 
   @override
-  String get noManagersAssigned => 'No managers assigned';
+  String get noManagersAssigned => 'No hay gerentes asignados';
 
   @override
-  String get joinTeamToChat => 'Join a team to start chatting with managers';
+  String get joinTeamToChat => 'Únete a un equipo para chatear con gerentes';
 
   @override
-  String get contactMyManagers => 'Contact My Managers';
+  String get contactMyManagers => 'Contactar a Mis Gerentes';
 
   @override
   String get untitledEvent => 'Evento sin título';

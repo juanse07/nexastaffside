@@ -13,6 +13,11 @@
   "pictureUrl": "URL de la imagen (opcional)",
   "profileUpdated": "Perfil actualizado",
   "failedToLoadProfile": "Error al cargar el perfil",
+  "chooseFromGallery": "Elegir de la galería",
+  "takePhoto": "Tomar una foto",
+  "removePhoto": "Eliminar foto",
+  "profilePictureUploaded": "Foto de perfil subida",
+  "failedToUploadPicture": "Error al subir la imagen",
 
   "@@ Terminology Settings": {},
   "workTerminology": "Terminología de Trabajo",
@@ -132,6 +137,8 @@
 
   "@@ Conversations": {},
   "chats": "Chats",
+  "search": "Buscar",
+  "noResults": "No se encontraron resultados",
   "failedToLoadConversations": "Error al cargar conversaciones",
   "noConversationsYet": "Aún no hay conversaciones",
   "yourManagerWillAppearHere": "Tu gerente aparecerá aquí cuando te envíe un mensaje",
@@ -139,6 +146,11 @@
   "noMessagesYet": "Aún no hay mensajes",
   "valerioAssistant": "Asistente Valerio",
   "valerioAssistantDescription": "Obtén ayuda con turnos 👷‍♂️👨‍🍳🍽️🍹💼🏥🚗🏪🎵📦, revisa tu horario 📅, y más ✨",
+  "newChat": "Nuevo Chat",
+  "failedToLoadManagers": "Error al cargar gerentes",
+  "noManagersAssigned": "No hay gerentes asignados",
+  "joinTeamToChat": "Únete a un equipo para chatear con gerentes",
+  "contactMyManagers": "Contactar a Mis Gerentes",
 
   "@@ Event Detail": {},
   "untitledEvent": "Evento sin título",

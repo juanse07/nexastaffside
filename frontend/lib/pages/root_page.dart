@@ -4060,15 +4060,13 @@ class _RolesSectionState extends State<_RolesSection> {
                 ),
               ),
 
-              // Unavailable dates toggle (only shown in Available view, hides on scroll)
+              // Unavailable dates toggle (only shown in Available view, always visible with blur)
               if (_selectedView == _ViewMode.available)
-                AnimatedSlide(
-                  duration: const Duration(milliseconds: 200),
-                  offset: _showToggle ? Offset.zero : const Offset(0, -1),
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 200),
-                    opacity: _showToggle ? 1.0 : 0.0,
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Container(
+                      color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.6),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       child: GestureDetector(
                         onTap: () {

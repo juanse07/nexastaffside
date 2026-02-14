@@ -10,6 +10,9 @@ import '../services/staff_chat_service.dart';
 class ChatMessageWidget extends StatefulWidget {
   final ChatMessage message;
   final String? userProfilePicture;
+  final String? userFirstName;
+  final String? userLastName;
+  final bool showAvatar;
   final void Function(String)? onLinkTap;
 
   const ChatMessageWidget({
@@ -17,6 +20,9 @@ class ChatMessageWidget extends StatefulWidget {
     required this.message,
     this.onLinkTap,
     this.userProfilePicture,
+    this.userFirstName,
+    this.userLastName,
+    this.showAvatar = true,
   });
 
   @override
@@ -128,66 +134,18 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.primaryPurple, // Navy blue background
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryPurple.withOpacity(0.3),
+                    color: Colors.black.withOpacity(0.1),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Outer circle shape - yellow
-                    Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: AppColors.yellow.withOpacity(0.6),
-                          width: 1,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    // Inner diamond shape - yellow
-                    Transform.rotate(
-                      angle: 0.785398, // 45 degrees
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: AppColors.yellow,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 1,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Connecting lines - yellow
-                    Positioned(
-                      top: 6,
-                      child: Container(
-                        width: 0.8,
-                        height: 3.5,
-                        color: AppColors.yellow.withOpacity(0.7),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 6,
-                      child: Container(
-                        width: 0.8,
-                        height: 3.5,
-                        color: AppColors.yellow.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/ai_assistant_logo.png',
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -288,44 +246,58 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           ),
           if (isUser) ...[
             const SizedBox(width: 8),
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primaryIndigo,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: widget.userProfilePicture != null && widget.userProfilePicture!.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        widget.userProfilePicture!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.person,
-                            size: 20,
-                            color: Colors.white,
-                          );
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Icon(
-                            Icons.person,
-                            size: 20,
-                            color: Colors.white,
-                          );
-                        },
-                      ),
-                    )
-                  : const Icon(
-                      Icons.person,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-            ),
+            if (widget.showAvatar)
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryIndigo,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: widget.userProfilePicture != null && widget.userProfilePicture!.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.network(
+                          widget.userProfilePicture!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildInitialsFallback();
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return _buildInitialsFallback();
+                          },
+                        ),
+                      )
+                    : _buildInitialsFallback(),
+              )
+            else
+              const SizedBox(width: 32),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Build initials fallback for user avatar
+  Widget _buildInitialsFallback() {
+    final first = widget.userFirstName?.trim() ?? '';
+    final last = widget.userLastName?.trim() ?? '';
+    final initials = '${first.isNotEmpty ? first[0] : ''}${last.isNotEmpty ? last[0] : ''}'.toUpperCase();
+
+    if (initials.isEmpty) {
+      return const Icon(Icons.person, size: 20, color: Colors.white);
+    }
+
+    return Center(
+      child: Text(
+        initials,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }

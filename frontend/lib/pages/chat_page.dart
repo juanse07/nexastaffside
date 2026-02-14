@@ -269,6 +269,57 @@ class _ChatPageState extends State<ChatPage> {
     super.dispose();
   }
 
+  void _showFullImage(String imageUrl) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black87,
+        barrierDismissible: true,
+        pageBuilder: (_, __, ___) => Scaffold(
+          backgroundColor: Colors.transparent,
+          body: GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Stack(
+              children: [
+                Center(
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(Icons.broken_image, size: 64, color: Colors.white54),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 8,
+                  right: 16,
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: Colors.black54,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        transitionsBuilder: (_, animation, __, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
   Future<void> _initiateCall() async {
     final l10n = AppLocalizations.of(context)!;
     // For now, we'll show a dialog since we don't have the manager's phone number
@@ -397,25 +448,30 @@ class _ChatPageState extends State<ChatPage> {
                 ),
                 title: Row(
                   children: <Widget>[
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.yellow, // Yellow border for visibility
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                    GestureDetector(
+                      onTap: widget.managerPicture != null && widget.managerPicture!.isNotEmpty
+                          ? () => _showFullImage(widget.managerPicture!)
+                          : null,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.yellow, // Yellow border for visibility
+                            width: 2,
                           ),
-                        ],
-                      ),
-                      child: UserAvatar(
-                        imageUrl: widget.managerPicture,
-                        fullName: widget.managerName,
-                        radius: 18,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: UserAvatar(
+                          imageUrl: widget.managerPicture,
+                          fullName: widget.managerName,
+                          radius: 18,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1050,14 +1106,6 @@ class _MessageBubble extends StatelessWidget {
                 isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
-              if (!isMe) ...<Widget>[
-                UserAvatar(
-                  imageUrl: message.senderPicture,
-                  fullName: message.senderName,
-                  radius: 13,
-                ),
-                const SizedBox(width: 8),
-              ],
               Flexible(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxBubbleWidth),

@@ -23,7 +23,9 @@ class ConversationsPage extends StatefulWidget {
 
 class _ConversationsPageState extends State<ConversationsPage> {
   final ChatService _chatService = ChatService();
+  final TextEditingController _searchController = TextEditingController();
   List<Conversation> _conversations = <Conversation>[];
+  String _searchQuery = '';
   bool _loading = true;
   String? _error;
 
@@ -32,6 +34,15 @@ class _ConversationsPageState extends State<ConversationsPage> {
     super.initState();
     _loadConversations();
     _listenToNewMessages();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _listenToNewMessages() {
@@ -91,6 +102,47 @@ class _ConversationsPageState extends State<ConversationsPage> {
                   const Spacer(),
                   widget.profileMenu,
                 ],
+              ),
+            ),
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: l10n.search,
+                    hintStyle: TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 15,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: AppColors.textMuted,
+                      size: 20,
+                    ),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.close,
+                              color: AppColors.textMuted,
+                              size: 18,
+                            ),
+                            onPressed: () => _searchController.clear(),
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 15),
+                ),
               ),
             ),
             const Divider(height: 1, thickness: 0.5),
@@ -160,7 +212,40 @@ class _ConversationsPageState extends State<ConversationsPage> {
       );
     }
 
-    if (_conversations.isEmpty) {
+    // Filter conversations by search query
+    final filteredConversations = _searchQuery.isEmpty
+        ? _conversations
+        : _conversations.where((c) {
+            final name = c.displayName.toLowerCase();
+            final preview = (c.lastMessagePreview ?? '').toLowerCase();
+            return name.contains(_searchQuery) || preview.contains(_searchQuery);
+          }).toList();
+
+    // Check if Valerio Assistant matches search
+    final showAssistant = _searchQuery.isEmpty ||
+        l10n.valerioAssistant.toLowerCase().contains(_searchQuery);
+
+    if (filteredConversations.isEmpty && !showAssistant) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.search_off, size: 48, color: AppColors.borderLight),
+            const SizedBox(height: 16),
+            Text(
+              l10n.noResults,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_conversations.isEmpty && showAssistant) {
       // Still show Valerio Assistant even when empty
       return RefreshIndicator(
         onRefresh: _loadConversations,
@@ -202,18 +287,18 @@ class _ConversationsPageState extends State<ConversationsPage> {
     return RefreshIndicator(
       onRefresh: _loadConversations,
       child: ListView.separated(
-        itemCount: _conversations.length + 1, // +1 for Valerio Assistant
+        itemCount: filteredConversations.length + (showAssistant ? 1 : 0),
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          // First item is always the pinned Valerio Assistant
-          if (index == 0) {
+          // First item is the pinned Valerio Assistant (if visible)
+          if (showAssistant && index == 0) {
             return _ValerioAssistantTile(
               onTap: () => _openAIChat(),
             );
           }
 
-          // All other items are regular conversations (offset by -1)
-          final conversation = _conversations[index - 1];
+          final conversationIndex = showAssistant ? index - 1 : index;
+          final conversation = filteredConversations[conversationIndex];
           return _ConversationTile(
             conversation: conversation,
             onTap: () => _openChat(conversation),

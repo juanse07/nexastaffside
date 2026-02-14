@@ -137,6 +137,8 @@
 
   "@@ Conversations": {},
   "chats": "Chats",
+  "search": "Search",
+  "noResults": "No results found",
   "failedToLoadConversations": "Failed to load conversations",
   "noConversationsYet": "No conversations yet",
   "yourManagerWillAppearHere": "Your manager will appear here when they message you",

@@ -311,6 +311,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chats => 'Chats';
 
   @override
+  String get search => 'Search';
+
+  @override
+  String get noResults => 'No results found';
+
+  @override
   String get failedToLoadConversations => 'Failed to load conversations';
 
   @override
