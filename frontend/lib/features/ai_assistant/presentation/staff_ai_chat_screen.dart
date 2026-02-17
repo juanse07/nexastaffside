@@ -8,6 +8,7 @@ import '../../../providers/terminology_provider.dart';
 import '../../../shared/presentation/theme/theme.dart';
 import '../../../services/data_service.dart';
 import '../../../services/subscription_service.dart';
+import '../../../services/user_service.dart';
 import '../services/chat_summary_service.dart';
 import '../services/staff_chat_service.dart';
 import '../widgets/animated_ai_message_widget.dart';
@@ -36,12 +37,16 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   String _subscriptionTier = 'free';
   int _aiMessagesUsed = 0;
   int _aiMessagesLimit = 20; // Free tier limit (changed from 50 to reduce costs)
+  String? _userFirstName;
+  String? _userLastName;
+  String? _userPictureUrl;
 
   @override
   void initState() {
     super.initState();
     _initializeChat();
     _loadSubscriptionStatus();
+    _loadUserProfile();
   }
 
   @override
@@ -107,10 +112,9 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     // Get user's terminology preference
     final terminology = context.read<TerminologyProvider>().lowercasePlural;
 
-    // Pass model preference and terminology to chat service
+    // Model selection is handled server-side by cascade router
     final response = await _chatService.sendMessage(
       message,
-      modelPreference: 'gpt-oss', // Default to GPT-OSS 20B (supports function calling)
       terminology: terminology,
     );
     if (response != null) {
@@ -159,6 +163,19 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     } catch (e) {
       print('[StaffAIChatScreen] Failed to load subscription status: $e');
     }
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final me = await UserService.getMe();
+      if (mounted) {
+        setState(() {
+          _userFirstName = me.firstName;
+          _userLastName = me.lastName;
+          _userPictureUrl = (me.picture ?? '').trim().isEmpty ? null : me.picture!.trim();
+        });
+      }
+    } catch (_) {}
   }
 
   /// Handle availability confirmation
@@ -500,6 +517,11 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                       final isLatestAiMessage = message.role == 'assistant' &&
                           messageIndex == _chatService.conversationHistory.length - 1;
 
+                      // Show avatar only on the last consecutive user message
+                      final isLastUserInGroup = message.role != 'user' ||
+                          messageIndex == _chatService.conversationHistory.length - 1 ||
+                          _chatService.conversationHistory[messageIndex + 1].role != 'user';
+
                       // Use RepaintBoundary with keys to prevent unnecessary rebuilds
                       return RepaintBoundary(
                         key: ValueKey('message_$messageId'),
@@ -510,6 +532,10 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                             )
                           : ChatMessageWidget(
                               message: message,
+                              userProfilePicture: _userPictureUrl,
+                              userFirstName: _userFirstName,
+                              userLastName: _userLastName,
+                              showAvatar: isLastUserInGroup,
                               onLinkTap: (linkText) async {
                                 // Open venue in Google Maps
                                 final encodedAddress = Uri.encodeComponent(linkText);

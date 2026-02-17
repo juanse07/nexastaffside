@@ -4290,8 +4290,23 @@ class _MyEventsListState extends State<_MyEventsList> {
     List<Map<String, dynamic>> events,
   ) {
     final Map<String, List<Map<String, dynamic>>> grouped = {};
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+
+    final monthNames = [
+      l10n.january,
+      l10n.february,
+      l10n.march,
+      l10n.april,
+      l10n.may,
+      l10n.june,
+      l10n.july,
+      l10n.august,
+      l10n.september,
+      l10n.october,
+      l10n.november,
+      l10n.december,
+    ];
 
     for (final event in events) {
       final dateStr = event['date']?.toString();
@@ -4300,47 +4315,13 @@ class _MyEventsListState extends State<_MyEventsList> {
       final eventDate = _parseDateSafe(dateStr);
       if (eventDate == null) continue;
 
-      // Find the start of the week (Monday)
-      final weekStart = eventDate.subtract(
-        Duration(days: eventDate.weekday - 1),
-      );
-      final weekEnd = weekStart.add(const Duration(days: 6));
+      // Group by month name (+ year if not current year)
+      final monthLabel = eventDate.year == now.year
+          ? monthNames[(eventDate.month - 1).clamp(0, 11)]
+          : '${monthNames[(eventDate.month - 1).clamp(0, 11)]} ${eventDate.year}';
 
-      // Create week label
-      String weekLabel;
-      final thisWeekStart = today.subtract(Duration(days: today.weekday - 1));
-      final nextWeekStart = thisWeekStart.add(const Duration(days: 7));
-
-      if (weekStart == thisWeekStart) {
-        weekLabel = AppLocalizations.of(context)!.thisWeek;
-      } else if (weekStart == nextWeekStart) {
-        weekLabel = AppLocalizations.of(context)!.nextWeek;
-      } else {
-        // Format as "Oct Mon 20 - Sun 26" for future weeks
-        final months = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ];
-        final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        final month = months[(weekStart.month - 1).clamp(0, 11)];
-        final startDay = days[(weekStart.weekday - 1).clamp(0, 6)];
-        final endDay = days[(weekEnd.weekday - 1).clamp(0, 6)];
-        weekLabel =
-            '$month $startDay ${weekStart.day} - $endDay ${weekEnd.day}';
-      }
-
-      grouped.putIfAbsent(weekLabel, () => []);
-      grouped[weekLabel]!.add(event);
+      grouped.putIfAbsent(monthLabel, () => []);
+      grouped[monthLabel]!.add(event);
     }
 
     return grouped;
@@ -4490,22 +4471,9 @@ class _MyEventsListState extends State<_MyEventsList> {
       });
     });
 
-    // Sort week labels to show upcoming weeks first
-    final preferredOrder = [AppLocalizations.of(context)!.thisWeek, AppLocalizations.of(context)!.nextWeek];
+    // Sort month labels by earliest event date in each group
     final sortedKeys = grouped.keys.toList()
       ..sort((a, b) {
-        final aIndex = preferredOrder.indexOf(a);
-        final bIndex = preferredOrder.indexOf(b);
-
-        // Both are in preferred order list
-        if (aIndex != -1 && bIndex != -1) return aIndex.compareTo(bIndex);
-
-        // One is in preferred order, prioritize it (This Week or Next Week come first)
-        if (aIndex != -1) return -1;
-        if (bIndex != -1) return 1;
-
-        // Both are date-based week labels (e.g., "Jan 15-21")
-        // Extract earliest date from events in each week to determine order
         final aEvents = grouped[a]!;
         final bEvents = grouped[b]!;
         if (aEvents.isNotEmpty && bEvents.isNotEmpty) {
@@ -4515,7 +4483,6 @@ class _MyEventsListState extends State<_MyEventsList> {
             return aDate.compareTo(bDate);
           }
         }
-
         return a.compareTo(b);
       });
 
@@ -4568,52 +4535,29 @@ class _MyEventsListState extends State<_MyEventsList> {
 
     return Column(
       children: [
-        const SizedBox(height: 40),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.navySpaceCadet.withOpacity(0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        const SizedBox(height: 24),
+        Image.asset(
+          'assets/my_shifts_empty.png',
+          height: 220,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          l10n.noAcceptedTerminology(terminologyProvider.plural.toLowerCase()),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.navySpaceCadet,
           ),
-          child: Column(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.navySpaceCadet,
-                  borderRadius: BorderRadius.circular(32),
-                ),
-                child: const Icon(
-                  Icons.event_available_outlined,
-                  size: 32,
-                  color: AppColors.yellow,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.noAcceptedTerminology(terminologyProvider.plural.toLowerCase()),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.navySpaceCadet,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.acceptTerminologyFromRoles(terminologyProvider.plural.toLowerCase()),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.navySpaceCadet.withOpacity(0.6),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            l10n.acceptTerminologyFromRoles(terminologyProvider.plural.toLowerCase()),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textMuted,
+            ),
+            textAlign: TextAlign.center,
           ),
         ),
       ],
@@ -5185,26 +5129,27 @@ class _RoleList extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.work_off_outlined,
-                      size: 80,
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                    Image.asset(
+                      'assets/available_shifts_empty.png',
+                      height: 220,
+                      fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     Text(
                       l10n.noAvailableTerminology(terminologyProvider.plural),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.navySpaceCadet,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
                         l10n.noTerminologyMatchProfile(terminologyProvider.plural.toLowerCase()),
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ),
@@ -5233,7 +5178,7 @@ class _RoleList extends StatelessWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(20),
-                child: _buildEmptyState(theme),
+                child: _buildEmptyState(context, theme),
               ),
             ),
           if (roleEventPairs.isNotEmpty)
@@ -5307,55 +5252,34 @@ class _RoleList extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme) {
+  Widget _buildEmptyState(BuildContext context, ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final terminologyProvider = context.watch<TerminologyProvider>();
     return Column(
       children: [
-        const SizedBox(height: 40),
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.navySpaceCadet.withOpacity(0.08),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        const SizedBox(height: 24),
+        Image.asset(
+          'assets/available_shifts_empty.png',
+          height: 220,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          l10n.noAvailableTerminology(terminologyProvider.plural),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.navySpaceCadet,
           ),
-          child: Column(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.navySpaceCadet,
-                  borderRadius: BorderRadius.circular(32),
-                ),
-                child: const Icon(
-                  Icons.work_outline,
-                  size: 32,
-                  color: AppColors.yellow,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No roles available',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.navySpaceCadet,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pull to refresh and check for new events',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.navySpaceCadet.withOpacity(0.6),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Text(
+            l10n.noTerminologyMatchProfile(terminologyProvider.plural.toLowerCase()),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textMuted,
+            ),
+            textAlign: TextAlign.center,
           ),
         ),
       ],

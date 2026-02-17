@@ -7,6 +7,28 @@ import '../config/app_config.dart';
 /// AI Provider enum
 enum AIProvider { openai, claude, groq }
 
+/// Token usage tracking
+class TokenUsage {
+  final int promptTokens;
+  final int completionTokens;
+  final int reasoningTokens;
+  final int totalTokens;
+
+  const TokenUsage({
+    this.promptTokens = 0,
+    this.completionTokens = 0,
+    this.reasoningTokens = 0,
+    this.totalTokens = 0,
+  });
+
+  factory TokenUsage.fromJson(Map<String, dynamic> json) => TokenUsage(
+    promptTokens: json['prompt_tokens'] as int? ?? 0,
+    completionTokens: json['completion_tokens'] as int? ?? 0,
+    reasoningTokens: json['reasoning_tokens'] as int? ?? 0,
+    totalTokens: json['total_tokens'] as int? ?? 0,
+  );
+}
+
 /// Chat message model
 class ChatMessage {
   final String role; // 'user', 'assistant', 'system'
@@ -15,6 +37,7 @@ class ChatMessage {
   final AIProvider? provider;
   final String? reasoning;
   final List<String> toolsUsed;
+  final TokenUsage? usage;
 
   ChatMessage({
     required this.role,
@@ -23,6 +46,7 @@ class ChatMessage {
     this.provider,
     this.reasoning,
     this.toolsUsed = const [],
+    this.usage,
   }) : timestamp = timestamp ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
@@ -278,8 +302,9 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
     return _cachedSystemMessage!;
   }
 
-  /// Send a message to the AI
-  Future<ChatMessage?> sendMessage(String userMessage, {String? modelPreference, String? terminology}) async {
+  /// Send a message to the AI.
+  /// Model selection is handled server-side by the cascade router.
+  Future<ChatMessage?> sendMessage(String userMessage, {String? terminology}) async {
     try {
       _isLoading = true;
 
@@ -316,32 +341,16 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
       final fullUrl = '$baseUrl$endpoint';
       final uri = Uri.parse(fullUrl);
 
-      // Map UI model names to Groq API model names
-      String? groqModel;
-      if (modelPreference != null) {
-        if (modelPreference == 'llama') {
-          groqModel = 'llama-3.1-8b-instant';
-        } else if (modelPreference == 'gpt-oss') {
-          groqModel = 'openai/gpt-oss-20b';
-        } else {
-          groqModel = modelPreference; // Pass through if already full name
-        }
-      }
+      print('[StaffChatService] Sending message to: $fullUrl (${_selectedProvider.name})');
 
-      print('[StaffChatService] Sending message to: $fullUrl (${_selectedProvider.name}, model: ${groqModel ?? "default"})');
-
-      // Build request body
+      // Build request body — model selection is handled server-side
+      // by the cascade router, so we don't send a model preference.
       final requestBody = {
         'messages': messages,
         'temperature': 0.7,
         'maxTokens': 500,
         'provider': _selectedProvider.name, // Always 'groq'
       };
-
-      // Add model if specified
-      if (groqModel != null) {
-        requestBody['model'] = groqModel;
-      }
 
       final response = await http.post(
         uri,
@@ -378,6 +387,8 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
         final provider = data['provider'] as String?;
         final reasoning = data['reasoning'] as String?;
         final toolsUsed = (data['toolsUsed'] as List?)?.cast<String>() ?? [];
+        final usageData = data['usage'] as Map<String, dynamic>?;
+        final usage = usageData != null ? TokenUsage.fromJson(usageData) : null;
 
         if (content != null && content.isNotEmpty) {
           print('[StaffChatService] AI response received: ${content.substring(0, content.length > 100 ? 100 : content.length)}...');
@@ -398,11 +409,16 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
           final userFacingContent = _extractUserFriendlyMessage(content);
 
           // Add AI response to history (with cleaned content)
+          if (usage != null) {
+            print('[StaffChatService] Tokens - prompt: ${usage.promptTokens}, completion: ${usage.completionTokens}, reasoning: ${usage.reasoningTokens}, total: ${usage.totalTokens}');
+          }
+
           final aiMessage = ChatMessage(
             role: 'assistant',
             content: userFacingContent,
             reasoning: reasoning,
             toolsUsed: toolsUsed,
+            usage: usage,
             provider: provider == 'claude'
                 ? AIProvider.claude
                 : provider == 'groq'
