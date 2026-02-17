@@ -33,6 +33,7 @@ class EarningsPage extends StatefulWidget {
 
 class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClientMixin {
   late EarningsService _earningsService;
+  final _exportButtonKey = GlobalKey();
   bool _isVisible = false;
   bool _hasCalculated = false;
   bool _isExporting = false;
@@ -148,20 +149,27 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     setState(() => _isExporting = true);
 
     try {
-      final exportResult = await ExportService.exportShiftsCsv(
+      final exportResult = await ExportService.exportShifts(
+        format: options.format,
         period: options.period,
         startDate: options.startDate,
         endDate: options.endDate,
       );
 
-      if (exportResult.success && exportResult.content != null) {
-        final now = DateTime.now();
-        final filename = 'shifts_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.csv';
-        final shared = await ExportService.shareExport(exportResult.content!, filename);
+      if (exportResult.success) {
+        // Get the FAB's position for the iOS share popover anchor
+        Rect? origin;
+        final renderBox = _exportButtonKey.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox != null) {
+          final position = renderBox.localToGlobal(Offset.zero);
+          origin = position & renderBox.size;
+        }
 
-        if (!shared && mounted) {
+        final shareError = await ExportService.shareExport(exportResult, origin: origin);
+
+        if (shareError != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Export created but sharing not available')),
+            SnackBar(content: Text('Share failed: $shareError')),
           );
         }
       } else if (mounted) {
@@ -252,8 +260,9 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
           if (widget.userKey != null)
             Positioned(
               right: 16,
-              bottom: MediaQuery.of(context).padding.bottom + 80,
+              bottom: 130,
               child: FloatingActionButton.extended(
+                key: _exportButtonKey,
                 onPressed: _isExporting ? null : _showExportOptions,
                 icon: _isExporting
                     ? const SizedBox(
@@ -923,30 +932,135 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
     final yearMonth = '$year-${monthNum.toString().padLeft(2, '0')}';
     final monthlyEvents = earningsService.getMonthlyEvents(yearMonth);
 
+    // Calculate month totals
+    double totalEarnings = 0;
+    double totalHours = 0;
+    for (final e in monthlyEvents) {
+      totalEarnings += e.earnings;
+      totalHours += e.hours;
+    }
+    final avgRate = totalHours > 0 ? totalEarnings / totalHours : 0.0;
+
     return Scaffold(
       backgroundColor: AppColors.surfaceLight,
-      appBar: AppBar(
-        title: Text(monthName),
-        backgroundColor: AppColors.purple,
-        foregroundColor: Colors.white,
-      ),
-      body: monthlyEvents.isEmpty
-          ? Center(
-              child: Text(
-                l10n.noEventsFoundForMonth,
-                style: theme.textTheme.bodyLarge,
+      body: CustomScrollView(
+        slivers: [
+          // Gradient header with month summary
+          SliverAppBar(
+            expandedHeight: 220,
+            pinned: true,
+            stretch: true,
+            backgroundColor: AppColors.navySpaceCadet,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: AppColors.appBarGradient,
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          monthName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${monthlyEvents.length} ${monthlyEvents.length == 1 ? 'event' : 'events'}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Summary stats row
+                        Row(
+                          children: [
+                            _HeaderStat(
+                              label: l10n.totalEarningsTitle,
+                              value: '\$${totalEarnings.toStringAsFixed(2)}',
+                              isHighlighted: true,
+                            ),
+                            const SizedBox(width: 24),
+                            _HeaderStat(
+                              label: l10n.hours,
+                              value: totalHours.toStringAsFixed(1),
+                            ),
+                            const SizedBox(width: 24),
+                            _HeaderStat(
+                              label: l10n.avgRate,
+                              value: '\$${avgRate.toStringAsFixed(0)}/hr',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              collapseMode: CollapseMode.pin,
+            ),
+          ),
+
+          // Event cards
+          if (monthlyEvents.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.event_busy_rounded,
+                      size: 64,
+                      color: AppColors.navySpaceCadet.withValues(alpha: 0.2),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.noEventsFoundForMonth,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: monthlyEvents.length,
-              itemBuilder: (context, index) {
-                final eventData = monthlyEvents[index];
-                return RepaintBoundary(
-                  child: _buildEventCard(context, theme, eventData, l10n),
-                );
-              },
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    if (index >= monthlyEvents.length) return null;
+                    final eventData = monthlyEvents[index];
+                    return RepaintBoundary(
+                      child: _buildEventCard(context, theme, eventData, l10n),
+                    );
+                  },
+                  childCount: monthlyEvents.length,
+                ),
+              ),
             ),
+
+          // Bottom padding
+          SliverToBoxAdapter(
+            child: SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+          ),
+        ],
+      ),
     );
   }
 
@@ -957,19 +1071,26 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
     final venueName = event['venue_name']?.toString() ?? 'No venue';
     final venueAddress = event['venue_address']?.toString();
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.navySpaceCadet.withValues(alpha: 0.07),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(14),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Event Name & Earnings
+            // Top section: event name, date, earnings
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Column(
@@ -977,95 +1098,106 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
                     children: [
                       Text(
                         eventName,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppColors.navySpaceCadet,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         '${eventData.date.month}/${eventData.date.day}/${eventData.date.year}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                        style: TextStyle(
+                          color: AppColors.navySpaceCadet.withValues(alpha: 0.45),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppColors.purple.withValues(alpha: 0.1),
+                    color: AppColors.navySpaceCadet,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '\$${eventData.earnings.toStringAsFixed(2)}',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.purple,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.yellow,
+                      fontSize: 14,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
-            // Client
-            _DetailRow(
-              icon: Icons.business,
-              label: l10n.client,
-              value: clientName,
+            // Detail chips row
+            Row(
+              children: [
+                Expanded(
+                  child: _DetailChip(
+                    icon: Icons.business_rounded,
+                    value: clientName,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _DetailChip(
+                  icon: Icons.badge_rounded,
+                  value: eventData.role,
+                ),
+              ],
             ),
 
-            const SizedBox(height: 8),
+            if (venueAddress != null && venueAddress.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _DetailChip(
+                icon: Icons.location_on_rounded,
+                value: '$venueName, $venueAddress',
+                fullWidth: true,
+              ),
+            ] else ...[
+              const SizedBox(height: 6),
+              _DetailChip(
+                icon: Icons.location_on_rounded,
+                value: venueName,
+                fullWidth: true,
+              ),
+            ],
 
-            // Venue
-            _DetailRow(
-              icon: Icons.location_on,
-              label: l10n.venue,
-              value: venueAddress != null && venueAddress.isNotEmpty
-                  ? '$venueName\n$venueAddress'
-                  : venueName,
-            ),
+            const SizedBox(height: 10),
 
-            const SizedBox(height: 8),
-
-            // Role
-            _DetailRow(
-              icon: Icons.badge,
-              label: l10n.role,
-              value: eventData.role,
-            ),
-
-            const SizedBox(height: 16),
-
-            // Stats Row
+            // Stats footer
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.navySpaceCadet.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _EventStat(
-                    label: l10n.hours,
-                    value: eventData.hours.toStringAsFixed(1),
-                    icon: Icons.access_time,
+                  Expanded(
+                    child: _EventStat(
+                      label: l10n.hours,
+                      value: eventData.hours.toStringAsFixed(1),
+                      icon: Icons.access_time_rounded,
+                    ),
                   ),
                   Container(
                     width: 1,
-                    height: 40,
-                    color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                    height: 28,
+                    color: AppColors.navySpaceCadet.withValues(alpha: 0.08),
                   ),
-                  _EventStat(
-                    label: l10n.rate,
-                    value: '\$${eventData.rate.toStringAsFixed(2)}/hr',
-                    icon: Icons.attach_money,
+                  Expanded(
+                    child: _EventStat(
+                      label: l10n.rate,
+                      value: '\$${eventData.rate.toStringAsFixed(2)}/hr',
+                      icon: Icons.trending_up_rounded,
+                    ),
                   ),
                 ],
               ),
@@ -1077,49 +1209,88 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
   }
 }
 
-/// Detail row widget
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
+/// Header stat for the gradient summary area
+class _HeaderStat extends StatelessWidget {
   final String label;
   final String value;
+  final bool isHighlighted;
 
-  const _DetailRow({
-    required this.icon,
+  const _HeaderStat({
     required this.label,
     required this.value,
+    this.isHighlighted = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: AppColors.purple.withValues(alpha: 0.7)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: isHighlighted ? AppColors.yellow : Colors.white,
+            fontSize: isHighlighted ? 22 : 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
           ),
         ),
       ],
     );
+  }
+}
+
+/// Compact detail chip widget
+class _DetailChip extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final bool fullWidth;
+
+  const _DetailChip({
+    required this.icon,
+    required this.value,
+    this.fullWidth = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.navySpaceCadet.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.navySpaceCadet.withValues(alpha: 0.45)),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 12,
+                color: AppColors.navySpaceCadet,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+    return chip;
   }
 }
 
@@ -1137,24 +1308,31 @@ class _EventStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 24, color: AppColors.purple),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontSize: 11,
-          ),
+        Icon(icon, size: 15, color: AppColors.navySpaceCadet.withValues(alpha: 0.45)),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: AppColors.navySpaceCadet,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.navySpaceCadet.withValues(alpha: 0.45),
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ],
     );

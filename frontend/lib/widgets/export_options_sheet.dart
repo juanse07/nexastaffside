@@ -16,7 +16,29 @@ class StaffExportOptionsSheet extends StatefulWidget {
 
 class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
   String _selectedPeriod = 'month';
+  String _selectedFormat = 'csv';
   DateTimeRange? _customRange;
+
+  static const _formats = [
+    _FormatOption(
+      key: 'csv',
+      label: 'CSV',
+      icon: Icons.table_chart_outlined,
+      description: 'Spreadsheet-compatible',
+    ),
+    _FormatOption(
+      key: 'pdf',
+      label: 'PDF',
+      icon: Icons.picture_as_pdf_outlined,
+      description: 'Formatted report',
+    ),
+    _FormatOption(
+      key: 'xlsx',
+      label: 'Excel',
+      icon: Icons.grid_on_outlined,
+      description: 'With charts & styling',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +91,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                           ),
                         ),
                         Text(
-                          'Download your shift history as CSV',
+                          'Download your shift history',
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.grey,
@@ -87,6 +109,84 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
             ),
 
             const Divider(height: 1),
+
+            // Format selection
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Format',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: _formats.map((fmt) {
+                      final isSelected = _selectedFormat == fmt.key;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedFormat = fmt.key),
+                          child: Container(
+                            margin: EdgeInsets.only(
+                              right: fmt.key != 'xlsx' ? 8 : 0,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.navySpaceCadet
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.navySpaceCadet
+                                    : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  fmt.icon,
+                                  size: 22,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppColors.navySpaceCadet,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  fmt.label,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.navySpaceCadet,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  fmt.description,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isSelected
+                                        ? Colors.white70
+                                        : Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
 
             // Period selection
             Padding(
@@ -191,6 +291,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                     Navigator.pop(
                       context,
                       StaffExportOptions(
+                        format: _selectedFormat,
                         period: _selectedPeriod,
                         startDate: _customRange?.start,
                         endDate: _customRange?.end,
@@ -205,14 +306,17 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.table_chart, size: 20),
-                      SizedBox(width: 8),
+                      Icon(
+                        _formats.firstWhere((f) => f.key == _selectedFormat).icon,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
                       Text(
-                        'Export CSV',
-                        style: TextStyle(
+                        'Export ${_formats.firstWhere((f) => f.key == _selectedFormat).label}',
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
@@ -261,6 +365,20 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
       });
     }
   }
+}
+
+class _FormatOption {
+  final String key;
+  final String label;
+  final IconData icon;
+  final String description;
+
+  const _FormatOption({
+    required this.key,
+    required this.label,
+    required this.icon,
+    required this.description,
+  });
 }
 
 class _PeriodChip extends StatelessWidget {
@@ -317,11 +435,13 @@ class _PeriodChip extends StatelessWidget {
 
 /// Export options returned from the bottom sheet
 class StaffExportOptions {
+  final String format;
   final String period;
   final DateTime? startDate;
   final DateTime? endDate;
 
   StaffExportOptions({
+    required this.format,
     required this.period,
     this.startDate,
     this.endDate,

@@ -34,6 +34,7 @@ class AuthService {
   static const _storage = FlutterSecureStorage();
   static const _requestTimeout = Duration(seconds: 30);
 
+  static String get apiBaseUrl => _apiBaseUrl;
   static String get _apiBaseUrl {
     final raw = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
     if (!kIsWeb && Platform.isAndroid) {
@@ -228,6 +229,52 @@ class AuthService {
     }
 
     return GoogleSignIn(scopes: const ['email', 'profile']);
+  }
+
+  /// Signs in a staff user with email and password (demo accounts)
+  /// Returns true if successful, false otherwise
+  static Future<bool> signInWithEmail({
+    required String email,
+    required String password,
+    void Function(String message)? onError,
+  }) async {
+    try {
+      _log('Starting email sign in');
+
+      final resp = await _makeRequest(
+        request: () => http.post(
+          Uri.parse('$_apiBaseUrl$_apiPathPrefix/auth/email'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}),
+        ),
+        operation: 'Email sign in',
+      );
+
+      if (resp.statusCode == 200) {
+        final body = json.decode(resp.body) as Map<String, dynamic>;
+        final token = body['token']?.toString();
+        if (token != null && token.isNotEmpty) {
+          await _saveJwt(token);
+          _log('Email sign in successful');
+          return true;
+        }
+        _log('Invalid token received from server', isError: true);
+        onError?.call('Server returned an invalid token payload.');
+      } else {
+        _log('Email sign in failed with status ${resp.statusCode}', isError: true);
+        try {
+          final body = json.decode(resp.body) as Map<String, dynamic>;
+          onError?.call(body['message']?.toString() ?? 'Invalid email or password');
+        } catch (_) {
+          onError?.call('Invalid email or password');
+        }
+      }
+      return false;
+    } catch (e) {
+      _log('Email sign in error: $e', isError: true);
+      onError?.call('Sign-in failed: $e');
+      return false;
+    }
   }
 
   /// Signs in a user with Apple Sign In

@@ -31,7 +31,6 @@ import 'user_profile_page.dart';
 import 'team_center_page.dart';
 import 'earnings_page.dart';
 import 'conversations_page.dart';
-import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../core/navigation/route_error_manager.dart';
@@ -291,6 +290,8 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   bool _isBottomBarVisible = true;
   late AnimationController _bottomBarAnimationController;
   late Animation<Offset> _bottomBarAnimation;
+  final GlobalKey _bottomBarKey = GlobalKey();
+  double _bottomBarHeight = 0;
 
   // Performance optimizations
   Timer? _scrollEndTimer;
@@ -301,11 +302,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   double _scrollThreshold = 3.0; // Reduced for faster response
   double _velocityThreshold = 120.0; // Velocity-based hiding
   double _lastVelocity = 0;
-
-  // FAB "Ask V" state for Gmail-style scroll behavior
-  late AnimationController _fabController;
-  late Animation<double> _fabAnimation;
-  bool _isFabExpanded = true;
 
   // Geofencing for auto clock-in
   final GeofenceService _geofenceService = GeofenceService();
@@ -319,7 +315,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
     // Initialize bottom bar animation - Optimized for performance
     _bottomBarAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 100), // Smooth animation
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
     _bottomBarAnimation = Tween<Offset>(
@@ -327,27 +323,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
       end: const Offset(0, 1),
     ).animate(CurvedAnimation(
       parent: _bottomBarAnimationController,
-      curve: Curves.easeOutCubic, // Snappy curve with smooth deceleration
-      reverseCurve: Curves.easeOutCubic,
+      curve: Curves.easeInOutCubic,
+      reverseCurve: Curves.easeInOutCubic,
     ));
-
-    // Initialize FAB animation controller
-    _fabController = AnimationController(
-      duration: const Duration(milliseconds: 250),
-      vsync: this,
-    );
-
-    _fabAnimation = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(
-      parent: _fabController,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    ));
-
-    // Start with FAB expanded
-    _fabController.forward();
 
     // Initialize geofence service for auto clock-in
     _initializeGeofenceService();
@@ -454,7 +432,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   void dispose() {
     _scrollEndTimer?.cancel();
     _bottomBarAnimationController.dispose();
-    _fabController.dispose();
     _autoClockInSubscription?.cancel();
     _geofenceService.stopMonitoring();
     super.dispose();
@@ -480,34 +457,12 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     }
   }
 
-  void _collapseFab() {
-    if (_isFabExpanded) {
-      setState(() {
-        _isFabExpanded = false;
-      });
-      _fabController.reverse();
-    }
-  }
-
-  void _expandFab() {
-    if (!_isFabExpanded) {
-      setState(() {
-        _isFabExpanded = true;
-      });
-      _fabController.forward();
-    }
-  }
-
   // Optimized scroll-end detection for auto-showing bottom bar
   void _handleScrollEnd() {
     _scrollEndTimer?.cancel();
     _scrollEndTimer = Timer(const Duration(milliseconds: 15000), () {
       if (!_isBottomBarVisible && _lastVelocity.abs() < 50) {
         _showBottomBar();
-      }
-      // Auto-expand FAB after scroll stops
-      if (!_isFabExpanded) {
-        _expandFab();
       }
     });
   }
@@ -720,113 +675,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     return '$weekday, $month ${eventDt.day}';
   }
 
-  /// Builds Gmail-style FAB with diamond icon in purple circle
-  Widget _buildAskValerioFAB() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16), // Lowered - closer to bottom bar
-      child: AnimatedBuilder(
-        animation: _fabAnimation,
-        builder: (context, child) {
-          return FloatingActionButton.extended(
-            onPressed: () {
-              // Navigate to AI Chat screen
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const StaffAIChatScreen(),
-                ),
-              );
-            },
-            backgroundColor: const Color(0xFFF2F2F2).withOpacity(0.85), // Very light gray, almost white
-            foregroundColor: const Color(0xFF555555), // Semi-dark gray text
-            elevation: 0, // No elevation/shadow
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28), // More rounded edges
-            ),
-            icon: Container(
-              width: 28,
-              height: 28,
-              decoration: const BoxDecoration(
-                color: Color(0xFF999999), // Lighter gray circle
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Outer circle shape - more opaque
-                      Container(
-                        width: 11,
-                        height: 11,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.9), // White border like chat
-                            width: 0.9,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      // Inner diamond shape - solid gradient like chat
-                      Transform.rotate(
-                        angle: 0.785398, // 45 degrees
-                        child: Container(
-                          width: 5.5,
-                          height: 5.5,
-                          decoration: const BoxDecoration(
-                            color: Colors.white, // Solid white like chat
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Connecting lines - white and opaque like chat
-                      Positioned(
-                        top: 3.5,
-                        child: Container(
-                          width: 0.7,
-                          height: 3,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 3.5,
-                        child: Container(
-                          width: 0.7,
-                          height: 3,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            label: AnimatedSize(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOutCubic,
-              child: _isFabExpanded
-                  ? const Text(
-                      'Ask', // Changed from "Ask V" to just "Ask"
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -848,11 +696,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
         terminologyProvider.updateSystemLanguage(context);
 
         return Scaffold(
-          backgroundColor: theme.colorScheme.surfaceContainerLowest,
+          backgroundColor: AppColors.surfaceLight, // Soft off-white (#F8FAFC)
           extendBody: true,
           extendBodyBehindAppBar: true,
-          floatingActionButton: _buildAskValerioFAB(),
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           body: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               // Optimized scroll detection with velocity tracking
@@ -885,13 +731,11 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 else if ((scrollDiff > _scrollThreshold && currentScroll > 100) ||
                          (_lastVelocity < -_velocityThreshold && currentScroll > 100)) {
                   _hideBottomBar();
-                  _collapseFab();
                   _handleScrollEnd();
                 }
                 // Show on upward scroll or fast upward flick
                 else if (scrollDiff < -_scrollThreshold || _lastVelocity > _velocityThreshold) {
                   _showBottomBar();
-                  _expandFab();
                   _scrollEndTimer?.cancel();
                 }
 
@@ -941,66 +785,82 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
           bottomNavigationBar: RepaintBoundary(
             child: AnimatedBuilder(
               animation: _bottomBarAnimation,
-              builder: (context, child) {
-                // Use hardware acceleration for transform
-                // Fixed 150px slide like manager app (navbar height + padding)
-                final translateY = _bottomBarAnimation.value.dy * 150;
+              builder: (context, _) {
+                // Measure the bar height after first layout
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  final box = _bottomBarKey.currentContext?.findRenderObject() as RenderBox?;
+                  if (box != null && box.hasSize && _bottomBarHeight != box.size.height) {
+                    _bottomBarHeight = box.size.height;
+                  }
+                });
+                final progress = _bottomBarAnimation.value.dy; // 0 = visible, 1 = hidden
+                final slideDistance = _bottomBarHeight > 0 ? _bottomBarHeight * 0.72 : 0.0;
+                final translateY = progress * slideDistance;
+                // Fade out icons faster than the slide so only a clean bar peeks
+                final contentOpacity = (1.0 - progress * 2.5).clamp(0.0, 1.0);
                 return Transform.translate(
                   offset: Offset(0, translateY),
-                  filterQuality: FilterQuality.none, // Optimize rendering
-                  child: child!,
+                  filterQuality: FilterQuality.none,
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                      child: Container(
+                        key: _bottomBarKey,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.75),
+                          border: const Border(
+                            top: BorderSide(
+                              color: Color(0x1A000000),
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                        child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
+                        child: Opacity(
+                          opacity: contentOpacity,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildNavItem(
+                                icon: Icons.work_outline_rounded,
+                                selectedIcon: Icons.work_rounded,
+                                label: terminologyProvider.plural,
+                                index: 0,
+                              ),
+                              _buildNavItem(
+                                icon: Icons.chat_bubble_outline,
+                                selectedIcon: Icons.chat_bubble,
+                                label: 'Chats',
+                                index: 1,
+                              ),
+                              _buildNavItem(
+                                icon: Icons.account_balance_wallet_outlined,
+                                selectedIcon: Icons.account_balance_wallet,
+                                label: 'Earnings',
+                                index: 2,
+                              ),
+                              _buildNavItem(
+                                icon: Icons.access_time_outlined,
+                                selectedIcon: Icons.access_time,
+                                label: 'Clock In',
+                                index: 3,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  ),  // BackdropFilter
+                  ),  // ClipRect
                 );
               },
-              child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceWhite,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildNavItem(
-                        icon: Icons.work_outline_rounded,
-                        selectedIcon: Icons.work_rounded,
-                        label: terminologyProvider.plural,
-                        index: 0,
-                      ),
-                      _buildNavItem(
-                        icon: Icons.chat_bubble_outline,
-                        selectedIcon: Icons.chat_bubble,
-                        label: 'Chats',
-                        index: 1,
-                      ),
-                      _buildNavItem(
-                        icon: Icons.account_balance_wallet_outlined,
-                        selectedIcon: Icons.account_balance_wallet,
-                        label: 'Earnings',
-                        index: 2,
-                      ),
-                      _buildNavItem(
-                        icon: Icons.access_time_outlined,
-                        selectedIcon: Icons.access_time,
-                        label: 'Clock In',
-                        index: 3,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ),
-          ),
           ), // Close RepaintBoundary
         );
       },
@@ -1513,15 +1373,15 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
     return SizedBox.expand(
       child: ClipRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
           child: Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  AppColors.navySpaceCadet, // #212C4A
-                  AppColors.oceanBlue,       // #1E3A8A
+                  AppColors.navySpaceCadet.withValues(alpha: 0.92),
+                  AppColors.oceanBlue.withValues(alpha: 0.88),
                 ],
               ),
               border: Border(
@@ -2536,53 +2396,27 @@ class _HomeTabState extends State<_HomeTab> {
               child: Column(
                 children: [
                   if (_upcoming == null && !widget.loading) ...[
-                    const SizedBox(height: 40),
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.navySpaceCadet.withOpacity(0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                    const SizedBox(height: 24),
+                    Image.asset(
+                      'assets/clock_empty.png',
+                      height: 220,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'No upcoming events',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.navySpaceCadet,
                       ),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: AppColors.navySpaceCadet,
-                              borderRadius: BorderRadius.circular(32),
-                            ),
-                            child: const Icon(
-                              Icons.event_available_outlined,
-                              size: 32,
-                              color: AppColors.yellow,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No upcoming events',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.navySpaceCadet,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Accept an event from the Shifts tab to see it here',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppColors.navySpaceCadet.withOpacity(0.6),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Accept an event from the Shifts tab to see it here',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppColors.navySpaceCadet.withOpacity(0.6),
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                   if (_upcoming != null) ...[
@@ -2691,12 +2525,12 @@ class _HomeTabState extends State<_HomeTab> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: Colors.white,
+        color: AppColors.surfaceLight,
         boxShadow: [
           BoxShadow(
-            color: AppColors.navySpaceCadet.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: AppColors.navySpaceCadet.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -3901,15 +3735,15 @@ class _RolesSectionState extends State<_RolesSection> {
                 height: appBarHeight,
                 child: ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                    filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
-                            AppColors.navySpaceCadet, // #212C4A
-                            AppColors.oceanBlue,       // #1E3A8A
+                            AppColors.navySpaceCadet.withValues(alpha: 0.92),
+                            AppColors.oceanBlue.withValues(alpha: 0.88),
                           ],
                         ),
                         border: Border(
@@ -3950,10 +3784,13 @@ class _RolesSectionState extends State<_RolesSection> {
               ),
 
               // Filter chips with blur
-              Container(
+              SizedBox(
                 height: chipsHeight,
-                child: Container(
-                  color: Theme.of(context).colorScheme.surfaceContainerLowest.withOpacity(0.5),
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                    child: Container(
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest.withValues(alpha: 0.75),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Center(
                     child: SingleChildScrollView(
@@ -4053,58 +3890,59 @@ class _RolesSectionState extends State<_RolesSection> {
                               width: _selectedView == _ViewMode.calendar ? 1.5 : 1,
                             ),
                           ),
+                          // Inline unavailable-dates filter (only in Available view)
+                          if (_selectedView == _ViewMode.available) ...[
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _hideUnavailableDates = !_hideUnavailableDates;
+                                });
+                                _saveFilterPreference(_hideUnavailableDates);
+                              },
+                              child: Tooltip(
+                                message: _hideUnavailableDates
+                                    ? 'Showing only available dates'
+                                    : 'Showing all dates',
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: _hideUnavailableDates
+                                        ? AppColors.primaryIndigo.withOpacity(0.12)
+                                        : Colors.white.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: _hideUnavailableDates
+                                          ? AppColors.oceanBlue
+                                          : AppColors.borderGrey,
+                                      width: _hideUnavailableDates ? 1.5 : 1,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    _hideUnavailableDates
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    size: 16,
+                                    color: _hideUnavailableDates
+                                        ? AppColors.navySpaceCadet
+                                        : AppColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-
-              // Unavailable dates toggle (only shown in Available view, always visible with blur)
-              if (_selectedView == _ViewMode.available)
-                ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(
-                      color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.6),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _hideUnavailableDates = !_hideUnavailableDates;
-                          });
-                          _saveFilterPreference(_hideUnavailableDates);
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _hideUnavailableDates
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Hide unavailable dates',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                  ),  // BackdropFilter
+                ),    // ClipRect
+              ),      // SizedBox
             ],
           ),
         ),
 
-        // Removed purple "Ask Valerio" button - replaced with white transparent FAB in Scaffold
       ],
     );
   }
@@ -4631,21 +4469,14 @@ class _MyEventsListState extends State<_MyEventsList> {
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                theme.colorScheme.surface,
-                theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
-              ],
-            ),
+            color: AppColors.surfaceLight,
             border: Border.all(
-              color: AppColors.purpleLight.withOpacity(0.2),
+              color: AppColors.purpleLight.withOpacity(0.15),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.purpleLight.withOpacity(0.08),
+                color: AppColors.purpleLight.withOpacity(0.06),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
@@ -5380,11 +5211,8 @@ class _RoleList extends StatelessWidget {
     final visibilityType = e['visibilityType']?.toString() ?? '';
     final isPrivate = visibilityType == 'private';
 
-    // White background for both cards, purple borders for invitations
-    final cardGradient = [
-        theme.colorScheme.surface,
-        theme.colorScheme.surfaceContainerHigh.withOpacity(0.7),
-      ];
+    // Soft off-white background for cards, purple borders for invitations
+    final cardColor = AppColors.surfaceLight;
 
     final borderColor = isPrivate
         ? AppColors.purple.withOpacity(0.4)  // Purple border for private
@@ -5399,11 +5227,7 @@ class _RoleList extends StatelessWidget {
         Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: cardGradient,
-            ),
+            color: cardColor,
             border: Border.all(
               color: borderColor,
               width: isPrivate ? 1.5 : 1,  // Thicker border for private
@@ -5411,8 +5235,8 @@ class _RoleList extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: shadowColor,
-                blurRadius: isPrivate ? 20 : 16,
-                offset: const Offset(0, 4),
+                blurRadius: isPrivate ? 16 : 12,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -5827,6 +5651,7 @@ class _CalendarTabState extends State<_CalendarTab> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  bool _isAgendaView = false;
 
   @override
   void initState() {
@@ -5861,7 +5686,7 @@ class _CalendarTabState extends State<_CalendarTab> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // Calendar widget
+              // View toggle + Calendar or Agenda
               widget.loading
                   ? const SliverFillRemaining(
                       child: Center(child: CircularProgressIndicator()),
@@ -5870,112 +5695,152 @@ class _CalendarTabState extends State<_CalendarTab> {
                       child: Column(
                         children: [
                           const SizedBox(height: 200), // Space for app bar and filter chips (140 + 60)
-                          Container(
-                            color: theme.colorScheme.surface,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: TableCalendar<Map<String, dynamic>>(
-                              firstDay: DateTime.utc(2020, 1, 1),
-                              lastDay: DateTime.utc(2030, 12, 31),
-                              focusedDay: _focusedDay,
-                              calendarFormat: _calendarFormat,
-                              eventLoader: _getEventsForDay,
-                              startingDayOfWeek: StartingDayOfWeek.sunday,
-                              availableGestures:
-                                  AvailableGestures.horizontalSwipe,
-                              daysOfWeekHeight: 40,
-                              rowHeight: 52,
-                              calendarBuilders: CalendarBuilders(
-                                markerBuilder: (context, day, events) {
-                                  final hasEvents = events.isNotEmpty;
-                                  final availability = _getAvailabilityForDay(
-                                    day,
-                                  );
-
-                                  return Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                          // View toggle row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceGray,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.all(3),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      if (hasEvents)
-                                        Container(
-                                          width: 6,
-                                          height: 6,
-                                          margin: const EdgeInsets.only(
-                                            right: 2,
-                                          ),
-                                          decoration: const BoxDecoration(
-                                            color: AppColors.oceanBlue,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                      if (availability != null)
-                                        Container(
-                                          width: 6,
-                                          height: 6,
-                                          decoration: BoxDecoration(
-                                            color:
-                                                availability['status'] ==
-                                                    'available'
-                                                ? Colors.green
-                                                : Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
+                                      _buildViewToggleButton(
+                                        icon: Icons.calendar_month_outlined,
+                                        label: 'Month',
+                                        isActive: !_isAgendaView,
+                                        onTap: () => setState(() => _isAgendaView = false),
+                                        theme: theme,
+                                      ),
+                                      _buildViewToggleButton(
+                                        icon: Icons.view_agenda_outlined,
+                                        label: 'Agenda',
+                                        isActive: _isAgendaView,
+                                        onTap: () => setState(() => _isAgendaView = true),
+                                        theme: theme,
+                                      ),
                                     ],
-                                  );
-                                },
-                              ),
-                              calendarStyle: CalendarStyle(
-                                outsideDaysVisible: false,
-                                weekendTextStyle: TextStyle(
-                                  color: theme.colorScheme.onSurface,
+                                  ),
                                 ),
-                                holidayTextStyle: TextStyle(
-                                  color: AppColors.navySpaceCadet,
-                                ),
-                                selectedDecoration: const BoxDecoration(
-                                  color: AppColors.navySpaceCadet,
-                                  shape: BoxShape.circle,
-                                ),
-                                selectedTextStyle: const TextStyle(
-                                  color: AppColors.yellow,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                todayDecoration: BoxDecoration(
-                                  color: AppColors.oceanBlue.withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              headerStyle: const HeaderStyle(
-                                formatButtonVisible: false,
-                                titleCentered: true,
-                                leftChevronIcon: Icon(
-                                  Icons.chevron_left,
-                                  color: AppColors.navySpaceCadet,
-                                ),
-                                rightChevronIcon: Icon(
-                                  Icons.chevron_right,
-                                  color: AppColors.navySpaceCadet,
-                                ),
-                              ),
-                              selectedDayPredicate: (day) {
-                                return isSameDay(_selectedDay, day);
-                              },
-                              onDaySelected: _onDaySelected,
-                              onFormatChanged: (format) {
-                                if (_calendarFormat != format) {
-                                  setState(() {
-                                    _calendarFormat = format;
-                                  });
-                                }
-                              },
-                              onPageChanged: (focusedDay) {
-                                _focusedDay = focusedDay;
-                              },
+                              ],
                             ),
                           ),
-                          const Divider(height: 1),
+                          if (!_isAgendaView) ...[
+                            Container(
+                              color: theme.colorScheme.surface,
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: TableCalendar<Map<String, dynamic>>(
+                                firstDay: DateTime.utc(2020, 1, 1),
+                                lastDay: DateTime.utc(2030, 12, 31),
+                                focusedDay: _focusedDay,
+                                calendarFormat: _calendarFormat,
+                                eventLoader: _getEventsForDay,
+                                startingDayOfWeek: StartingDayOfWeek.sunday,
+                                availableGestures:
+                                    AvailableGestures.horizontalSwipe,
+                                daysOfWeekHeight: 40,
+                                rowHeight: 52,
+                                calendarBuilders: CalendarBuilders(
+                                  markerBuilder: (context, day, events) {
+                                    final hasEvents = events.isNotEmpty;
+                                    final availability = _getAvailabilityForDay(
+                                      day,
+                                    );
+
+                                    return Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        if (hasEvents)
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            margin: const EdgeInsets.only(
+                                              right: 2,
+                                            ),
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.oceanBlue,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        if (availability != null)
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  availability['status'] ==
+                                                      'available'
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                                calendarStyle: CalendarStyle(
+                                  outsideDaysVisible: false,
+                                  weekendTextStyle: TextStyle(
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                  holidayTextStyle: TextStyle(
+                                    color: AppColors.navySpaceCadet,
+                                  ),
+                                  selectedDecoration: const BoxDecoration(
+                                    color: AppColors.navySpaceCadet,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  selectedTextStyle: const TextStyle(
+                                    color: AppColors.yellow,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  todayDecoration: BoxDecoration(
+                                    color: AppColors.oceanBlue.withOpacity(0.3),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                headerStyle: const HeaderStyle(
+                                  formatButtonVisible: false,
+                                  titleCentered: true,
+                                  leftChevronIcon: Icon(
+                                    Icons.chevron_left,
+                                    color: AppColors.navySpaceCadet,
+                                  ),
+                                  rightChevronIcon: Icon(
+                                    Icons.chevron_right,
+                                    color: AppColors.navySpaceCadet,
+                                  ),
+                                ),
+                                selectedDayPredicate: (day) {
+                                  return isSameDay(_selectedDay, day);
+                                },
+                                onDaySelected: _onDaySelected,
+                                onFormatChanged: (format) {
+                                  if (_calendarFormat != format) {
+                                    setState(() {
+                                      _calendarFormat = format;
+                                    });
+                                  }
+                                },
+                                onPageChanged: (focusedDay) {
+                                  _focusedDay = focusedDay;
+                                },
+                              ),
+                            ),
+                            const Divider(height: 1),
+                          ],
                         ],
                       ),
                     ),
+              // Agenda view (replaces selected-day events & availability controls)
+              if (_isAgendaView && !widget.loading)
+                ..._buildAgendaSlivers(theme)
+              else ...[
               // Availability controls
               SliverToBoxAdapter(
                 child: Container(
@@ -6247,6 +6112,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                   );
                 },
               ),
+              ], // end else (calendar month view content)
               // Bottom padding for navigation bar
               SliverToBoxAdapter(
                 child: Container(
@@ -6259,6 +6125,206 @@ class _CalendarTabState extends State<_CalendarTab> {
         );
       },
     );
+  }
+
+  Widget _buildViewToggleButton({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    required ThemeData theme,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isActive
+              ? [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4, offset: const Offset(0, 1))]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isActive ? AppColors.navySpaceCadet : AppColors.textMuted,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: isActive ? AppColors.navySpaceCadet : AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildAgendaSlivers(ThemeData theme) {
+    final accepted = _filterAccepted(widget.events, widget.userKey);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Only show upcoming events (today and future)
+    final upcoming = accepted.where((e) {
+      final d = _parseDate(e['date']?.toString());
+      return d != null && !d.isBefore(today);
+    }).toList();
+
+    // Sort by date
+    upcoming.sort((a, b) {
+      final da = _parseDate(a['date']?.toString()) ?? today;
+      final db = _parseDate(b['date']?.toString()) ?? today;
+      return da.compareTo(db);
+    });
+
+    // Group by date
+    final grouped = <DateTime, List<Map<String, dynamic>>>{};
+    for (final e in upcoming) {
+      final d = _parseDate(e['date']?.toString());
+      if (d != null) {
+        grouped.putIfAbsent(d, () => []).add(e);
+      }
+    }
+
+    final sortedDates = grouped.keys.toList()..sort();
+
+    if (sortedDates.isEmpty) {
+      return [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 48, bottom: 32),
+            child: Column(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.navySpaceCadet, AppColors.oceanBlue],
+                    ),
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  child: const Icon(Icons.event_busy, color: Colors.white, size: 32),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No upcoming shifts',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Accepted shifts will appear here',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ];
+    }
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    final slivers = <Widget>[];
+    for (final date in sortedDates) {
+      final isToday = isSameDay(date, today);
+      final dayLabel = isToday ? 'Today' : weekdays[date.weekday - 1];
+      final dateLabel = '${months[date.month - 1]} ${date.day}';
+      final events = grouped[date]!;
+      final availability = _getAvailabilityForDay(date);
+
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isToday ? AppColors.navySpaceCadet : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        dayLabel,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: isToday ? AppColors.yellow : AppColors.textMuted,
+                        ),
+                      ),
+                      Text(
+                        '${date.day}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: isToday ? Colors.white : AppColors.navySpaceCadet,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  dateLabel,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                if (availability != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: availability['status'] == 'available' ? Colors.green : Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Text(
+                  '${events.length} shift${events.length == 1 ? '' : 's'}',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _buildEventCard(context, theme, events[index]),
+              childCount: events.length,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return slivers;
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {

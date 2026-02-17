@@ -45,7 +45,7 @@
 	<key>GIDServerClientID</key>
 	<string>832253199298-cj28t4ill6gltnea1epaslvb2o1mar5k.apps.googleusercontent.com</string>
 	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<string>2</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -74,6 +74,9 @@
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
@@ -88,6 +91,10 @@
 		<string>location</string>
 		<string>fetch</string>
 		<string>processing</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.nexa.staff.sync</string>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is needed for voice input with the AI assistant.</string>

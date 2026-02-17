@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -364,15 +365,23 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.surfaceLight,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'AI Assistant',
           style: TextStyle(color: AppColors.navySpaceCadet),
         ),
-        backgroundColor: AppColors.backgroundWhite,
+        backgroundColor: Colors.white.withValues(alpha: 0.75),
         foregroundColor: AppColors.navySpaceCadet,
         iconTheme: const IconThemeData(color: AppColors.navySpaceCadet),
         elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
         actions: [
           // Usage indicator for free tier
           if (_subscriptionTier == 'free')
@@ -564,8 +573,11 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                   left: 0,
                   right: 0,
                   bottom: keyboardHeight,
-                  child: Container(
-                    color: AppColors.backgroundWhite,
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                      child: Container(
+                    color: Colors.white.withValues(alpha: 0.75),
                     padding: EdgeInsets.only(
                       bottom: MediaQuery.of(context).padding.bottom > 0
                         ? MediaQuery.of(context).padding.bottom
@@ -618,6 +630,8 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                       ],
                     ),
                   ),
+                    ),  // BackdropFilter
+                  ),    // ClipRect
                 ),
               ],
             ),

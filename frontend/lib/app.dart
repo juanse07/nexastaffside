@@ -62,8 +62,46 @@ class _MyAppState extends State<MyApp> {
               future: _getToken(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
+                  return Scaffold(
+                    body: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFF212C4A), // navySpaceCadet
+                            Color(0xFF1E3A8A), // oceanBlue
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'FlowShift',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w300,
+                                color: Colors.white,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   );
                 }
                 final hasToken = snapshot.data != null && snapshot.data!.isNotEmpty;

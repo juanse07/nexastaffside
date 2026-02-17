@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -81,72 +83,98 @@ class _ConversationsPageState extends State<ConversationsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    // Header height: title row (~56) + search bar (~52) + divider (1)
+    const double headerHeight = 109.0;
+
     return Scaffold(
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Discrete and elegant header
+            // Scrollable content behind the header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Row(
-                children: [
-                  Text(
-                    l10n.chats,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const Spacer(),
-                  widget.profileMenu,
-                ],
-              ),
+              padding: const EdgeInsets.only(top: headerHeight),
+              child: _buildBody(),
             ),
-            // Search bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: l10n.search,
-                    hintStyle: TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 15,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: AppColors.textMuted,
-                      size: 20,
-                    ),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.close,
-                              color: AppColors.textMuted,
-                              size: 18,
+            // Frosted glass header
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                  child: Container(
+                    color: Colors.white.withValues(alpha: 0.75),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Title row
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                          child: Row(
+                            children: [
+                              Text(
+                                l10n.chats,
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textDark,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const Spacer(),
+                              widget.profileMenu,
+                            ],
+                          ),
+                        ),
+                        // Search bar
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            onPressed: () => _searchController.clear(),
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: l10n.search,
+                                hintStyle: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 15,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: AppColors.textMuted,
+                                  size: 20,
+                                ),
+                                suffixIcon: _searchQuery.isNotEmpty
+                                    ? IconButton(
+                                        icon: Icon(
+                                          Icons.close,
+                                          color: AppColors.textMuted,
+                                          size: 18,
+                                        ),
+                                        onPressed: () => _searchController.clear(),
+                                      )
+                                    : null,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                              ),
+                              style: const TextStyle(fontSize: 15),
+                            ),
+                          ),
+                        ),
+                        const Divider(height: 1, thickness: 0.5),
+                      ],
                     ),
                   ),
-                  style: const TextStyle(fontSize: 15),
                 ),
               ),
             ),
-            const Divider(height: 1, thickness: 0.5),
-            Expanded(child: _buildBody()),
           ],
         ),
       ),

@@ -372,209 +372,65 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(65),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primaryPurple, // Navy blue
-                AppColors.primaryPurple.withOpacity(0.9),
-                AppColors.primaryPurple.withOpacity(0.8),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryPurple.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Decorative shadow shapes
-              Positioned(
-                top: -20,
-                right: -40,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.1),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -30,
-                left: -20,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.1),
-                  ),
-                ),
-              ),
-              // AppBar content
-              AppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                leading: Container(
-                  margin: const EdgeInsets.only(left: 4),
-                  child: IconButton(
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-                title: Row(
-                  children: <Widget>[
-                    GestureDetector(
-                      onTap: widget.managerPicture != null && widget.managerPicture!.isNotEmpty
-                          ? () => _showFullImage(widget.managerPicture!)
-                          : null,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.yellow, // Yellow border for visibility
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: UserAvatar(
-                          imageUrl: widget.managerPicture,
-                          fullName: widget.managerName,
-                          radius: 18,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        widget.managerName,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          letterSpacing: 0.2,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black26,
-                              offset: Offset(0, 1),
-                              blurRadius: 2,
-                            ),
-                          ],
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                actions: [
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: IconButton(
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.phone,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      onPressed: _initiateCall,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+      backgroundColor: AppColors.surfaceLight,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0.5,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-      ),
-      body: Stack(
-        children: <Widget>[
-          // Main content
-          Column(
-            children: <Widget>[
-              Expanded(
-                child: _buildMessageList(),
-              ),
-              _buildMessageInput(),
-            ],
-          ),
-          // Floating date chip
-          if (_visibleDate != null)
-            Positioned(
-              top: 12,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: AnimatedOpacity(
-                  opacity: _visibleDate != null ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.textMuted.withOpacity(0.9), // Grey date chip
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.12),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      _visibleDate!,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
+        foregroundColor: AppColors.navySpaceCadet,
+        iconTheme: const IconThemeData(color: AppColors.navySpaceCadet),
+        title: Row(
+          children: <Widget>[
+            GestureDetector(
+              onTap: widget.managerPicture != null && widget.managerPicture!.isNotEmpty
+                  ? () => _showFullImage(widget.managerPicture!)
+                  : null,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.oceanBlue,
+                    width: 2,
                   ),
+                ),
+                child: UserAvatar(
+                  imageUrl: widget.managerPicture,
+                  fullName: widget.managerName,
+                  radius: 18,
                 ),
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.managerName,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.navySpaceCadet,
+                  letterSpacing: 0.2,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.phone_outlined, size: 22),
+            onPressed: _initiateCall,
+            color: AppColors.navySpaceCadet,
+          ),
+        ],
+      ),
+      body: Column(
+        children: <Widget>[
+          Expanded(child: _buildMessageList()),
+          _buildMessageInput(),
         ],
       ),
     );
@@ -988,17 +844,14 @@ class _ChatPageState extends State<ChatPage> {
     final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            offset: const Offset(0, -1),
-            blurRadius: 4,
-            color: Colors.black.withOpacity(0.05),
-          ),
-        ],
+        border: Border(
+          top: BorderSide(color: Color(0x1A000000), width: 0.5),
+        ),
       ),
       child: SafeArea(
+        top: false,
         child: Row(
           children: <Widget>[
             Expanded(

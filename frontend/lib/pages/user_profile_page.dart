@@ -94,6 +94,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _pictureCtrl.text = url;
         _uploading = false;
       });
+
+      // Auto-save the new picture to the backend
+      await _save();
     } catch (e) {
       setState(() {
         _uploading = false;
