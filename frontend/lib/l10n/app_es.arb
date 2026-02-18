@@ -466,5 +466,10 @@
   "locationPermissionRequired": "Permiso de ubicación requerido",
   "locationPermissionDenied": "Permiso de ubicación denegado. Actívalo en configuración.",
   "couldNotLaunchMap": "No se pudo abrir el mapa",
-  "ask": "Preguntar"
+  "ask": "Preguntar",
+
+  "@@ No Team Banner": {},
+  "noTeamBannerTitle": "Aún no estás en un equipo",
+  "noTeamBannerMessage": "Pide a tu gerente un enlace de invitación, o ve a Equipos para ingresar un código.",
+  "goToTeams": "Ir a Equipos"
 }

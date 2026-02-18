@@ -33,9 +33,10 @@ import 'earnings_page.dart';
 import 'conversations_page.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 import '../core/navigation/route_error_manager.dart';
 
-enum _AccountMenuAction { profile, teams, settings, logout }
+enum _AccountMenuAction { profile, teams, logout }
 
 List<Uri> _mapUriCandidates(String raw) {
   final trimmed = raw.trim();
@@ -302,6 +303,15 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   double _scrollThreshold = 3.0; // Reduced for faster response
   double _velocityThreshold = 120.0; // Velocity-based hiding
   double _lastVelocity = 0;
+
+  // Notifier to tell _RolesSection to switch to My Shifts
+  final ValueNotifier<int> _resetToMyShifts = ValueNotifier<int>(0);
+
+  void _goToMyShifts() {
+    setState(() => _selectedBottomIndex = 0);
+    _resetToMyShifts.value++; // Trigger listener in _RolesSection
+    _showBottomBar();
+  }
 
   // Geofencing for auto clock-in
   final GeofenceService _geofenceService = GeofenceService();
@@ -758,9 +768,12 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 profileMenu: _buildProfileMenu(context, pendingInvites),
                 onHideBottomBar: _hideBottomBar,
                 onShowBottomBar: _showBottomBar,
+                onTitleTap: _goToMyShifts,
+                resetToMyShifts: _resetToMyShifts,
               ), // Shifts tab (index 0) - Default/first tab for better UX
               ConversationsPage(
                 profileMenu: _buildProfileMenu(context, pendingInvites, borderColor: AppColors.primaryPurple),
+                onTitleTap: _goToMyShifts,
               ), // Chats tab (index 1) - Navy blue border for profile picture
               EarningsPage(
                 events: dataService.events,
@@ -768,6 +781,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 loading: dataService.isLoading,
                 profileMenu: _buildProfileMenu(context, pendingInvites),
                 buildAppBar: buildStyledAppBar,
+                onTitleTap: _goToMyShifts,
               ),
               _HomeTab(
                 events: dataService.events,
@@ -778,6 +792,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 countdownText: _getSmartCountdownText(),
                 onHideBottomBar: _hideBottomBar,
                 onShowBottomBar: _showBottomBar,
+                onTitleTap: _goToMyShifts,
               ),
             ],
             ),
@@ -1054,9 +1069,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               MaterialPageRoute(builder: (context) => const TeamCenterPage()),
             );
             break;
-          case _AccountMenuAction.settings:
-            _showDefaultTabSettings();
-            break;
           case _AccountMenuAction.logout:
             _signOut();
             break;
@@ -1108,19 +1120,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
           ),
         ),
         PopupMenuItem<_AccountMenuAction>(
-          value: _AccountMenuAction.settings,
-          child: Row(
-            children: [
-              Icon(
-                Icons.settings_outlined,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              const SizedBox(width: 12),
-              Text(AppLocalizations.of(context)!.settings),
-            ],
-          ),
-        ),
-        PopupMenuItem<_AccountMenuAction>(
           value: _AccountMenuAction.logout,
           child: Row(
             children: [
@@ -1153,121 +1152,6 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _showDefaultTabSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final currentDefault = prefs.getInt('default_tab') ?? 0;
-    int? selectedTab = currentDefault;
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.defaultStartScreen),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Choose which screen to open when you launch the app:',
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              RadioListTile<int>(
-                title: Row(
-                  children: [
-                    Icon(Icons.work_rounded, size: 20),
-                    SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.shifts),
-                  ],
-                ),
-                value: 0,
-                groupValue: selectedTab,
-                onChanged: (value) {
-                  setDialogState(() {
-                    selectedTab = value;
-                  });
-                },
-              ),
-              RadioListTile<int>(
-                title: Row(
-                  children: [
-                    Icon(Icons.chat_bubble, size: 20),
-                    SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.chat),
-                  ],
-                ),
-                value: 1,
-                groupValue: selectedTab,
-                onChanged: (value) {
-                  setDialogState(() {
-                    selectedTab = value;
-                  });
-                },
-              ),
-              RadioListTile<int>(
-                title: Row(
-                  children: [
-                    Icon(Icons.account_balance_wallet, size: 20),
-                    SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.navEarnings),
-                  ],
-                ),
-                value: 2,
-                groupValue: selectedTab,
-                onChanged: (value) {
-                  setDialogState(() {
-                    selectedTab = value;
-                  });
-                },
-              ),
-              RadioListTile<int>(
-                title: Row(
-                  children: [
-                    Icon(Icons.access_time, size: 20),
-                    SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.clockIn),
-                  ],
-                ),
-                value: 3,
-                groupValue: selectedTab,
-                onChanged: (value) {
-                  setDialogState(() {
-                    selectedTab = value;
-                  });
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(AppLocalizations.of(context)!.cancel),
-            ),
-            FilledButton(
-              onPressed: () async {
-                if (selectedTab != null) {
-                  await prefs.setInt('default_tab', selectedTab!);
-                  if (mounted) {
-                    setState(() {
-                      _selectedBottomIndex = selectedTab!;
-                    });
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(AppLocalizations.of(context)!.defaultStartScreenUpdated),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                }
-              },
-              child: Text(AppLocalizations.of(context)!.save),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // Custom clipper for beautiful curved appbar shape with smooth elliptical bottom-right corner
@@ -1319,6 +1203,7 @@ Widget buildStyledAppBar({
   required Widget profileMenu,
   String? subtitle, // Optional subtitle (deprecated for Shifts, still used by Clock In/Earnings)
   Widget? bottomWidget,
+  VoidCallback? onTitleTap,
 }) {
   // Get the safe area top padding for proper positioning on notched devices
   final topPadding = MediaQuery.of(context).padding.top;
@@ -1344,6 +1229,7 @@ Widget buildStyledAppBar({
       profileMenu: profileMenu,
       bottomWidget: effectiveBottomWidget,
       topPadding: topPadding,
+      onTitleTap: onTitleTap,
     ),
   );
 }
@@ -1354,12 +1240,14 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget profileMenu;
   final Widget? bottomWidget; // Optional widget at bottom (e.g., filter toggle)
   final double topPadding; // Safe area top padding
+  final VoidCallback? onTitleTap;
 
   _FixedAppBarDelegate({
     required this.title,
     required this.profileMenu,
     this.bottomWidget,
     required this.topPadding,
+    this.onTitleTap,
   });
 
   @override
@@ -1401,12 +1289,15 @@ class _FixedAppBarDelegate extends SliverPersistentHeaderDelegate {
               child: Row(
                 children: [
                   // Title
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                  GestureDetector(
+                    onTap: onTitleTap,
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1442,6 +1333,7 @@ class _HomeTab extends StatefulWidget {
   final String countdownText;
   final VoidCallback? onHideBottomBar;
   final VoidCallback? onShowBottomBar;
+  final VoidCallback? onTitleTap;
   const _HomeTab({
     required this.events,
     required this.userKey,
@@ -1451,6 +1343,7 @@ class _HomeTab extends StatefulWidget {
     required this.countdownText,
     this.onHideBottomBar,
     this.onShowBottomBar,
+    this.onTitleTap,
   });
 
   @override
@@ -2389,6 +2282,7 @@ class _HomeTabState extends State<_HomeTab> {
             title: 'Clock In',
             subtitle: widget.countdownText,
             profileMenu: widget.profileMenu,
+            onTitleTap: widget.onTitleTap,
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -2398,7 +2292,7 @@ class _HomeTabState extends State<_HomeTab> {
                   if (_upcoming == null && !widget.loading) ...[
                     const SizedBox(height: 24),
                     Image.asset(
-                      'assets/clock_empty.png',
+                      'assets/clock_in_empty.png',
                       height: 220,
                       fit: BoxFit.contain,
                     ),
@@ -3257,6 +3151,8 @@ class _RolesSection extends StatefulWidget {
   final Widget profileMenu;
   final VoidCallback? onHideBottomBar;
   final VoidCallback? onShowBottomBar;
+  final VoidCallback? onTitleTap;
+  final ValueNotifier<int>? resetToMyShifts;
 
   const _RolesSection({
     required this.events,
@@ -3266,6 +3162,8 @@ class _RolesSection extends StatefulWidget {
     required this.profileMenu,
     this.onHideBottomBar,
     this.onShowBottomBar,
+    this.onTitleTap,
+    this.resetToMyShifts,
   });
 
   @override
@@ -3284,12 +3182,20 @@ class _RolesSectionState extends State<_RolesSection> {
   @override
   void initState() {
     super.initState();
+    widget.resetToMyShifts?.addListener(_onResetToMyShifts);
     _loadFilterPreference();
   }
 
   @override
   void dispose() {
+    widget.resetToMyShifts?.removeListener(_onResetToMyShifts);
     super.dispose();
+  }
+
+  void _onResetToMyShifts() {
+    if (mounted) {
+      setState(() => _selectedView = _ViewMode.myEvents);
+    }
   }
 
   /// Handles scroll notifications from child scrollable widgets
@@ -3711,6 +3617,12 @@ class _RolesSectionState extends State<_RolesSection> {
     const double toggleHeight = 34.0; // Unavailable dates toggle height (only in Available view)
     final double totalHeaderHeight = appBarHeight + chipsHeight + (_selectedView == _ViewMode.available ? toggleHeight : 0);
 
+    // Check if user has no teams (show banner)
+    final dataService = context.watch<DataService>();
+    final showNoTeamBanner = dataService.teamsLoaded && !dataService.hasTeams
+        && (_selectedView == _ViewMode.available || _selectedView == _ViewMode.myEvents);
+    final l10n = AppLocalizations.of(context)!;
+
     return Stack(
       children: [
         // Full-screen scrollable content (starts from top:0 to scroll behind headers)
@@ -3763,13 +3675,18 @@ class _RolesSectionState extends State<_RolesSection> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                appBarTitle,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.95),
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.5,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() => _selectedView = _ViewMode.myEvents);
+                                },
+                                child: Text(
+                                  appBarTitle,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.95),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
                               ),
                             ),
@@ -3942,6 +3859,160 @@ class _RolesSectionState extends State<_RolesSection> {
             ],
           ),
         ),
+
+        // "No team" banner - positioned above the bottom nav bar
+        if (showNoTeamBanner)
+          Positioned(
+            bottom: MediaQuery.of(context).padding.bottom + 64,
+            left: 16,
+            right: 16,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.warning.withOpacity(0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.group_off_outlined,
+                        size: 22,
+                        color: AppColors.warningDark,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.noTeamBannerTitle,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                              color: AppColors.warningDark,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l10n.noTeamBannerMessage,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.warningDark.withOpacity(0.8),
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const TeamCenterPage()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningDark,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          l10n.goToTeams,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ),
+            ),
+          ),
+
+        // AI Assistant floating button - only on Available/My Shifts and after team banner is gone
+        if (!showNoTeamBanner && (_selectedView == _ViewMode.available || _selectedView == _ViewMode.myEvents))
+          Positioned(
+            right: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 62,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
+                );
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                height: _showToggle ? 44 : 38,
+                padding: EdgeInsets.only(
+                  left: 4,
+                  right: _showToggle ? 14 : 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(_showToggle ? 22 : 19),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.navySpaceCadet.withValues(alpha: 0.5),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipOval(
+                      child: Image.asset(
+                        'assets/ai_assistant_logo.png',
+                        width: _showToggle ? 36 : 30,
+                        height: _showToggle ? 36 : 30,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      child: _showToggle
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Text(
+                                'Ask',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
 
       ],
     );
@@ -6052,32 +6123,11 @@ class _CalendarTabState extends State<_CalendarTab> {
                           padding: const EdgeInsets.all(32),
                           child: Column(
                             children: [
-                              Container(
-                                width: 64,
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      AppColors.navySpaceCadet,
-                                      AppColors.oceanBlue,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(32),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.oceanBlue.withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.event_busy,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
+                              Image.asset(
+                                'assets/calendar_empty.png',
+                                width: 180,
+                                height: 180,
+                                fit: BoxFit.contain,
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -6205,18 +6255,11 @@ class _CalendarTabState extends State<_CalendarTab> {
             padding: const EdgeInsets.only(top: 48, bottom: 32),
             child: Column(
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppColors.navySpaceCadet, AppColors.oceanBlue],
-                    ),
-                    borderRadius: BorderRadius.circular(32),
-                  ),
-                  child: const Icon(Icons.event_busy, color: Colors.white, size: 32),
+                Image.asset(
+                  'assets/calendar_empty.png',
+                  width: 180,
+                  height: 180,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 16),
                 Text(

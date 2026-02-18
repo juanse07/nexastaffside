@@ -855,4 +855,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ask => 'Ask';
+
+  @override
+  String get noTeamBannerTitle => 'You\'re not on a team yet';
+
+  @override
+  String get noTeamBannerMessage =>
+      'Ask your manager for an invite link, or go to Teams to enter an invite code.';
+
+  @override
+  String get goToTeams => 'Go to Teams';
 }

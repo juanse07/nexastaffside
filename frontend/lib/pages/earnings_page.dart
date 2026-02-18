@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +17,8 @@ class EarningsPage extends StatefulWidget {
   final String? userKey;
   final bool loading;
   final Widget profileMenu;
-  final Widget Function({required BuildContext context, required String title, required Widget profileMenu}) buildAppBar;
+  final Widget Function({required BuildContext context, required String title, required Widget profileMenu, VoidCallback? onTitleTap}) buildAppBar;
+  final VoidCallback? onTitleTap;
 
   const EarningsPage({
     super.key,
@@ -25,6 +27,7 @@ class EarningsPage extends StatefulWidget {
     required this.loading,
     required this.profileMenu,
     required this.buildAppBar,
+    this.onTitleTap,
   });
 
   @override
@@ -37,6 +40,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
   bool _isVisible = false;
   bool _hasCalculated = false;
   bool _isExporting = false;
+  bool _isScrolled = false;
 
   // Pagination state
   int _displayMonths = 12;
@@ -253,33 +257,83 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     return VisibilityDetector(
       key: const Key('earnings-page'),
       onVisibilityChanged: _onVisibilityChanged,
-      child: Stack(
-        children: [
-          _buildContent(theme),
-          // Export FAB - only show when user is logged in and has data
-          if (widget.userKey != null)
-            Positioned(
-              right: 16,
-              bottom: 130,
-              child: FloatingActionButton.extended(
-                key: _exportButtonKey,
-                onPressed: _isExporting ? null : _showExportOptions,
-                icon: _isExporting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollUpdateNotification) {
+            final scrolled = notification.metrics.pixels > 80;
+            if (scrolled != _isScrolled) {
+              setState(() => _isScrolled = scrolled);
+            }
+          }
+          return false;
+        },
+        child: Stack(
+          children: [
+            _buildContent(theme),
+            // Export button - only show when user is logged in
+            if (widget.userKey != null)
+              Positioned(
+                right: 16,
+                bottom: 130,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(_isScrolled ? 28 : 16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
+                      key: _exportButtonKey,
+                      height: _isScrolled ? 48 : 48,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _isScrolled ? 12 : 20,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.navySpaceCadet.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(_isScrolled ? 28 : 16),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _isExporting ? null : _showExportOptions,
+                          borderRadius: BorderRadius.circular(_isScrolled ? 28 : 16),
+                          child: AnimatedSize(
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeInOut,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _isExporting
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        ),
+                                      )
+                                    : const Icon(Icons.download, color: Colors.white, size: 22),
+                                if (!_isScrolled) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _isExporting ? 'Exporting...' : 'Export',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
-                      )
-                    : const Icon(Icons.download),
-                label: Text(_isExporting ? 'Exporting...' : 'Export'),
-                backgroundColor: AppColors.navySpaceCadet,
-                foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -295,6 +349,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
             context: context,
             title: l10n.myEarnings,
             profileMenu: widget.profileMenu,
+            onTitleTap: widget.onTitleTap,
           ),
           SliverFillRemaining(
             child: Center(
@@ -316,6 +371,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
             context: context,
             title: l10n.myEarnings,
             profileMenu: widget.profileMenu,
+            onTitleTap: widget.onTitleTap,
           ),
           const SliverFillRemaining(
             child: Center(child: CircularProgressIndicator()),
@@ -367,30 +423,34 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
               ),
               SliverFillRemaining(
                 child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 80,
-                        color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        l10n.noEarningsYetTitle,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/earnings_empty.png',
+                          height: 220,
+                          fit: BoxFit.contain,
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.completeEventsToSeeEarnings,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                        const SizedBox(height: 24),
+                        Text(
+                          l10n.noEarningsYetTitle,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.navySpaceCadet,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.completeEventsToSeeEarnings,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

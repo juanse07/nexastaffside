@@ -13,10 +13,12 @@ import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 
 class ConversationsPage extends StatefulWidget {
   final Widget profileMenu;
+  final VoidCallback? onTitleTap;
 
   const ConversationsPage({
     super.key,
     required this.profileMenu,
+    this.onTitleTap,
   });
 
   @override
@@ -113,13 +115,16 @@ class _ConversationsPageState extends State<ConversationsPage> {
                           padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                           child: Row(
                             children: [
-                              Text(
-                                l10n.chats,
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textDark,
-                                  letterSpacing: -0.5,
+                              GestureDetector(
+                                onTap: widget.onTitleTap,
+                                child: Text(
+                                  l10n.chats,
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textDark,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
                               ),
                               const Spacer(),
@@ -288,7 +293,12 @@ class _ConversationsPageState extends State<ConversationsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.borderLight),
+                  Image.asset(
+                    'assets/chat_empty.png',
+                    width: 200,
+                    height: 200,
+                    fit: BoxFit.contain,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     l10n.noConversationsYet,

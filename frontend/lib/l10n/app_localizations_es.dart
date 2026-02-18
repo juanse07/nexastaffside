@@ -861,4 +861,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get ask => 'Preguntar';
+
+  @override
+  String get noTeamBannerTitle => 'Aún no estás en un equipo';
+
+  @override
+  String get noTeamBannerMessage =>
+      'Pide a tu gerente un enlace de invitación, o ve a Equipos para ingresar un código.';
+
+  @override
+  String get goToTeams => 'Ir a Equipos';
 }

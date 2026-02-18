@@ -1663,6 +1663,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ask'**
   String get ask;
+
+  /// No description provided for @noTeamBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re not on a team yet'**
+  String get noTeamBannerTitle;
+
+  /// No description provided for @noTeamBannerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask your manager for an invite link, or go to Teams to enter an invite code.'**
+  String get noTeamBannerMessage;
+
+  /// No description provided for @goToTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Teams'**
+  String get goToTeams;
 }
 
 class _AppLocalizationsDelegate

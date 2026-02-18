@@ -28,11 +28,20 @@ class NotificationService {
   int _unreadEventCount = 0;
   final _notificationCountController = StreamController<int>.broadcast();
 
+  // Track if already initialized to prevent duplicate listeners
+  bool _isInitialized = false;
+
   Stream<int> get notificationCountStream => _notificationCountController.stream;
   int get totalUnreadCount => _unreadChatCount + _unreadTaskCount + _unreadEventCount;
 
   /// Initialize OneSignal and local notifications
   Future<void> initialize() async {
+    // Prevent duplicate initialization
+    if (_isInitialized) {
+      print('⚠️ NotificationService already initialized, skipping setup...');
+      return;
+    }
+
     try {
       // Initialize local notifications for foreground display
       await _initializeLocalNotifications();
@@ -56,6 +65,9 @@ class NotificationService {
 
       // Load notification preferences
       await _loadNotificationPreferences();
+
+      // Mark as initialized to prevent duplicate listeners
+      _isInitialized = true;
 
       print('✅ NotificationService initialized successfully');
     } catch (e) {
@@ -88,6 +100,10 @@ class NotificationService {
     // Handle notification when received (app in foreground)
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
       print('Notification received in foreground: ${event.notification.title}');
+
+      // Prevent OneSignal from auto-displaying the notification natively,
+      // since we show it ourselves via flutter_local_notifications below.
+      event.preventDefault();
 
       // Show local notification when app is in foreground
       _showLocalNotification(

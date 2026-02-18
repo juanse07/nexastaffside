@@ -466,7 +466,12 @@ class _ChatPageState extends State<ChatPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.chat_outlined, size: 64, color: AppColors.borderLight),
+            Image.asset(
+              'assets/chat_empty.png',
+              width: 200,
+              height: 200,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(height: 16),
             Text(
               l10n.noMessagesYetTitle,

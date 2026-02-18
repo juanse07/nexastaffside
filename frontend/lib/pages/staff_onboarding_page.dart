@@ -175,6 +175,12 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
   }
 }
 
+// Brand colors matching login page
+const _kNavy = Color(0xFF1B2544);
+const _kNavyMid = Color(0xFF243056);
+const _kNavyLight = Color(0xFF2A3A68);
+const _kYellow = Color(0xFFFFD600);
+
 class _OnboardingScreen extends StatefulWidget {
   const _OnboardingScreen({
     required this.profile,
@@ -190,16 +196,22 @@ class _OnboardingScreen extends StatefulWidget {
   State<_OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<_OnboardingScreen> {
+class _OnboardingScreenState extends State<_OnboardingScreen>
+    with TickerProviderStateMixin {
+  final _pageController = PageController();
   final _formKey = GlobalKey<FormState>();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _appIdController = TextEditingController();
 
+  int _currentStep = 0;
   bool _saving = false;
   String? _error;
-  int _selectedDefaultTab = 0; // 0=Clock In, 1=Roles, 2=Earnings, 3=Chat
+
+  late final List<AnimationController> _stepAnimControllers;
+  late final List<Animation<double>> _fadeAnimations;
+  late final List<Animation<Offset>> _slideAnimations;
 
   @override
   void initState() {
@@ -208,45 +220,80 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
     _lastNameController.text = widget.profile.lastName ?? '';
     _phoneController.text = widget.profile.phoneNumber ?? '';
     _appIdController.text = widget.profile.appId ?? '';
+
+    _stepAnimControllers = List.generate(3, (i) {
+      return AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 500),
+      );
+    });
+
+    _fadeAnimations = _stepAnimControllers.map((c) {
+      return CurvedAnimation(parent: c, curve: Curves.easeOut);
+    }).toList();
+
+    _slideAnimations = _stepAnimControllers.map((c) {
+      return Tween<Offset>(
+        begin: const Offset(0, 0.08),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: c, curve: Curves.easeOut));
+    }).toList();
+
+    // Animate first step in
+    _stepAnimControllers[0].forward();
   }
 
   @override
   void dispose() {
+    _pageController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _phoneController.dispose();
     _appIdController.dispose();
+    for (final c in _stepAnimControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  String? _validateRequired(String? value, String fieldName, BuildContext context) {
+  void _goToStep(int step) {
+    if (step < 0 || step > 2) return;
+    setState(() => _currentStep = step);
+    _pageController.animateToPage(
+      step,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
+    );
+    _stepAnimControllers[step].forward(from: 0);
+  }
+
+  void _goBack() {
+    if (_currentStep > 0) {
+      _goToStep(_currentStep - 1);
+    }
+  }
+
+  String? _validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
       return AppLocalizations.of(context)!.fieldIsRequired(fieldName);
     }
     return null;
   }
 
-  String? _validatePhone(String? value, BuildContext context) {
+  String? _validatePhone(String? value) {
+    final l10n = AppLocalizations.of(context)!;
     if (value == null || value.trim().isEmpty) {
-      return AppLocalizations.of(context)!.phoneNumberIsRequired;
+      return l10n.phoneNumberIsRequired;
     }
-
-    // US phone validation: XXX-XXX-XXXX or XXXXXXXXXX
-    final phoneRegex = RegExp(
-      r'^(\d{3}-\d{3}-\d{4}|\d{10})$',
-    );
-
+    final phoneRegex = RegExp(r'^(\d{3}-\d{3}-\d{4}|\d{10})$');
     if (!phoneRegex.hasMatch(value.trim())) {
-      return AppLocalizations.of(context)!.enterValidUSPhoneNumber;
+      return l10n.enterValidUSPhoneNumber;
     }
-
     return null;
   }
 
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _saving = true;
@@ -254,20 +301,9 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
     });
 
     try {
-      print('[ONBOARDING] Saving profile...');
-      print('[ONBOARDING] firstName: "${_firstNameController.text.trim()}"');
-      print('[ONBOARDING] lastName: "${_lastNameController.text.trim()}"');
-      print('[ONBOARDING] phoneNumber: "${_phoneController.text.trim()}"');
-      print('[ONBOARDING] appId: "${_appIdController.text.trim()}"');
-
       final fn = _firstNameController.text.trim();
       final ln = _lastNameController.text.trim();
       final pn = _phoneController.text.trim();
-
-      print('[DEBUG] About to call updateMe with:');
-      print('[DEBUG] firstName length: ${fn.length} value: "$fn"');
-      print('[DEBUG] lastName length: ${ln.length} value: "$ln"');
-      print('[DEBUG] phoneNumber length: ${pn.length} value: "$pn"');
 
       await UserService.updateMe(
         firstName: fn,
@@ -278,30 +314,16 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
             : _appIdController.text.trim(),
       );
 
-      print('[ONBOARDING] Profile saved successfully');
-
-      // Save default tab preference
+      // Default tab is always Roles (0)
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('default_tab', _selectedDefaultTab);
-      print('[ONBOARDING] Default tab saved: $_selectedDefaultTab');
+      await prefs.setInt('default_tab', 0);
 
       if (!mounted) return;
 
-      // Show success and reload
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.profileSavedSuccessfully),
-          backgroundColor: AppColors.success,
-        ),
-      );
-
-      print('[ONBOARDING] Calling onComplete()...');
-      widget.onComplete();
+      setState(() => _saving = false);
+      _goToStep(2);
     } catch (e) {
-      print('[ONBOARDING ERROR] Failed to save: $e');
-
       if (!mounted) return;
-
       setState(() {
         _error = e.toString();
         _saving = false;
@@ -309,263 +331,450 @@ class _OnboardingScreenState extends State<_OnboardingScreen> {
     }
   }
 
+  bool get _isNavyBackground => _currentStep == 0 || _currentStep == 2;
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.completeYourProfile),
-        actions: [
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        decoration: BoxDecoration(
+          gradient: _isNavyBackground
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [_kNavy, _kNavyMid, _kNavyLight],
+                  stops: [0.0, 0.45, 1.0],
+                )
+              : null,
+          color: _isNavyBackground ? null : Colors.white,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Top bar: back arrow, dots, sign out
+              _buildTopBar(),
+              // Page content
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    _buildWelcomeStep(),
+                    _buildProfileStep(),
+                    _buildDoneStep(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Row(
+        children: [
+          // Back button (hidden on step 0)
+          if (_currentStep == 1)
+            IconButton(
+              onPressed: _goBack,
+              icon: Icon(
+                Icons.arrow_back_ios_new,
+                size: 20,
+                color: _isNavyBackground ? Colors.white : _kNavy,
+              ),
+            )
+          else
+            const SizedBox(width: 48),
+          // Step dots
+          Expanded(child: _buildStepDots()),
+          // Sign out
           TextButton(
             onPressed: widget.onSignOut,
             child: Text(
-              l10n.signOut,
-              style: const TextStyle(color: AppColors.textLight),
+              AppLocalizations.of(context)!.signOut,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _isNavyBackground
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : _kNavy.withValues(alpha: 0.6),
+              ),
             ),
           ),
         ],
       ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              // Welcome message
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.waving_hand,
-                        size: 48,
-                        color: theme.primaryColor,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.welcomeToNexaStaff,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.pleaseCompleteProfileToGetStarted,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textSecondary,
-                        ),
-                        textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildStepDots() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(3, (i) {
+        final isActive = i == _currentStep;
+        final isCompleted = i < _currentStep;
+        Color dotColor;
+        if (isActive) {
+          dotColor = _kYellow;
+        } else if (isCompleted) {
+          dotColor = _kYellow.withValues(alpha: 0.5);
+        } else {
+          dotColor = _isNavyBackground
+              ? Colors.white.withValues(alpha: 0.3)
+              : Colors.grey.shade300;
+        }
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: isActive ? 24 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: dotColor,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  // --------------- Step 0: Welcome ---------------
+
+  Widget _buildWelcomeStep() {
+    return FadeTransition(
+      opacity: _fadeAnimations[0],
+      child: SlideTransition(
+        position: _slideAnimations[0],
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Logo
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // First Name
-              TextFormField(
-                controller: _firstNameController,
-                decoration: InputDecoration(
-                  labelText: l10n.firstNameLabel,
-                  hintText: l10n.enterYourFirstName,
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: const OutlineInputBorder(),
-                ),
-                textInputAction: TextInputAction.next,
-                validator: (value) => _validateRequired(value, l10n.firstName, context),
-              ),
-              const SizedBox(height: 16),
-
-              // Last Name
-              TextFormField(
-                controller: _lastNameController,
-                decoration: InputDecoration(
-                  labelText: l10n.lastNameLabel,
-                  hintText: l10n.enterYourLastName,
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: const OutlineInputBorder(),
-                ),
-                textInputAction: TextInputAction.next,
-                validator: (value) => _validateRequired(value, l10n.lastName, context),
-              ),
-              const SizedBox(height: 16),
-
-              // Phone Number
-              TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: l10n.phoneNumberLabel,
-                  hintText: l10n.phoneNumberHint,
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  border: const OutlineInputBorder(),
-                  helperText: l10n.phoneNumberFormat,
-                ),
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                validator: (value) => _validatePhone(value, context),
-              ),
-              const SizedBox(height: 16),
-
-              // Default Tab Selection
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.home_outlined, color: theme.primaryColor),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.defaultHomeScreen,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.chooseWhichScreenToShow,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          ChoiceChip(
-                            label: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(l10n.roles),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.star, size: 14, color: Colors.amber),
-                              ],
-                            ),
-                            selected: _selectedDefaultTab == 0,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() => _selectedDefaultTab = 0);
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: Text(l10n.chat),
-                            selected: _selectedDefaultTab == 1,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() => _selectedDefaultTab = 1);
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: Text(l10n.navEarnings),
-                            selected: _selectedDefaultTab == 2,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() => _selectedDefaultTab = 2);
-                              }
-                            },
-                          ),
-                          ChoiceChip(
-                            label: Text(l10n.clockIn),
-                            selected: _selectedDefaultTab == 3,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() => _selectedDefaultTab = 3);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // App ID (optional)
-              TextFormField(
-                controller: _appIdController,
-                decoration: InputDecoration(
-                  labelText: l10n.appIdOptional,
-                  hintText: l10n.enterYourAppId,
-                  prefixIcon: const Icon(Icons.badge_outlined),
-                  border: const OutlineInputBorder(),
-                ),
-                textInputAction: TextInputAction.done,
-              ),
-              const SizedBox(height: 24),
-
-              // Error message
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Card(
-                    color: AppColors.surfaceRed,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: AppColors.error),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _error!,
-                              style: const TextStyle(color: AppColors.error),
-                            ),
-                          ),
-                        ],
-                      ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: Image.asset(
+                      'assets/logo_icon_square.png',
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-
-              // Save button
-              FilledButton(
-                onPressed: _saving ? null : _saveProfile,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                const SizedBox(height: 32),
+                const Text(
+                  'Welcome to FlowShift',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                child: _saving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        l10n.continueButton,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-              ),
-              const SizedBox(height: 12),
-
-              // Required fields note
-              Text(
-                l10n.requiredFields,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+                const SizedBox(height: 12),
+                Text(
+                  "Let's get you set up in just a few steps",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                const SizedBox(height: 48),
+                _buildYellowButton(
+                  label: 'Get Started',
+                  onPressed: () => _goToStep(1),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // --------------- Step 1: Profile ---------------
+
+  Widget _buildProfileStep() {
+    final l10n = AppLocalizations.of(context)!;
+    return FadeTransition(
+      opacity: _fadeAnimations[1],
+      child: SlideTransition(
+        position: _slideAnimations[1],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                const Text(
+                  'Your Profile',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: _kNavy,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.pleaseCompleteProfileToGetStarted,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildStyledField(
+                  controller: _firstNameController,
+                  hint: l10n.enterYourFirstName,
+                  label: l10n.firstNameLabel,
+                  icon: Icons.person_outline,
+                  action: TextInputAction.next,
+                  validator: (v) => _validateRequired(v, l10n.firstName),
+                ),
+                const SizedBox(height: 16),
+                _buildStyledField(
+                  controller: _lastNameController,
+                  hint: l10n.enterYourLastName,
+                  label: l10n.lastNameLabel,
+                  icon: Icons.person_outline,
+                  action: TextInputAction.next,
+                  validator: (v) => _validateRequired(v, l10n.lastName),
+                ),
+                const SizedBox(height: 16),
+                _buildStyledField(
+                  controller: _phoneController,
+                  hint: l10n.phoneNumberHint,
+                  label: l10n.phoneNumberLabel,
+                  icon: Icons.phone_outlined,
+                  action: TextInputAction.next,
+                  keyboardType: TextInputType.phone,
+                  validator: _validatePhone,
+                  helperText: l10n.phoneNumberFormat,
+                ),
+                const SizedBox(height: 16),
+                _buildStyledField(
+                  controller: _appIdController,
+                  hint: l10n.enterYourAppId,
+                  label: l10n.appIdOptional,
+                  icon: Icons.badge_outlined,
+                  action: TextInputAction.done,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  l10n.requiredFields,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: Colors.red.shade200, width: 0.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline,
+                            color: Colors.red.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                _buildYellowButton(
+                  label: 'Finish Setup',
+                  loading: _saving,
+                  onPressed: _saving ? null : _saveProfile,
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --------------- Step 2: All Done ---------------
+
+  Widget _buildDoneStep() {
+    return FadeTransition(
+      opacity: _fadeAnimations[2],
+      child: SlideTransition(
+        position: _slideAnimations[2],
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  decoration: const BoxDecoration(
+                    color: _kYellow,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    size: 48,
+                    color: _kNavy,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  "You're All Set!",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Your profile is ready. Time to get to work!',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 48),
+                _buildYellowButton(
+                  label: "Let's Go",
+                  onPressed: widget.onComplete,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --------------- Shared widgets ---------------
+
+  Widget _buildYellowButton({
+    required String label,
+    VoidCallback? onPressed,
+    bool loading = false,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: _kYellow,
+          foregroundColor: _kNavy,
+          disabledBackgroundColor: _kYellow.withValues(alpha: 0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          elevation: 0,
+        ),
+        child: loading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: _kNavy,
+                ),
+              )
+            : Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildStyledField({
+    required TextEditingController controller,
+    required String hint,
+    required String label,
+    required IconData icon,
+    TextInputAction action = TextInputAction.next,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+    String? helperText,
+  }) {
+    return TextFormField(
+      controller: controller,
+      textInputAction: action,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        helperText: helperText,
+        prefixIcon: Icon(icon, color: Colors.grey.shade400, size: 20),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _kNavy, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
         ),
       ),
     );

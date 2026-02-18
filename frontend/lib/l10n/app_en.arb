@@ -466,5 +466,10 @@
   "locationPermissionRequired": "Location permission required",
   "locationPermissionDenied": "Location permission denied. Enable in settings.",
   "couldNotLaunchMap": "Could not launch map",
-  "ask": "Ask"
+  "ask": "Ask",
+
+  "@@ No Team Banner": {},
+  "noTeamBannerTitle": "You're not on a team yet",
+  "noTeamBannerMessage": "Ask your manager for an invite link, or go to Teams to enter an invite code.",
+  "goToTeams": "Go to Teams"
 }

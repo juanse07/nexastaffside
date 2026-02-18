@@ -34,6 +34,7 @@ class DataService extends ChangeNotifier {
   final Set<String> _teamIds = <String>{};
   bool _isLoading = false;
   bool _isRefreshing = false;
+  bool _teamsLoaded = false;
   String? _lastError;
   DateTime? _lastFetch;
   DateTime? _lastAvailabilityFetch;
@@ -54,6 +55,8 @@ class DataService extends ChangeNotifier {
       List.unmodifiable(_pendingInvites);
   bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
+  bool get teamsLoaded => _teamsLoaded;
+  bool get hasTeams => _myTeams.isNotEmpty;
   String? get lastError => _lastError;
   DateTime? get lastFetch => _lastFetch;
   DateTime? get lastShiftsFetch => _lastShiftsFetch;
@@ -817,6 +820,7 @@ class DataService extends ChangeNotifier {
             .whereType<Map>()
             .map((e) => e.cast<String, dynamic>())
             .toList(growable: false);
+        _teamsLoaded = true;
         _updateTeamIds();
         final token = await _safeStorageRead('auth_jwt');
         _events = _filterEventsForAudience(
