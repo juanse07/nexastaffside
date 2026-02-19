@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 /// Central theme configuration for the Nexa Staff application.
@@ -36,6 +37,7 @@ class AppTheme {
     return ThemeData(
       brightness: Brightness.light,
       useMaterial3: true,
+      fontFamily: GoogleFonts.inter().fontFamily,
       colorScheme: _lightColorScheme(),
       scaffoldBackgroundColor: AppColors.backgroundWhite,
       appBarTheme: _lightAppBarTheme(),
@@ -81,6 +83,7 @@ class AppTheme {
     return ThemeData(
       brightness: Brightness.dark,
       useMaterial3: true,
+      fontFamily: GoogleFonts.inter().fontFamily,
       colorScheme: _darkColorScheme(),
       scaffoldBackgroundColor: AppColors.backgroundDark,
       appBarTheme: _darkAppBarTheme(),
@@ -186,7 +189,7 @@ class AppTheme {
   // ============ App Bar Themes ============
 
   static AppBarTheme _lightAppBarTheme() {
-    return const AppBarTheme(
+    return AppBarTheme(
       elevation: 0,
       scrolledUnderElevation: 2,
       centerTitle: false,
@@ -196,7 +199,7 @@ class AppTheme {
       iconTheme: IconThemeData(color: Colors.white, size: _iconMl),
       actionsIconTheme: IconThemeData(color: Colors.white, size: _iconMl),
       titleTextStyle: TextStyle(
-        fontFamily: 'SF Pro Display',
+        fontFamily: GoogleFonts.inter().fontFamily,
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: Colors.white,
@@ -211,7 +214,7 @@ class AppTheme {
   }
 
   static AppBarTheme _darkAppBarTheme() {
-    return const AppBarTheme(
+    return AppBarTheme(
       elevation: 0,
       scrolledUnderElevation: 2,
       centerTitle: false,
@@ -221,7 +224,7 @@ class AppTheme {
       iconTheme: IconThemeData(color: AppColors.textLight, size: _iconMl),
       actionsIconTheme: IconThemeData(color: AppColors.textLight, size: _iconMl),
       titleTextStyle: TextStyle(
-        fontFamily: 'SF Pro Display',
+        fontFamily: GoogleFonts.inter().fontFamily,
         fontSize: 20,
         fontWeight: FontWeight.w600,
         color: AppColors.textLight,
@@ -249,7 +252,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_radiusM),
         ),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
       ),
     );
   }
@@ -263,7 +266,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_radiusM),
         ),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
       ),
     );
   }
@@ -278,7 +281,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_radiusM),
         ),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
       ),
     );
   }
@@ -293,7 +296,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_radiusM),
         ),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
       ),
     );
   }

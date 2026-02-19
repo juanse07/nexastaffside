@@ -709,7 +709,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
           backgroundColor: AppColors.surfaceLight, // Soft off-white (#F8FAFC)
           extendBody: true,
           extendBodyBehindAppBar: true,
-          body: NotificationListener<ScrollNotification>(
+          body: Stack(
+            children: [
+              NotificationListener<ScrollNotification>(
             onNotification: (notification) {
               // Optimized scroll detection with velocity tracking
               if (notification is ScrollUpdateNotification) {
@@ -796,6 +798,60 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               ),
             ],
             ),
+              ),
+              // AI Assistant floating button — visible across all tabs
+              Positioned(
+                right: 16,
+                bottom: MediaQuery.of(context).padding.bottom + 92,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
+                    );
+                  },
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.only(left: 4, right: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.navySpaceCadet.withValues(alpha: 0.5),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/ai_assistant_logo.png',
+                            width: 36,
+                            height: 36,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: Text(
+                            'Ask',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           bottomNavigationBar: RepaintBoundary(
             child: AnimatedBuilder(
@@ -3949,71 +4005,6 @@ class _RolesSectionState extends State<_RolesSection> {
             ),
           ),
 
-        // AI Assistant floating button - only on Available/My Shifts and after team banner is gone
-        if (!showNoTeamBanner && (_selectedView == _ViewMode.available || _selectedView == _ViewMode.myEvents))
-          Positioned(
-            right: 16,
-            bottom: MediaQuery.of(context).padding.bottom + 62,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
-                );
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                height: _showToggle ? 44 : 38,
-                padding: EdgeInsets.only(
-                  left: 4,
-                  right: _showToggle ? 14 : 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(_showToggle ? 22 : 19),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.navySpaceCadet.withValues(alpha: 0.5),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ClipOval(
-                      child: Image.asset(
-                        'assets/ai_assistant_logo.png',
-                        width: _showToggle ? 36 : 30,
-                        height: _showToggle ? 36 : 30,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      child: _showToggle
-                          ? Padding(
-                              padding: const EdgeInsets.only(left: 8),
-                              child: Text(
-                                'Ask',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
       ],
     );
   }
@@ -4493,12 +4484,17 @@ class _MyEventsListState extends State<_MyEventsList> {
     bool isConfirmed = false;
     if (roleNameOverride != null && roleNameOverride.trim().isNotEmpty) {
       role = roleNameOverride.trim();
+      final acceptedEntry = findAcceptedStaffEntry(e, widget.userKey);
+      if (acceptedEntry != null) {
+        final response = acceptedEntry['response']?.toString().toLowerCase();
+        isConfirmed = response == null || response == 'accept' || response == 'accepted';
+      }
     } else {
       final acceptedEntry = findAcceptedStaffEntry(e, widget.userKey);
       if (acceptedEntry != null) {
         role = acceptedEntry['role']?.toString();
         final response = acceptedEntry['response']?.toString().toLowerCase();
-        isConfirmed = response == null || response == 'accept';
+        isConfirmed = response == null || response == 'accept' || response == 'accepted';
       }
     }
 
@@ -5752,7 +5748,9 @@ class _CalendarTabState extends State<_CalendarTab> {
 
     return Builder(
       builder: (context) {
-        return EnhancedRefreshIndicator(
+        return Stack(
+          children: [
+        EnhancedRefreshIndicator(
           showLastRefreshTime: false,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -5795,6 +5793,40 @@ class _CalendarTabState extends State<_CalendarTab> {
                                         theme: theme,
                                       ),
                                     ],
+                                  ),
+                                ),
+                                const Spacer(),
+                                // Set Availability button (right-aligned)
+                                GestureDetector(
+                                  onTap: () => _showAvailabilityDialog(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.navySpaceCadet.withValues(alpha: 0.08),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: AppColors.navySpaceCadet.withValues(alpha: 0.15),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.event_available,
+                                          size: 15,
+                                          color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          'Set Availability',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
@@ -5912,96 +5944,6 @@ class _CalendarTabState extends State<_CalendarTab> {
               if (_isAgendaView && !widget.loading)
                 ..._buildAgendaSlivers(theme)
               else ...[
-              // Availability controls
-              SliverToBoxAdapter(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.primaryContainer,
-                        theme.colorScheme.secondaryContainer,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _showAvailabilityDialog(context),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withOpacity(
-                                  0.15,
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.event_available,
-                                color: theme.colorScheme.primary,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Set Availability',
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: theme
-                                              .colorScheme
-                                              .onPrimaryContainer,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _formatSelectedDate(),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme
-                                          .colorScheme
-                                          .onPrimaryContainer
-                                          .withOpacity(0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                              color: theme.colorScheme.onPrimaryContainer
-                                  .withOpacity(0.5),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
               // Events list
               ValueListenableBuilder<List<Map<String, dynamic>>>(
                 valueListenable: _selectedEvents,
@@ -6172,6 +6114,8 @@ class _CalendarTabState extends State<_CalendarTab> {
               ),
             ],
           ),
+        ),
+          ],
         );
       },
     );

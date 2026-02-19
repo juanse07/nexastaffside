@@ -208,7 +208,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             height: 44,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [AppColors.tealDark, AppColors.tealMedium],
+                                colors: [Color(0xFF1A2744), Color(0xFF1E3A8A)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -263,7 +263,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               decoration: BoxDecoration(
-                                color: AppColors.tealDark,
+                                color: AppColors.primaryIndigo,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
@@ -271,15 +271,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 children: [
                                   const Icon(
                                     Icons.directions_rounded,
-                                    color: Colors.white,
+                                    color: AppColors.textDark,
                                     size: 16,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Go',
                                     style: theme.textTheme.labelMedium?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textDark,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ],
@@ -325,7 +325,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             height: 54,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.tealDark, AppColors.tealMedium],
+                colors: [Color(0xFF1A2744), Color(0xFF1E3A8A)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -337,7 +337,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.tealDark.withValues(alpha: 0.4),
+                  color: Color(0x661E3A8A),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -417,7 +417,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             height: 48,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [AppColors.tealDark, AppColors.tealMedium],
+                colors: [Color(0xFF1A2744), Color(0xFF1E3A8A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -465,7 +465,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.tealDark,
+                color: AppColors.primaryIndigo,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -473,15 +473,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 children: [
                   const Icon(
                     Icons.directions_rounded,
-                    color: Colors.white,
+                    color: AppColors.textDark,
                     size: 16,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'Go',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -722,118 +722,111 @@ class _EventDetailPageState extends State<EventDetailPage> {
         !showRespondActions && timeUntilStart != null && !withinLockoutWindow && !hasEventStarted;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surfaceContainerLowest,
-      extendBodyBehindAppBar: true,
+      backgroundColor: AppColors.backgroundLight,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.85),
-                    Colors.white.withValues(alpha: 0.7),
-                  ],
-                ),
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppColors.border.withValues(alpha: 0.3),
-                    width: 0.5,
-                  ),
-                ),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.appBarGradient,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
               ),
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    children: [
-                      // Back button
-                      IconButton(
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceGray,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            size: 18,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      // Title section
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              eventName,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (clientName.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                clientName,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.textMuted,
-                                  fontSize: 11,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  // Back button
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          width: 0.5,
                         ),
                       ),
-                      // Chat button (only for accepted events)
-                      if (!showRespondActions)
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [AppColors.tealDark, AppColors.tealMedium],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.chat_bubble_outline_rounded,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => EventTeamChatPage(
-                                  eventId: (event['_id'] ?? event['id'] ?? '').toString(),
-                                  eventName: eventName,
-                                  chatEnabled: event['chatEnabled'] == true,
-                                ),
-                              ),
-                            );
-                          },
-                          tooltip: l10n.teamChat,
-                        )
-                      else
-                        const SizedBox(width: 48), // Balance the layout
-                    ],
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                ),
+                  // Title section
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          eventName,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (clientName.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            clientName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // Chat button (only for accepted events)
+                  if (!showRespondActions)
+                    IconButton(
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryIndigo.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.primaryIndigo.withValues(alpha: 0.35),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 18,
+                          color: AppColors.primaryIndigo,
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => EventTeamChatPage(
+                              eventId: (event['_id'] ?? event['id'] ?? '').toString(),
+                              eventName: eventName,
+                              chatEnabled: event['chatEnabled'] == true,
+                            ),
+                          ),
+                        );
+                      },
+                      tooltip: l10n.teamChat,
+                    )
+                  else
+                    const SizedBox(width: 48),
+                ],
               ),
             ),
           ),
@@ -843,7 +836,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + kToolbarHeight + 12, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -866,53 +859,70 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       l10n: l10n,
                     );
 
-                    return Card(
-                      color: theme.colorScheme.primaryContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    return Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Color(0xFF1A2744), Color(0xFF1E3A8A)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1E3A8A).withValues(alpha: 0.28),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.onPrimaryContainer.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                Icons.schedule,
-                                color: theme.colorScheme.onPrimaryContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryIndigo.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.schedule_rounded,
+                              color: AppColors.primaryIndigo,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.1,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      color: theme.colorScheme.onPrimaryContainer,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  if (durationLabel != null) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Approx. $durationLabel',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onPrimaryContainer.withOpacity(0.9),
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                          ),
+                          if (durationLabel != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryIndigo.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppColors.primaryIndigo.withValues(alpha: 0.45),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                durationLabel,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: AppColors.primaryIndigo,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
-                        ),
+                        ],
                       ),
                     );
                   }),
@@ -939,13 +949,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               color: theme.colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 12),
-                                  Text('Loading map...'),
+                                  const CircularProgressIndicator(),
+                                  const SizedBox(height: 12),
+                                  Text(l10n.loadingMap),
                                 ],
                               ),
                             ),
@@ -988,37 +998,30 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   ],
                   if (clientName.isNotEmpty) ...[
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
+                            width: 3,
+                            height: 18,
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(20),
+                              color: AppColors.primaryIndigo,
+                              borderRadius: BorderRadius.circular(2),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.business,
-                                  size: 16,
-                                  color: theme.colorScheme.onSecondaryContainer,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  clientName,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color:
-                                        theme.colorScheme.onSecondaryContainer,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                          ),
+                          const SizedBox(width: 10),
+                          const Icon(
+                            Icons.business_outlined,
+                            size: 14,
+                            color: AppColors.textTertiary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            clientName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ],
@@ -1107,39 +1110,49 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     debugPrint('[EventDetail] startMins=$startMins, endMins=$endMins, shiftHours=$shiftHours, hourlyRate=$hourlyRate');
                     debugPrint('[EventDetail] event keys: ${event.keys.toList()}');
 
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.07),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      elevation: 0,
-                      color: theme.colorScheme.surface,
+                      clipBehavior: Clip.antiAlias,
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
                         onTap: tariffData != null
                             ? () => _showTariffDetails(context, theme, tariffData!, roleName ?? '', l10n)
                             : null,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Role name
-                              Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Role header – navy gradient
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [Color(0xFF1A2744), Color(0xFF1E3A8A)],
+                                ),
+                              ),
+                              child: Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(10),
+                                    padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [AppColors.tealDark, AppColors.tealMedium],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
+                                      color: Colors.white.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: const Icon(
                                       Icons.work_outline_rounded,
                                       color: Colors.white,
-                                      size: 22,
+                                      size: 20,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -1153,14 +1166,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                               : 'Your Role',
                                           style: theme.textTheme.titleMedium?.copyWith(
                                             fontWeight: FontWeight.w700,
-                                            color: AppColors.textDark,
+                                            color: Colors.white,
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
                                         Text(
                                           eventName,
                                           style: theme.textTheme.bodySmall?.copyWith(
-                                            color: AppColors.textTertiary,
+                                            color: Colors.white.withValues(alpha: 0.6),
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -1170,145 +1182,99 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   ),
                                 ],
                               ),
-                              // Payment section - show both hourly and total
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.successLight.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: AppColors.success.withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    // Hourly rate row
-                                    if (hourlyRate != null) ...[
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.schedule_outlined,
-                                                size: 18,
-                                                color: AppColors.textTertiary,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'Hourly Rate',
-                                                style: theme.textTheme.bodyMedium?.copyWith(
-                                                  color: AppColors.textTertiary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          Text(
-                                            '\$${hourlyRate.toStringAsFixed(2)}/hr',
-                                            style: theme.textTheme.titleSmall?.copyWith(
-                                              color: AppColors.textSecondary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Container(
-                                        height: 1,
-                                        color: AppColors.success.withValues(alpha: 0.15),
-                                      ),
-                                      const SizedBox(height: 12),
-                                    ],
-                                    // Total payment row (prominent)
+                            ),
+                            // Pay section – white
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  if (hourlyRate != null) ...[
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.success.withValues(alpha: 0.15),
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: const Icon(
-                                                Icons.payments_outlined,
-                                                size: 18,
-                                                color: AppColors.success,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Text(
-                                              shiftHours != null ? 'Total Payment' : 'Estimated Pay',
-                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                color: AppColors.textSecondary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
+                                        Text(
+                                          'Hourly Rate',
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: AppColors.textTertiary,
+                                          ),
                                         ),
                                         Text(
-                                          (hourlyRate != null && shiftHours != null)
-                                              ? '\$${(hourlyRate * shiftHours).toStringAsFixed(2)}'
-                                              : (hourlyRate != null ? '\$${hourlyRate.toStringAsFixed(2)}/hr' : '--'),
-                                          style: theme.textTheme.headlineSmall?.copyWith(
-                                            color: AppColors.success,
-                                            fontWeight: FontWeight.w700,
+                                          '\$${hourlyRate.toStringAsFixed(2)}/hr',
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: AppColors.textSecondary,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],
                                     ),
-                                    // Duration info if available
-                                    if (shiftHours != null) ...[
-                                      const SizedBox(height: 8),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      child: Divider(height: 1, color: AppColors.border),
+                                    ),
+                                  ],
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
                                       Text(
-                                        '${shiftHours.toStringAsFixed(1)} hours × \$${hourlyRate?.toStringAsFixed(2) ?? "0"}/hr',
+                                        shiftHours != null ? 'Total Payment' : 'Estimated Pay',
+                                        style: theme.textTheme.titleSmall?.copyWith(
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        (hourlyRate != null && shiftHours != null)
+                                            ? '\$${(hourlyRate * shiftHours).toStringAsFixed(2)}'
+                                            : (hourlyRate != null ? '\$${hourlyRate.toStringAsFixed(2)}/hr' : '--'),
+                                        style: theme.textTheme.headlineSmall?.copyWith(
+                                          color: AppColors.tealDark,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (shiftHours != null) ...[
+                                    const SizedBox(height: 4),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        '${shiftHours.toStringAsFixed(1)} hrs × \$${hourlyRate?.toStringAsFixed(2) ?? "0"}/hr',
                                         style: theme.textTheme.bodySmall?.copyWith(
                                           color: AppColors.textMuted,
                                         ),
                                       ),
-                                    ],
-                                    // Tap for details
-                                    if (tariffData != null) ...[
-                                      const SizedBox(height: 12),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.info_outline_rounded,
-                                              size: 14,
-                                              color: AppColors.tealDark,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              l10n.tapToViewRateDetails,
-                                              style: theme.textTheme.bodySmall?.copyWith(
-                                                color: AppColors.tealDark,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.chevron_right_rounded,
-                                              size: 16,
-                                              color: AppColors.tealDark,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ],
-                                ),
+                                  if (tariffData != null) ...[
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.info_outline_rounded,
+                                          size: 13,
+                                          color: AppColors.tealDark,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          l10n.tapToViewRateDetails,
+                                          style: theme.textTheme.bodySmall?.copyWith(
+                                            color: AppColors.tealDark,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.chevron_right_rounded,
+                                          size: 15,
+                                          color: AppColors.tealDark,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -1330,14 +1296,53 @@ class _EventDetailPageState extends State<EventDetailPage> {
                       }
                     }
 
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    return Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
                       ),
-                      child: ListTile(
-                        leading: const Icon(Icons.checkroom_outlined),
-                        title: Text(l10n.uniformRequirements),
-                        subtitle: Text(uniform),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceGray,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.checkroom_outlined,
+                              size: 20,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.uniformRequirements,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  uniform,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textTertiary,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }),
@@ -1346,14 +1351,53 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   Builder(builder: (context) {
                     final parking = (event['parking_instructions']?.toString() ?? '').trim();
                     if (parking.isEmpty) return const SizedBox.shrink();
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    return Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
                       ),
-                      child: ListTile(
-                        leading: const Icon(Icons.local_parking_outlined),
-                        title: Text(l10n.parkingInstructions),
-                        subtitle: Text(parking),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceGray,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.local_parking_outlined,
+                              size: 20,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.parkingInstructions,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textDark,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  parking,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textTertiary,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }),
@@ -1365,11 +1409,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
             Container(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+                color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.textDark.withOpacity(0.08),
-                    blurRadius: 12,
+                    color: Colors.black.withOpacity(0.07),
+                    blurRadius: 16,
                     offset: const Offset(0, -4),
                   ),
                 ],
@@ -1408,7 +1452,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     // Action buttons
                     Row(
                       children: [
-                        // Decline button - outlined style
+                        // Decline button – minimal outlined
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _isResponding
@@ -1429,7 +1473,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               side: BorderSide(
                                 color: _isResponding
                                     ? AppColors.borderMedium
-                                    : AppColors.error.withOpacity(0.5),
+                                    : AppColors.error.withOpacity(0.45),
                                 width: 1.5,
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1440,7 +1484,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // Accept button - filled with success green
+                        // Accept button – gold brand CTA
                         Expanded(
                           flex: 2,
                           child: FilledButton.icon(
@@ -1461,7 +1505,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     width: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: AppColors.textDark,
                                     ),
                                   )
                                 : Text(
@@ -1469,15 +1513,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                         ? l10n.full
                                         : (hasConflict ? l10n.conflict : l10n.accept),
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: AppColors.textDark,
+                                      letterSpacing: 0.3,
                                     ),
                                   ),
                             style: FilledButton.styleFrom(
                               backgroundColor: (isRoleFull || hasConflict)
+                                  ? AppColors.borderMedium
+                                  : AppColors.primaryIndigo,
+                              foregroundColor: (isRoleFull || hasConflict)
                                   ? AppColors.textMuted
-                                  : AppColors.success,
-                              foregroundColor: Colors.white,
+                                  : AppColors.textDark,
                               disabledBackgroundColor: AppColors.borderMedium,
                               disabledForegroundColor: AppColors.textMuted,
                               padding: const EdgeInsets.symmetric(vertical: 14),
