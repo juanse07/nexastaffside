@@ -844,7 +844,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noEventsOrAvailability => 'No hay eventos o disponibilidad';
 
   @override
-  String get tapClockToSetAvailability => 'Toca el icono del reloj para fijar tu disponibilidad';
+  String get tapClockToSetAvailability =>
+      'Toca el icono del reloj para fijar tu disponibilidad';
 
   @override
   String get pullToRefresh => 'Desliza para actualizar y buscar nuevos eventos';
@@ -1250,7 +1251,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get subscribeNow => 'Suscribirse Ahora';
+  String get subscribeNow => 'Iniciar Prueba Gratis';
 
   @override
   String get restorePurchase => 'Restaurar Compra';
@@ -1267,7 +1268,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get cancelAnytime => 'Cancela cuando quieras';
+  String get cancelAnytime => '30 días gratis\nluego cancela cuando quieras';
 
   @override
   String get subscriptionDisclaimer =>
@@ -1545,13 +1546,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get featureLocked => 'requiere FlowShift Pro';
 
   @override
-  String get subscribeToUnlock => 'Suscríbete para Desbloquear';
+  String get subscribeToUnlock => 'Prueba 30 Días Gratis';
 
   @override
   String get notNow => 'Ahora no';
 
   @override
   String get readOnlyMode => 'Modo de solo lectura';
+
+  @override
+  String get plentyForMost => 'suficiente en la mayoría de casos';
 
   @override
   String get acceptShifts => 'Aceptar turnos';
@@ -1587,5 +1591,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get proFeatureCaricatures => 'Generar caricaturas de perfil';
 
   @override
-  String get proPrice => '\$7.99/mes';
+  String get proPrice => '\$8.99/mes';
+
+  @override
+  String get unlockFeature => 'Desbloquea';
+
+  @override
+  String get tryProFree => 'Prueba FlowShift Pro gratis por 30 días';
+
+  @override
+  String get noChargeUntilTrialEnds => 'Sin cargo hasta que termine la prueba';
+
+  @override
+  String get priceAnchor => '\$8.99 — menos que una visita al café.';
 }

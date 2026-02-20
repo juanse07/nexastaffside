@@ -101,8 +101,9 @@ class SubscriptionService {
     }
   }
 
-  /// Purchase Pro subscription ($7.80/month)
-  Future<bool> purchaseProSubscription() async {
+  /// Purchase Pro subscription ($8.99/month)
+  /// Returns a record: (success, errorDetail) so the UI can show what went wrong.
+  Future<({bool success, String? error})> purchaseProSubscription() async {
     try {
       if (!_initialized) {
         await initialize();
@@ -110,38 +111,61 @@ class SubscriptionService {
 
       // If Qonversion isn't configured, return false
       if (_qonversionUserId == null) {
-        print('[SubscriptionService] Cannot purchase - Qonversion not initialized');
-        return false;
+        const msg = 'Qonversion not initialized (no user ID)';
+        print('[SubscriptionService] $msg');
+        return (success: false, error: msg);
       }
 
       // Get available offerings
+      print('[SubscriptionService] Fetching offerings...');
       final offerings = await Qonversion.getSharedInstance().offerings();
       final mainOffering = offerings.main;
 
       if (mainOffering == null) {
-        print('[SubscriptionService] No offerings available');
-        return false;
+        final availableIds = offerings.availableOfferings.map((o) => o.id).toList();
+        final msg = 'No main offering. Available: $availableIds';
+        print('[SubscriptionService] $msg');
+        return (success: false, error: msg);
       }
 
+      // Log all products in the offering for diagnostics
+      final productIds = mainOffering.products.map((p) => '${p.qonversionId}(store:${p.storeId}, skProduct:${p.skProduct != null})').toList();
+      print('[SubscriptionService] Main offering "${mainOffering.id}" products: $productIds');
+
       // Find Pro subscription product (monthly subscription)
-      // Products are accessed from the products list
       QProduct? proProduct;
       for (final product in mainOffering.products) {
-        if (product.qonversionId == 'flowshift_staff_pro_monthly') {
+        if (product.qonversionId == 'flowshift_shifts_pro_monthly') {
           proProduct = product;
           break;
         }
       }
 
       if (proProduct == null) {
-        print('[SubscriptionService] Pro product not found');
-        return false;
+        final msg = 'Product "flowshift_shifts_pro_monthly" not in offering. Found: $productIds';
+        print('[SubscriptionService] $msg');
+        return (success: false, error: msg);
       }
 
+      print('[SubscriptionService] Found product: qId=${proProduct.qonversionId}, storeId=${proProduct.storeId}, '
+          'prettyPrice=${proProduct.prettyPrice}, skProduct=${proProduct.skProduct != null}, '
+          'type=${proProduct.type}');
+      if (proProduct.skProduct == null) {
+        final msg = 'StoreKit product not resolved — storeId "${proProduct.storeId}" may not exist in App Store Connect';
+        print('[SubscriptionService] WARNING: $msg');
+      }
       print('[SubscriptionService] Purchasing ${proProduct.qonversionId}...');
 
       // Purchase using purchaseProduct method
       final result = await Qonversion.getSharedInstance().purchaseProduct(proProduct);
+
+      // Log all returned entitlements
+      final entKeys = result.keys.toList();
+      print('[SubscriptionService] Purchase returned entitlements: $entKeys');
+      for (final key in entKeys) {
+        final ent = result[key];
+        print('[SubscriptionService]   $key → isActive=${ent?.isActive}, renewState=${ent?.renewState}');
+      }
 
       // Check if purchase was successful
       final isActive = result['pro_access']?.isActive ?? false;
@@ -150,14 +174,15 @@ class SubscriptionService {
         print('[SubscriptionService] Purchase successful!');
         // Sync with backend
         await _syncWithBackend();
+        return (success: true, error: null);
       } else {
-        print('[SubscriptionService] Purchase completed but entitlement not active');
+        final msg = 'Purchase completed but pro_access not active. Keys: $entKeys';
+        print('[SubscriptionService] $msg');
+        return (success: false, error: msg);
       }
-
-      return isActive;
     } catch (e) {
       print('[SubscriptionService] Purchase failed: $e');
-      return false;
+      return (success: false, error: e.toString());
     }
   }
 

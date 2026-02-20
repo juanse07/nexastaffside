@@ -674,7 +674,7 @@
       }
     }
   },
-  "subscribeNow": "Suscribirse Ahora",
+  "subscribeNow": "Iniciar Prueba Gratis",
   "restorePurchase": "Restaurar Compra",
   "bestValue": "Mejor Valor",
   "popular": "Popular",
@@ -686,7 +686,7 @@
       }
     }
   },
-  "cancelAnytime": "Cancela cuando quieras",
+  "cancelAnytime": "30 días gratis\nluego cancela cuando quieras",
   "subscriptionDisclaimer": "La suscripción se renueva automáticamente a menos que se cancele al menos 24 horas antes del final del período actual.",
   "purchaseSuccessful": "¡Compra exitosa! Disfruta las funciones Pro.",
   "failedToPurchase": "Error al completar la compra",
@@ -861,9 +861,10 @@
   "freeMonthExpired": "Tu mes gratis ha terminado — Suscríbete para desbloquear",
   "subscriptionRequired": "Suscripción Requerida",
   "featureLocked": "requiere FlowShift Pro",
-  "subscribeToUnlock": "Suscríbete para Desbloquear",
+  "subscribeToUnlock": "Prueba 30 Días Gratis",
   "notNow": "Ahora no",
   "readOnlyMode": "Modo de solo lectura",
+  "plentyForMost": "suficiente en la mayoría de casos",
   "acceptShifts": "Aceptar turnos",
   "declineShifts": "Rechazar turnos",
   "chatWithManagers": "Chatear con managers",
@@ -876,5 +877,9 @@
   "proFeatureClockInOut": "Registrar entrada/salida",
   "proFeatureAvailability": "Establecer disponibilidad",
   "proFeatureCaricatures": "Generar caricaturas de perfil",
-  "proPrice": "$7.99/mes"
+  "proPrice": "$8.99/mes",
+  "unlockFeature": "Desbloquea",
+  "tryProFree": "Prueba FlowShift Pro gratis por 30 días",
+  "noChargeUntilTrialEnds": "Sin cargo hasta que termine la prueba",
+  "priceAnchor": "$8.99 — menos que una visita al café."
 }

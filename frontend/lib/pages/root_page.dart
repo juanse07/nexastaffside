@@ -38,8 +38,9 @@ import '../core/navigation/route_error_manager.dart';
 import '../services/subscription_service.dart';
 import '../shared/widgets/free_month_banner.dart';
 import '../shared/widgets/subscription_gate.dart';
+import '../features/ai_assistant/presentation/subscription_paywall_screen.dart';
 
-enum _AccountMenuAction { profile, teams, logout }
+enum _AccountMenuAction { profile, teams, upgradePro, logout }
 
 List<Uri> _mapUriCandidates(String raw) {
   final trimmed = raw.trim();
@@ -1257,32 +1258,109 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               MaterialPageRoute(builder: (context) => const TeamCenterPage()),
             );
             break;
+          case _AccountMenuAction.upgradePro:
+            await Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const SubscriptionPaywallScreen()),
+            );
+            break;
           case _AccountMenuAction.logout:
             _signOut();
             break;
         }
       },
       itemBuilder: (context) => [
+        // ── Upgrade to Pro (hidden when already subscribed) ──────────────
+        if (SubscriptionService().isReadOnly || SubscriptionService().isInFreeMonth)
+          PopupMenuItem<_AccountMenuAction>(
+            value: _AccountMenuAction.upgradePro,
+            padding: EdgeInsets.zero,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.yellow.withValues(alpha: 0.18),
+                    AppColors.yellow.withValues(alpha: 0.06),
+                  ],
+                ),
+                border: Border(
+                  bottom: BorderSide(color: AppColors.yellow.withValues(alpha: 0.20), width: 1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.yellow.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.workspace_premium, size: 17, color: AppColors.yellow),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    AppLocalizations.of(context)!.upgradeToPro,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.navySpaceCadet,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.yellow,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'PRO',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.navySpaceCadet,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // ── My Profile ───────────────────────────────────────────────────
         PopupMenuItem<_AccountMenuAction>(
           value: _AccountMenuAction.profile,
           child: Row(
             children: [
-              Icon(
-                Icons.person,
-                color: Theme.of(context).colorScheme.onSurface,
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryPurple.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.person_rounded, size: 17, color: AppColors.secondaryPurple),
               ),
               const SizedBox(width: 12),
               Text(AppLocalizations.of(context)!.myProfile),
             ],
           ),
         ),
+
+        // ── Teams ────────────────────────────────────────────────────────
         PopupMenuItem<_AccountMenuAction>(
           value: _AccountMenuAction.teams,
           child: Row(
             children: [
-              Icon(
-                Icons.groups_outlined,
-                color: Theme.of(context).colorScheme.onSurface,
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.tealInfo.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.groups_rounded, size: 17, color: AppColors.tealInfo),
               ),
               const SizedBox(width: 12),
               Text(AppLocalizations.of(context)!.teams),
@@ -1291,14 +1369,14 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '$pendingInvites',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1307,16 +1385,27 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
             ],
           ),
         ),
+
+        // ── Logout ───────────────────────────────────────────────────────
+        const PopupMenuDivider(height: 1),
         PopupMenuItem<_AccountMenuAction>(
           value: _AccountMenuAction.logout,
           child: Row(
             children: [
-              Icon(
-                Icons.logout_rounded,
-                color: Theme.of(context).colorScheme.onSurface,
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.logout_rounded, size: 17, color: AppColors.error),
               ),
               const SizedBox(width: 12),
-              Text(AppLocalizations.of(context)!.logout),
+              Text(
+                AppLocalizations.of(context)!.logout,
+                style: const TextStyle(color: AppColors.error),
+              ),
             ],
           ),
         ),

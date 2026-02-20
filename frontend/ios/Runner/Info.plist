@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>FlowShift Staff</string>
+	<string>FlowShift</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>FlowShift Staff</string>
+	<string>FlowShift</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,7 +45,7 @@
 	<key>GIDServerClientID</key>
 	<string>832253199298-cj28t4ill6gltnea1epaslvb2o1mar5k.apps.googleusercontent.com</string>
 	<key>CFBundleVersion</key>
-	<string>2</string>
+	<string>10</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -98,5 +98,7 @@
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is needed for voice input with the AI assistant.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

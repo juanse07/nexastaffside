@@ -3,7 +3,7 @@ import '../../features/ai_assistant/presentation/subscription_paywall_screen.dar
 import '../presentation/theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 
-/// Shows a bottom sheet informing the user that a feature requires FlowShift Pro.
+/// Shows a bottom sheet inviting the user to try FlowShift Pro.
 /// Returns `true` if the user subscribed (navigated to paywall and came back with success).
 Future<bool> showSubscriptionRequiredSheet(
   BuildContext context, {
@@ -53,25 +53,32 @@ class _SubscriptionGateSheet extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // Lock icon
+          // Valerio mascot avatar
           Container(
-            width: 64,
-            height: 64,
+            width: 68,
+            height: 68,
             decoration: BoxDecoration(
-              color: AppColors.navySpaceCadet.withValues(alpha: 0.1),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.yellow.withValues(alpha: 0.25),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.lock_outline_rounded,
-              size: 32,
-              color: AppColors.navySpaceCadet,
+            child: ClipOval(
+              child: Image.asset(
+                'assets/ai_assistant_logo.png',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(height: 16),
 
-          // Title
+          // Context-aware title: "Unlock {featureName}"
           Text(
-            l10n.subscriptionRequired,
+            '${l10n.unlockFeature} $featureName',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -80,18 +87,31 @@ class _SubscriptionGateSheet extends StatelessWidget {
           ),
           const SizedBox(height: 8),
 
-          // Feature-specific message
+          // Value-first subtitle
           Text(
-            '$featureName ${l10n.featureLocked}',
+            l10n.tryProFree,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
               color: Colors.grey.shade600,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 6),
 
-          // Subscribe button
+          // Price anchor
+          Text(
+            l10n.priceAnchor,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade500,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // CTA button — warm yellow with navy text
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -107,8 +127,8 @@ class _SubscriptionGateSheet extends StatelessWidget {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.navySpaceCadet,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.yellow,
+                foregroundColor: AppColors.navySpaceCadet,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -123,16 +143,26 @@ class _SubscriptionGateSheet extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // Not now
+          // Reassurance text
+          Text(
+            l10n.noChargeUntilTrialEnds,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // "Not now" — slightly more visible
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(
               l10n.notNow,
               style: TextStyle(
                 fontSize: 15,
-                color: Colors.grey.shade500,
+                color: Colors.grey.shade600,
               ),
             ),
           ),

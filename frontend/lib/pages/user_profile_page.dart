@@ -308,12 +308,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.yellow),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
                     )
                   : Text(
                       l10n.save,
                       style: const TextStyle(
-                        color: AppColors.yellow,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
@@ -410,11 +410,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: Container(
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryPurple,
+                        color: AppColors.surfaceGray,
                         shape: BoxShape.circle,
                         border: Border.all(color: AppColors.surfaceLight, width: 2.5),
                       ),
-                      child: const Icon(Icons.camera_alt, size: 15, color: AppColors.yellow),
+                      child: const Icon(Icons.camera_alt, size: 15, color: AppColors.textMuted),
                     ),
                   ),
               ],
@@ -483,10 +483,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: filled ? AppColors.primaryPurple : Colors.transparent,
+          color: filled ? AppColors.surfaceGray : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: filled ? AppColors.primaryPurple : AppColors.borderMedium,
+            color: filled ? AppColors.borderMedium : AppColors.borderMedium,
           ),
         ),
         child: Row(
@@ -495,15 +495,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
             Icon(
               icon,
               size: 15,
-              color: filled ? AppColors.yellow : AppColors.textTertiary,
+              color: AppColors.textTertiary,
             ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: filled ? AppColors.yellow : AppColors.textTertiary,
+                color: AppColors.textTertiary,
               ),
             ),
           ],
@@ -688,11 +688,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: selected
-                      ? AppColors.primaryPurple
+                      ? AppColors.surfaceGray
                       : AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: selected ? AppColors.primaryPurple : AppColors.border,
+                    color: selected ? AppColors.borderMedium : AppColors.border,
                   ),
                 ),
                 child: Row(
@@ -700,7 +700,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     Icon(
                       selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                       size: 18,
-                      color: selected ? AppColors.yellow : AppColors.textMuted,
+                      color: selected ? AppColors.textSecondary : AppColors.textMuted,
                     ),
                     const SizedBox(width: 10),
                     Text(
@@ -708,7 +708,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: selected ? AppColors.yellow : AppColors.textSecondary,
+                        color: selected ? AppColors.textSecondary : AppColors.textTertiary,
                       ),
                     ),
                   ],
@@ -720,17 +720,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.primaryPurple,
+              color: AppColors.surfaceGray,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, size: 16, color: AppColors.yellow),
+                const Icon(Icons.info_outline, size: 16, color: AppColors.textMuted),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l10n.terminologyUpdateInfo,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textLightSecondary),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
                   ),
                 ),
               ],
@@ -954,12 +954,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryPurple,
+                            color: Colors.black54,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             l10n.activeBadge,
-                            style: const TextStyle(color: AppColors.yellow, fontSize: 9, fontWeight: FontWeight.w700),
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -1091,8 +1091,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     icon: Icon(isActive ? Icons.fullscreen_rounded : Icons.check_rounded, size: 20),
                     label: Text(isActive ? 'View Full Size' : 'Use This Photo'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryPurple,
-                      foregroundColor: AppColors.yellow,
+                      backgroundColor: AppColors.surfaceGray,
+                      foregroundColor: AppColors.textSecondary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

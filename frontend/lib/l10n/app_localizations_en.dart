@@ -836,7 +836,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noEventsOrAvailability => 'No events or availability';
 
   @override
-  String get tapClockToSetAvailability => 'Tap the clock icon to set your availability';
+  String get tapClockToSetAvailability =>
+      'Tap the clock icon to set your availability';
 
   @override
   String get pullToRefresh => 'Pull to refresh and check for new events';
@@ -1239,7 +1240,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get subscribeNow => 'Subscribe Now';
+  String get subscribeNow => 'Start Free Trial';
 
   @override
   String get restorePurchase => 'Restore Purchase';
@@ -1256,7 +1257,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get cancelAnytime => 'Cancel anytime';
+  String get cancelAnytime => '30 days free\nthen cancel anytime';
 
   @override
   String get subscriptionDisclaimer =>
@@ -1532,13 +1533,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featureLocked => 'requires FlowShift Pro';
 
   @override
-  String get subscribeToUnlock => 'Subscribe to Unlock';
+  String get subscribeToUnlock => 'Try 30 Days Free';
 
   @override
   String get notNow => 'Not now';
 
   @override
   String get readOnlyMode => 'Read-only mode';
+
+  @override
+  String get plentyForMost => 'plenty for most';
 
   @override
   String get acceptShifts => 'Accept shifts';
@@ -1574,5 +1578,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get proFeatureCaricatures => 'Generate profile caricatures';
 
   @override
-  String get proPrice => '\$7.99/month';
+  String get proPrice => '\$8.99/month';
+
+  @override
+  String get unlockFeature => 'Unlock';
+
+  @override
+  String get tryProFree => 'Try FlowShift Pro free for 30 days';
+
+  @override
+  String get noChargeUntilTrialEnds => 'No charge until trial ends';
+
+  @override
+  String get priceAnchor => '\$8.99 — less than a casual café stop.';
 }

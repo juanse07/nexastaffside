@@ -1622,6 +1622,10 @@ abstract class AppLocalizations {
   /// **'No events or availability'**
   String get noEventsOrAvailability;
 
+  /// No description provided for @tapClockToSetAvailability.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the clock icon to set your availability'**
   String get tapClockToSetAvailability;
 
   /// No description provided for @pullToRefresh.
@@ -2365,7 +2369,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscribeNow.
   ///
   /// In en, this message translates to:
-  /// **'Subscribe Now'**
+  /// **'Start Free Trial'**
   String get subscribeNow;
 
   /// No description provided for @restorePurchase.
@@ -2395,7 +2399,7 @@ abstract class AppLocalizations {
   /// No description provided for @cancelAnytime.
   ///
   /// In en, this message translates to:
-  /// **'Cancel anytime'**
+  /// **'30 days free\nthen cancel anytime'**
   String get cancelAnytime;
 
   /// No description provided for @subscriptionDisclaimer.
@@ -2893,7 +2897,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscribeToUnlock.
   ///
   /// In en, this message translates to:
-  /// **'Subscribe to Unlock'**
+  /// **'Try 30 Days Free'**
   String get subscribeToUnlock;
 
   /// No description provided for @notNow.
@@ -2907,6 +2911,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read-only mode'**
   String get readOnlyMode;
+
+  /// No description provided for @plentyForMost.
+  ///
+  /// In en, this message translates to:
+  /// **'plenty for most'**
+  String get plentyForMost;
 
   /// No description provided for @acceptShifts.
   ///
@@ -2977,8 +2987,32 @@ abstract class AppLocalizations {
   /// No description provided for @proPrice.
   ///
   /// In en, this message translates to:
-  /// **'\$7.99/month'**
+  /// **'\$8.99/month'**
   String get proPrice;
+
+  /// No description provided for @unlockFeature.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get unlockFeature;
+
+  /// No description provided for @tryProFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Try FlowShift Pro free for 30 days'**
+  String get tryProFree;
+
+  /// No description provided for @noChargeUntilTrialEnds.
+  ///
+  /// In en, this message translates to:
+  /// **'No charge until trial ends'**
+  String get noChargeUntilTrialEnds;
+
+  /// No description provided for @priceAnchor.
+  ///
+  /// In en, this message translates to:
+  /// **'\$8.99 — less than a casual café stop.'**
+  String get priceAnchor;
 }
 
 class _AppLocalizationsDelegate
