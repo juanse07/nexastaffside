@@ -5805,6 +5805,7 @@ class _CalendarTabState extends State<_CalendarTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Builder(
       builder: (context) {
@@ -5840,14 +5841,14 @@ class _CalendarTabState extends State<_CalendarTab> {
                                     children: [
                                       _buildViewToggleButton(
                                         icon: Icons.calendar_month_outlined,
-                                        label: 'Month',
+                                        label: l10n.calendarMonth,
                                         isActive: !_isAgendaView,
                                         onTap: () => setState(() => _isAgendaView = false),
                                         theme: theme,
                                       ),
                                       _buildViewToggleButton(
                                         icon: Icons.view_agenda_outlined,
-                                        label: 'Agenda',
+                                        label: l10n.agenda,
                                         isActive: _isAgendaView,
                                         onTap: () => setState(() => _isAgendaView = true),
                                         theme: theme,
@@ -5878,7 +5879,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                                         ),
                                         const SizedBox(width: 5),
                                         Text(
-                                          'Set Availability',
+                                          l10n.setAvailability,
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -6699,6 +6700,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     const months = [
       'Jan',
       'Feb',
@@ -6739,7 +6741,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Set Availability',
+                  l10n.setAvailability,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -6762,7 +6764,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
           children: [
             const SizedBox(height: 8),
             Text(
-              'Status',
+              l10n.availabilityStatus,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -6801,7 +6803,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Time Range',
+              l10n.timeRange,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -6940,7 +6942,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Need a whole week off?',
+                            l10n.needAWeekOff,
                             style: theme.textTheme.labelMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               color: theme.colorScheme.onSurface,
@@ -6948,7 +6950,7 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '"Mark me unavailable May 10 – 18"',
+                            l10n.markMeUnavailableExample,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
                               fontStyle: FontStyle.italic,

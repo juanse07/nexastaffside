@@ -393,6 +393,13 @@
   "failedToUpdateAvailability": "Failed to update availability",
   "failedToDeleteAvailability": "Failed to delete availability",
   "deleteAvailability": "Delete availability",
+  "calendarMonth": "Month",
+  "agenda": "Agenda",
+  "setAvailability": "Set Availability",
+  "availabilityStatus": "Status",
+  "timeRange": "Time Range",
+  "needAWeekOff": "Need a whole week off?",
+  "markMeUnavailableExample": "\"Mark me unavailable May 10 \u2013 18\"",
 
   "@@ Root Page - Menu": {},
   "myProfile": "My Profile",

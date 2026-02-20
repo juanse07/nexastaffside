@@ -1454,6 +1454,48 @@ abstract class AppLocalizations {
   /// **'Delete availability'**
   String get deleteAvailability;
 
+  /// No description provided for @calendarMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get calendarMonth;
+
+  /// No description provided for @agenda.
+  ///
+  /// In en, this message translates to:
+  /// **'Agenda'**
+  String get agenda;
+
+  /// No description provided for @setAvailability.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Availability'**
+  String get setAvailability;
+
+  /// No description provided for @availabilityStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get availabilityStatus;
+
+  /// No description provided for @timeRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Time Range'**
+  String get timeRange;
+
+  /// No description provided for @needAWeekOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Need a whole week off?'**
+  String get needAWeekOff;
+
+  /// No description provided for @markMeUnavailableExample.
+  ///
+  /// In en, this message translates to:
+  /// **'\"Mark me unavailable May 10 – 18\"'**
+  String get markMeUnavailableExample;
+
   /// No description provided for @teams.
   ///
   /// In en, this message translates to:

@@ -82,7 +82,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get youWillReceiveNotificationsFor => 'Recibirás notificaciones para:';
 
   @override
-  String get newMessagesFromManagers => 'Nuevos mensajes de gerentes';
+  String get newMessagesFromManagers => 'Nuevos mensajes de managers';
 
   @override
   String get taskAssignments => 'Asignaciones de tareas';
@@ -351,10 +351,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get yourManagerWillAppearHere =>
-      'Tu gerente aparecerá aquí cuando te envíe un mensaje';
+      'Tu manager aparecerá aquí cuando te envíe un mensaje';
 
   @override
-  String get errorManagerIdMissing => 'Error: Falta el ID del gerente';
+  String get errorManagerIdMissing => 'Error: Falta el ID del manager';
 
   @override
   String get noMessagesYet => 'Aún no hay mensajes';
@@ -370,16 +370,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get newChat => 'Nuevo Chat';
 
   @override
-  String get failedToLoadManagers => 'Error al cargar gerentes';
+  String get failedToLoadManagers => 'Error al cargar managers';
 
   @override
-  String get noManagersAssigned => 'No hay gerentes asignados';
+  String get noManagersAssigned => 'No hay managers asignados';
 
   @override
-  String get joinTeamToChat => 'Únete a un equipo para chatear con gerentes';
+  String get joinTeamToChat => 'Únete a un equipo para chatear con managers';
 
   @override
-  String get contactMyManagers => 'Contactar a Mis Gerentes';
+  String get contactMyManagers => 'Contactar a Mis Managers';
 
   @override
   String get untitledEvent => 'Evento sin título';
@@ -616,7 +616,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get callManager => 'Llamar al Gerente';
+  String get callManager => 'Llamar al Manager';
 
   @override
   String callPerson(String name) {
@@ -641,7 +641,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get declineInvitationConfirm =>
-      '¿Estás seguro de que quieres rechazar esta invitación al evento? Se notificará al gerente.';
+      '¿Estás seguro de que quieres rechazar esta invitación al evento? Se notificará al manager.';
 
   @override
   String get declineInvitation => 'Rechazar';
@@ -743,6 +743,28 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get deleteAvailability => 'Eliminar disponibilidad';
+
+  @override
+  String get calendarMonth => 'Mes';
+
+  @override
+  String get agenda => 'Agenda';
+
+  @override
+  String get setAvailability => 'Fijar Disponibilidad';
+
+  @override
+  String get availabilityStatus => 'Estado';
+
+  @override
+  String get timeRange => 'Rango de Tiempo';
+
+  @override
+  String get needAWeekOff => '¿Necesitas una semana libre?';
+
+  @override
+  String get markMeUnavailableExample =>
+      '\"Márcame no disponible del 10 al 18 de mayo\"';
 
   @override
   String get teams => 'Equipos';
@@ -895,7 +917,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noTeamBannerMessage =>
-      'Pide a tu gerente un enlace de invitación, o ve a Equipos para ingresar un código.';
+      'Pide a tu manager un enlace de invitación, o ve a Equipos para ingresar un código.';
 
   @override
   String get goToTeams => 'Ir a Equipos';
@@ -1026,7 +1048,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get youHaveNotJoinedAnyTeams => 'Aún no te has unido a ningún equipo.';
 
   @override
-  String get manager => 'Gerente';
+  String get manager => 'Manager';
 
   @override
   String get expires => 'Expira';
@@ -1039,7 +1061,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get enterInviteCodePrompt =>
-      'Ingresa el código de invitación que te dio tu gerente';
+      'Ingresa el código de invitación que te dio tu manager';
 
   @override
   String get inviteCode => 'Código de Invitación';
@@ -1098,7 +1120,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get startTheConversation => '¡Inicia la conversación!';
 
   @override
-  String get managerBadge => 'Gerente';
+  String get managerBadge => 'Manager';
 
   @override
   String get composeProfessionalMessages =>
@@ -1531,7 +1553,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get declineShifts => 'Rechazar turnos';
 
   @override
-  String get chatWithManagers => 'Chatear con gerentes';
+  String get chatWithManagers => 'Chatear con managers';
 
   @override
   String get generateCaricature => 'Generar caricatura';
@@ -1543,7 +1565,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get proFeatureAcceptDecline => 'Aceptar y rechazar turnos';
 
   @override
-  String get proFeatureChat => 'Chatear con gerentes y equipo';
+  String get proFeatureChat => 'Chatear con managers y equipo';
 
   @override
   String get proFeatureAI => 'Asistente IA (20 mensajes/mes)';

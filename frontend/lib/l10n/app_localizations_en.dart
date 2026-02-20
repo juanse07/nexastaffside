@@ -740,6 +740,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAvailability => 'Delete availability';
 
   @override
+  String get calendarMonth => 'Month';
+
+  @override
+  String get agenda => 'Agenda';
+
+  @override
+  String get setAvailability => 'Set Availability';
+
+  @override
+  String get availabilityStatus => 'Status';
+
+  @override
+  String get timeRange => 'Time Range';
+
+  @override
+  String get needAWeekOff => 'Need a whole week off?';
+
+  @override
+  String get markMeUnavailableExample => '\"Mark me unavailable May 10 – 18\"';
+
+  @override
   String get teams => 'Teams';
 
   @override
