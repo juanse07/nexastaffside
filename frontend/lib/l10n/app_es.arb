@@ -416,7 +416,8 @@
 
   "@@ Root Page - Empty States": {},
   "noUpcomingEvents": "No hay eventos próximos",
-  "noUpcomingShifts": "No hay turnos próximos",
+  "noUpcomingShifts": "No hay turnos pr\u00f3ximos",
+  "acceptedShiftsWillAppearHere": "Los turnos aceptados aparecer\u00e1n aqu\u00ed",
   "noAvailableRoles": "No Hay Roles Disponibles",
   "noRolesAvailable": "No hay roles disponibles",
   "noAvailableTerminology": "No Hay {terminology} Disponibles",

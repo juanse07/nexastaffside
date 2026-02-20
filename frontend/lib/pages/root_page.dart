@@ -5806,6 +5806,7 @@ class _CalendarTabState extends State<_CalendarTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final calendarLocale = Localizations.localeOf(context).toString();
 
     return Builder(
       builder: (context) {
@@ -5914,6 +5915,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 focusedDay: _focusedDay,
                                 calendarFormat: _calendarFormat,
                                 eventLoader: _getEventsForDay,
+                                locale: calendarLocale,
                                 startingDayOfWeek: StartingDayOfWeek.sunday,
                                 availableGestures: AvailableGestures.horizontalSwipe,
                                 daysOfWeekHeight: 30,
@@ -5931,8 +5933,13 @@ class _CalendarTabState extends State<_CalendarTab> {
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: 0.6,
                                   ),
-                                  dowTextFormatter: (date, locale) =>
-                                      ['SUN','MON','TUE','WED','THU','FRI','SAT'][date.weekday % 7],
+                                  dowTextFormatter: (date, locale) {
+                                    final isEs = (locale ?? calendarLocale).startsWith('es');
+                                    final days = isEs
+                                        ? ['DOM', 'LUN', 'MAR', 'MI\u00c9', 'JUE', 'VIE', 'S\u00c1B']
+                                        : ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                                    return days[date.weekday % 7];
+                                  },
                                 ),
                                 calendarBuilders: CalendarBuilders(
                                   markerBuilder: (context, day, events) {
@@ -6001,6 +6008,10 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 headerStyle: HeaderStyle(
                                   formatButtonVisible: false,
                                   titleCentered: true,
+                                  titleTextFormatter: (date, locale) {
+                                    final text = DateFormat('MMMM yyyy', locale ?? calendarLocale).format(date);
+                                    return text[0].toUpperCase() + text.substring(1);
+                                  },
                                   titleTextStyle: const TextStyle(
                                     color: AppColors.navySpaceCadet,
                                     fontSize: 15,
@@ -6279,6 +6290,8 @@ class _CalendarTabState extends State<_CalendarTab> {
   }
 
   List<Widget> _buildAgendaSlivers(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final agendaLocale = Localizations.localeOf(context).toString();
     final accepted = _filterAccepted(widget.events, widget.userKey);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -6322,12 +6335,12 @@ class _CalendarTabState extends State<_CalendarTab> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'No upcoming shifts',
+                  l10n.noUpcomingShifts,
                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Accepted shifts will appear here',
+                  l10n.acceptedShiftsWillAppearHere,
                   style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
@@ -6337,14 +6350,13 @@ class _CalendarTabState extends State<_CalendarTab> {
       ];
     }
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
     final slivers = <Widget>[];
     for (final date in sortedDates) {
       final isToday = isSameDay(date, today);
-      final dayLabel = isToday ? 'Today' : weekdays[date.weekday - 1];
-      final dateLabel = '${months[date.month - 1]} ${date.day}';
+      final dayLabel = isToday
+          ? l10n.today
+          : DateFormat('EEE', agendaLocale).format(date).replaceAll('.', '').toUpperCase();
+      final dateLabel = DateFormat('MMM d', agendaLocale).format(date).replaceAll('.', '');
       final events = grouped[date]!;
       final availability = _getAvailabilityForDay(date);
 
@@ -6701,22 +6713,8 @@ class _AvailabilityDialogState extends State<_AvailabilityDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final dateStr =
-        '${months[widget.selectedDay.month - 1]} ${widget.selectedDay.day}, ${widget.selectedDay.year}';
+    final dialogLocale = Localizations.localeOf(context).toString();
+    final dateStr = DateFormat.yMMMd(dialogLocale).format(widget.selectedDay);
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

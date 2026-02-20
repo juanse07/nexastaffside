@@ -796,7 +796,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noUpcomingEvents => 'No hay eventos próximos';
 
   @override
-  String get noUpcomingShifts => 'No hay turnos próximos';
+  String get noUpcomingShifts => 'No hay turnos pr\u00f3ximos';
+
+  @override
+  String get acceptedShiftsWillAppearHere => 'Los turnos aceptados aparecer\u00e1n aqu\u00ed';
 
   @override
   String get noAvailableRoles => 'No Hay Roles Disponibles';

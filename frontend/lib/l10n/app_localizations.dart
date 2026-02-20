@@ -1556,6 +1556,8 @@ abstract class AppLocalizations {
   /// **'No upcoming shifts'**
   String get noUpcomingShifts;
 
+  String get acceptedShiftsWillAppearHere;
+
   /// No description provided for @noAvailableRoles.
   ///
   /// In en, this message translates to:

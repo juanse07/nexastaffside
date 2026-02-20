@@ -792,6 +792,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noUpcomingShifts => 'No upcoming shifts';
 
   @override
+  String get acceptedShiftsWillAppearHere => 'Accepted shifts will appear here';
+
+  @override
   String get noAvailableRoles => 'No Available Roles';
 
   @override

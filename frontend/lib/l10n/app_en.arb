@@ -417,6 +417,7 @@
   "@@ Root Page - Empty States": {},
   "noUpcomingEvents": "No upcoming events",
   "noUpcomingShifts": "No upcoming shifts",
+  "acceptedShiftsWillAppearHere": "Accepted shifts will appear here",
   "noAvailableRoles": "No Available Roles",
   "noRolesAvailable": "No roles available",
   "noAvailableTerminology": "No Available {terminology}",
