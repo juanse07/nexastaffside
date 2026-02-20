@@ -1,4 +1,3 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -42,11 +41,9 @@ final _wholeFmt = NumberFormat('#,##0', 'en_US');
 
 class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClientMixin {
   late EarningsService _earningsService;
-  final _exportButtonKey = GlobalKey();
   bool _isVisible = false;
   bool _hasCalculated = false;
   bool _isExporting = false;
-  bool _isScrolled = false;
 
   // Pagination state
   int _displayMonths = 12;
@@ -167,15 +164,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
       );
 
       if (exportResult.success) {
-        // Get the FAB's position for the iOS share popover anchor
-        Rect? origin;
-        final renderBox = _exportButtonKey.currentContext?.findRenderObject() as RenderBox?;
-        if (renderBox != null) {
-          final position = renderBox.localToGlobal(Offset.zero);
-          origin = position & renderBox.size;
-        }
-
-        final shareError = await ExportService.shareExport(exportResult, origin: origin);
+        final shareError = await ExportService.shareExport(exportResult);
 
         if (shareError != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -264,84 +253,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     return VisibilityDetector(
       key: const Key('earnings-page'),
       onVisibilityChanged: _onVisibilityChanged,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is ScrollUpdateNotification) {
-            final scrolled = notification.metrics.pixels > 80;
-            if (scrolled != _isScrolled) {
-              setState(() => _isScrolled = scrolled);
-            }
-          }
-          return false;
-        },
-        child: Stack(
-          children: [
-            _buildContent(theme),
-            // Export button - only show when user is logged in
-            if (widget.userKey != null)
-              Positioned(
-                right: 16,
-                bottom: 130,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(_isScrolled ? 28 : 16),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      key: _exportButtonKey,
-                      height: _isScrolled ? 48 : 48,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: _isScrolled ? 12 : 20,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.navySpaceCadet.withValues(alpha: 0.75),
-                        borderRadius: BorderRadius.circular(_isScrolled ? 28 : 16),
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _isExporting ? null : _showExportOptions,
-                          borderRadius: BorderRadius.circular(_isScrolled ? 28 : 16),
-                          child: AnimatedSize(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeInOut,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _isExporting
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                        ),
-                                      )
-                                    : const Icon(Icons.download, color: Colors.white, size: 22),
-                                if (!_isScrolled) ...[
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _isExporting ? l10n.exporting : l10n.export,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+      child: _buildContent(theme),
     );
   }
 
@@ -512,17 +424,41 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
 
                     const SizedBox(height: 32),
 
-                    // Monthly Breakdown Header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        l10n.monthly,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                          color: AppColors.navySpaceCadet,
+                    // Monthly Breakdown Header with export action
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            l10n.monthly,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                              color: AppColors.navySpaceCadet,
+                            ),
+                          ),
                         ),
-                      ),
+                        if (widget.userKey != null)
+                          TextButton.icon(
+                            onPressed: _isExporting ? null : _showExportOptions,
+                            icon: _isExporting
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.download_outlined, size: 16),
+                            label: Text(_isExporting ? l10n.exporting : l10n.export),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.navySpaceCadet,
+                              textStyle: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
 
                     const SizedBox(height: 16),
