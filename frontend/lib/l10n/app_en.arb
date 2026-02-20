@@ -456,6 +456,7 @@
   "acceptEventsFromRoles": "Accept events from the Roles tab to see them here",
   "acceptEventFromShifts": "Accept an event from the Shifts tab to see it here",
   "noEventsOrAvailability": "No events or availability",
+  "tapClockToSetAvailability": "Tap the clock icon to set your availability",
   "pullToRefresh": "Pull to refresh and check for new events",
 
   "@@ Root Page - Calendar/Time": {},

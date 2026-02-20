@@ -456,6 +456,7 @@
   "acceptEventsFromRoles": "Acepta eventos de la pestaña Roles para verlos aquí",
   "acceptEventFromShifts": "Acepta un evento de la pestaña Turnos para verlo aquí",
   "noEventsOrAvailability": "No hay eventos o disponibilidad",
+  "tapClockToSetAvailability": "Toca el icono del reloj para fijar tu disponibilidad",
   "pullToRefresh": "Desliza para actualizar y buscar nuevos eventos",
 
   "@@ Root Page - Calendar/Time": {},

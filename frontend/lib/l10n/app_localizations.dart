@@ -1556,6 +1556,10 @@ abstract class AppLocalizations {
   /// **'No upcoming shifts'**
   String get noUpcomingShifts;
 
+  /// No description provided for @acceptedShiftsWillAppearHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted shifts will appear here'**
   String get acceptedShiftsWillAppearHere;
 
   /// No description provided for @noAvailableRoles.
@@ -1617,6 +1621,8 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No events or availability'**
   String get noEventsOrAvailability;
+
+  String get tapClockToSetAvailability;
 
   /// No description provided for @pullToRefresh.
   ///

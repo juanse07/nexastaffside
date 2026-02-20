@@ -6074,6 +6074,7 @@ class _CalendarTabState extends State<_CalendarTab> {
               ValueListenableBuilder<List<Map<String, dynamic>>>(
                 valueListenable: _selectedEvents,
                 builder: (context, value, _) {
+                  final l10n = AppLocalizations.of(context)!;
                   final availability = _getAvailabilityForDay(_selectedDay!);
 
                   final children = <Widget>[
@@ -6136,8 +6137,8 @@ class _CalendarTabState extends State<_CalendarTab> {
                                   children: [
                                     Text(
                                       availability['status'] == 'available'
-                                          ? 'Available'
-                                          : 'Unavailable',
+                                          ? l10n.available
+                                          : l10n.unavailable,
                                       style: theme.textTheme.titleMedium
                                           ?.copyWith(
                                             fontWeight: FontWeight.w600,
@@ -6199,14 +6200,14 @@ class _CalendarTabState extends State<_CalendarTab> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'No events or availability',
+                                l10n.noEventsOrAvailability,
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Tap the clock icon to set your availability',
+                                l10n.tapClockToSetAvailability,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),

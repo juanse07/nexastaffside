@@ -836,6 +836,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noEventsOrAvailability => 'No events or availability';
 
   @override
+  String get tapClockToSetAvailability => 'Tap the clock icon to set your availability';
+
+  @override
   String get pullToRefresh => 'Pull to refresh and check for new events';
 
   @override

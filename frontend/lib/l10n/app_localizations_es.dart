@@ -796,10 +796,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noUpcomingEvents => 'No hay eventos próximos';
 
   @override
-  String get noUpcomingShifts => 'No hay turnos pr\u00f3ximos';
+  String get noUpcomingShifts => 'No hay turnos próximos';
 
   @override
-  String get acceptedShiftsWillAppearHere => 'Los turnos aceptados aparecer\u00e1n aqu\u00ed';
+  String get acceptedShiftsWillAppearHere =>
+      'Los turnos aceptados aparecerán aquí';
 
   @override
   String get noAvailableRoles => 'No Hay Roles Disponibles';
@@ -841,6 +842,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noEventsOrAvailability => 'No hay eventos o disponibilidad';
+
+  @override
+  String get tapClockToSetAvailability => 'Toca el icono del reloj para fijar tu disponibilidad';
 
   @override
   String get pullToRefresh => 'Desliza para actualizar y buscar nuevos eventos';
