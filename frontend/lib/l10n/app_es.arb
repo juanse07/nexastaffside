@@ -65,6 +65,7 @@
   "loading": "Cargando...",
   "error": "Error",
   "tryAgain": "Intentar de Nuevo",
+  "delete": "Eliminar",
 
   "@@ Auth": {},
   "pleaseLogin": "Por favor inicia sesión",
@@ -73,7 +74,7 @@
   "retry": "Reintentar",
   "completeYourProfile": "Completa Tu Perfil",
   "signOut": "Cerrar sesión",
-  "welcomeToNexaStaff": "¡Bienvenido a Tie Staff!",
+  "welcomeToNexaStaff": "¡Bienvenido a FlowShift Staff!",
   "pleaseCompleteProfileToGetStarted": "Por favor completa tu perfil para comenzar",
   "firstNameLabel": "Nombre *",
   "enterYourFirstName": "Ingresa tu nombre",
@@ -102,6 +103,13 @@
   },
   "phoneNumberIsRequired": "El número de teléfono es requerido",
   "enterValidUSPhoneNumber": "Ingresa un número de teléfono válido de EE.UU.",
+  "letsGetYouSetUp": "Vamos a configurar tu perfil",
+  "getStarted": "Comenzar",
+  "yourProfile": "Tu Perfil",
+  "finishSetup": "Finalizar Configuración",
+  "youreAllSet": "¡Todo Listo!",
+  "yourProfileIsReady": "Tu perfil está listo. Ya puedes comenzar a aceptar eventos.",
+  "letsGo": "¡Vamos!",
 
   "@@ Earnings Details": {},
   "calculatingEarnings": "Calculando ganancias...",
@@ -218,6 +226,7 @@
       }
     }
   },
+  "loadingMap": "Cargando mapa...",
 
   "@@ Date and Time": {},
   "mon": "Lun",
@@ -471,5 +480,392 @@
   "@@ No Team Banner": {},
   "noTeamBannerTitle": "Aún no estás en un equipo",
   "noTeamBannerMessage": "Pide a tu gerente un enlace de invitación, o ve a Equipos para ingresar un código.",
-  "goToTeams": "Ir a Equipos"
+  "goToTeams": "Ir a Equipos",
+
+  "@@ Login Page": {},
+  "flowShiftStaff": "FlowShift Staff",
+  "signInToContinue": "Inicia sesión para continuar",
+  "continueWithGoogle": "Continuar con Google",
+  "continueWithApple": "Continuar con Apple",
+  "continueWithPhone": "Continuar con Teléfono",
+  "orSignInWithEmail": "o inicia sesión con email",
+  "email": "Email",
+  "password": "Contraseña",
+  "signIn": "Iniciar Sesión",
+  "pleaseEnterEmailAndPassword": "Por favor ingresa email y contraseña",
+  "googleSignInFailed": "Error al iniciar sesión con Google",
+  "appleSignInFailed": "Error al iniciar sesión con Apple",
+  "emailSignInFailed": "Error al iniciar sesión con email",
+  "bySigningInYouAgree": "Al iniciar sesión, aceptas nuestros",
+  "termsOfService": "Términos de Servicio",
+  "andWord": "y",
+  "privacyPolicy": "Política de Privacidad",
+
+  "@@ Phone Login": {},
+  "phoneSignIn": "Iniciar Sesión con Teléfono",
+  "wellSendVerificationCode": "Te enviaremos un código de verificación",
+  "enterPhoneNumber": "Ingresa número de teléfono",
+  "enterValidPhoneNumber": "Ingresa un número de teléfono válido",
+  "sendVerificationCode": "Enviar Código de Verificación",
+  "change": "Cambiar",
+  "verifyCode": "Verificar Código",
+  "enter6DigitCode": "Ingresa el código de 6 dígitos",
+  "pleaseEnterVerificationCode": "Por favor ingresa el código de verificación",
+  "didntReceiveCode": "¿No recibiste el código?",
+  "resend": "Reenviar",
+  "verificationCodeSentTo": "Código de verificación enviado a {phone}",
+  "@verificationCodeSentTo": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneVerificationFailed": "Error en verificación telefónica: {error}",
+  "@phoneVerificationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Team Center": {},
+  "teamCenter": "Centro de Equipos",
+  "invitations": "Invitaciones",
+  "noPendingInvites": "No hay invitaciones pendientes",
+  "enterInviteCode": "Ingresar Código de Invitación",
+  "failedToAcceptInvite": "Error al aceptar invitación: {error}",
+  "@failedToAcceptInvite": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToDeclineInvite": "Error al rechazar invitación: {error}",
+  "@failedToDeclineInvite": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "myTeams": "Mis Equipos",
+  "youHaveNotJoinedAnyTeams": "Aún no te has unido a ningún equipo.",
+  "manager": "Gerente",
+  "expires": "Expira",
+  "joined": "Unido",
+
+  "@@ Invite Code Dialog": {},
+  "joinATeam": "Unirse a un Equipo",
+  "enterInviteCodePrompt": "Ingresa el código de invitación que te dio tu gerente",
+  "inviteCode": "Código de Invitación",
+  "validateCode": "Validar Código",
+  "validInvite": "¡Invitación Válida!",
+  "team": "Equipo",
+  "description": "Descripción",
+  "successfullyJoinedTeam": "¡Te uniste al equipo exitosamente!",
+  "joining": "Uniéndose...",
+  "joinTeam": "Unirse al Equipo",
+  "failedToValidateCode": "Error al validar código: {error}",
+  "@failedToValidateCode": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToJoinTeam": "Error al unirse al equipo: {error}",
+  "@failedToJoinTeam": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterInviteCode": "Por favor ingresa un código de invitación",
+
+  "@@ Event Team Chat": {},
+  "teamChatEnabledBefore": "El chat del equipo se habilitará 1 hora antes del evento",
+  "chatOpensSoon": "El Chat Abre Pronto",
+  "teamChatWillOpen": "El chat del equipo se abrirá automáticamente 1 hora antes de que comience el evento",
+  "comeBackCloserToShift": "Regresa más cerca de la hora de tu turno para chatear con tu equipo",
+  "startTheConversation": "¡Inicia la conversación!",
+  "managerBadge": "Gerente",
+
+  "@@ AI Message Composer": {},
+  "composeProfessionalMessages": "Compón mensajes profesionales con asistencia de IA",
+  "composingYourMessage": "Componiendo tu mensaje...",
+  "messageInserted": "¡Mensaje insertado!",
+  "copiedToClipboard": "¡Copiado al portapapeles!",
+  "failedToComposeMessage": "Error al componer mensaje: {error}",
+  "@failedToComposeMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "whatWouldYouLikeToSay": "¿Qué te gustaría decir?",
+  "describeYourMessage": "Describe lo que quieres decir...",
+  "tone": "Tono",
+  "professionalFriendly": "Profesional y Amigable",
+  "casualFriendly": "Casual y Amigable",
+  "useMessage": "Usar Mensaje",
+  "useBoth": "Usar Ambos",
+  "tryDifferentScenario": "Probar Otro Escenario",
+  "insertIntoChat": "Insertar en el Chat",
+  "copyToClipboard": "Copiar al Portapapeles",
+  "generatedMessage": "Mensaje Generado",
+  "originalMessage": "Mensaje Original",
+
+  "@@ Staff AI Chat": {},
+  "aiAssistant": "Asistente IA",
+  "clearConversation": "¿Borrar Conversación?",
+  "clearConversationConfirm": "Esto eliminará todos los mensajes de esta conversación.",
+  "clear": "Borrar",
+  "failedToGetAIResponse": "Error al obtener respuesta de IA: {error}",
+  "@failedToGetAIResponse": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Chat Input": {},
+  "askAboutSchedule": "Pregunta sobre tu horario, ganancias o turnos...",
+  "aiIsThinking": "La IA está pensando...",
+  "recordingTapToStop": "Grabando... Toca el micrófono para detener",
+  "transcribingVoice": "Transcribiendo voz...",
+  "microphonePermissionRequired": "Se requiere permiso de micrófono. Por favor habilítalo en Configuración.",
+
+  "@@ Subscription Paywall": {},
+  "upgradeToPro": "Actualizar a Pro",
+  "flowShiftPro": "FlowShift Pro",
+  "unlimitedAiChat": "Mensajes de Chat IA Ilimitados",
+  "prioritySupport": "Soporte Prioritario",
+  "advancedAnalytics": "Análisis Avanzados",
+  "customNotifications": "Notificaciones Personalizadas",
+  "earlyAccessFeatures": "Acceso Anticipado a Nuevas Funciones",
+  "monthlyPrice": "{price}/mes",
+  "@monthlyPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "yearlyPrice": "{price}/año",
+  "@yearlyPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "subscribeNow": "Suscribirse Ahora",
+  "restorePurchase": "Restaurar Compra",
+  "bestValue": "Mejor Valor",
+  "popular": "Popular",
+  "freeTrialDays": "Prueba gratis de {days} días",
+  "@freeTrialDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "cancelAnytime": "Cancela cuando quieras",
+  "subscriptionDisclaimer": "La suscripción se renueva automáticamente a menos que se cancele al menos 24 horas antes del final del período actual.",
+  "purchaseSuccessful": "¡Compra exitosa! Disfruta las funciones Pro.",
+  "failedToPurchase": "Error al completar la compra",
+  "failedToRestore": "Error al restaurar la compra",
+  "noPreviousPurchase": "No se encontró compra anterior",
+
+  "@@ User Profile Extended": {},
+  "upload": "Subir",
+  "glowUp": "Glow Up",
+  "originalPhoto": "Foto Original",
+  "myCreations": "Mis Creaciones",
+  "activeBadge": "Activo",
+  "deleteCreation": "¿Eliminar creación?",
+  "deleteCreationConfirm": "Esto eliminará permanentemente esta creación.",
+  "newLookSaved": "¡Nuevo look guardado!",
+  "profilePictureUpdated": "¡Foto de perfil actualizada!",
+  "failedToSaveCreation": "Error al guardar creación",
+  "failedToDeleteCreation": "Error al eliminar creación",
+  "failedToUpdateProfilePicture": "Error al actualizar foto de perfil",
+  "noCreationsYet": "Aún no hay creaciones",
+
+  "@@ Earnings Extended": {},
+  "shareFailed": "Error al compartir: {error}",
+  "@shareFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "exportError": "Error de exportación: {error}",
+  "@exportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "export": "Exportar",
+  "exporting": "Exportando...",
+
+  "@@ Export Options": {},
+  "exportShifts": "Exportar Turnos",
+  "downloadShiftHistory": "Descarga tu historial de turnos",
+  "format": "Formato",
+  "csvFormat": "CSV (Hoja de cálculo)",
+  "pdfFormat": "PDF (Documento)",
+  "timePeriod": "Período de Tiempo",
+  "thisYear": "Este Año",
+  "allTime": "Todo el Tiempo",
+  "custom": "Personalizado",
+  "exportInfo": "La exportación incluye nombre del evento, fecha, horas trabajadas y tarifa.",
+  "generating": "Generando...",
+  "startDate": "Fecha de Inicio",
+  "endDate": "Fecha de Fin",
+
+  "@@ Enhanced Refresh": {},
+  "updatedSuccessfully": "Actualizado exitosamente",
+  "refreshFailed": "Error al actualizar: {error}",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "refresh": "Actualizar",
+  "refreshData": "Actualizar datos",
+  "dataMayBeOutdated": "Los datos pueden estar desactualizados",
+
+  "@@ Celebration Overlay": {},
+  "newRecord": "¡Nuevo Récord!",
+  "clockedInCelebration": "¡Entrada Registrada!",
+  "plusPoints": "+{points} puntos",
+  "@plusPoints": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "dayStreak": "¡{days} días seguidos!",
+  "@dayStreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToDismiss": "Toca en cualquier lugar para cerrar",
+
+  "@@ Gamification Card": {},
+  "levelLabel": "Nivel {level}",
+  "@levelLabel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "ptsLabel": "{pts} pts",
+  "@ptsLabel": {
+    "placeholders": {
+      "pts": {
+        "type": "int"
+      }
+    }
+  },
+  "points": "Puntos",
+  "streak": "Racha",
+  "best": "Mejor",
+  "nextLevel": "Siguiente nivel",
+  "ptsToGo": "{pts} pts para el siguiente",
+  "@ptsToGo": {
+    "placeholders": {
+      "pts": {
+        "type": "int"
+      }
+    }
+  },
+  "keepItUp": "¡Sigue así!",
+  "onFire": "¡En racha!",
+  "unstoppable": "¡Imparable!",
+  "justGettingStarted": "Apenas comenzando",
+  "daysCount": "{count} días",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "@@ Caricature Generator": {},
+  "profileGlowUp": "Glow Up de Perfil",
+  "yourRoleYourStyle": "Tu rol. Tu estilo. Tu look.",
+  "whoAreYouToday": "¿Quién eres hoy?",
+  "pickYourVibe": "Elige tu estilo",
+  "qualityLabel": "Calidad",
+  "standardQuality": "Estándar",
+  "hdQuality": "HD",
+  "textInImage": "Texto en imagen",
+  "optional": "Opcional",
+  "none": "Ninguno",
+  "readyForNewLook": "¿Listo para un nuevo look?",
+  "getMyNewLook": "Obtener Mi Nuevo Look",
+  "lookingGood": "¡Te ves genial!",
+  "before": "Antes",
+  "after": "Después",
+  "aiDisclaimer": "Las imágenes generadas por IA pueden no ser representaciones precisas.",
+  "useThisPhoto": "Usar Esta Foto",
+  "saving": "Guardando...",
+  "generateNew": "Generar Nuevo",
+  "seeMore": "Ver {count} más",
+  "@seeMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "showLess": "Menos",
+
+  "freeMonthBanner": "Mes gratis: {days} días restantes",
+  "@freeMonthBanner": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freeMonthExpired": "Tu mes gratis ha terminado — Suscríbete para desbloquear",
+  "subscriptionRequired": "Suscripción Requerida",
+  "featureLocked": "requiere FlowShift Pro",
+  "subscribeToUnlock": "Suscríbete para Desbloquear",
+  "notNow": "Ahora no",
+  "readOnlyMode": "Modo de solo lectura",
+  "acceptShifts": "Aceptar turnos",
+  "declineShifts": "Rechazar turnos",
+  "chatWithManagers": "Chatear con gerentes",
+  "generateCaricature": "Generar caricatura",
+  "aiAssistant": "Asistente IA",
+  "freeMonthExplore": "¡Tienes un mes gratis para explorar todo!",
+  "proFeatureAcceptDecline": "Aceptar y rechazar turnos",
+  "proFeatureChat": "Chatear con gerentes y equipo",
+  "proFeatureAI": "Asistente IA (20 mensajes/mes)",
+  "proFeatureClockInOut": "Registrar entrada/salida",
+  "proFeatureAvailability": "Establecer disponibilidad",
+  "proFeatureCaricatures": "Generar caricaturas de perfil",
+  "proPrice": "$7.99/mes"
 }

@@ -173,6 +173,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tryAgain => 'Try Again';
 
   @override
+  String get delete => 'Delete';
+
+  @override
   String get pleaseLogin => 'Please log in';
 
   @override
@@ -185,7 +188,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signOut => 'Sign out';
 
   @override
-  String get welcomeToNexaStaff => 'Welcome to Tie Staff!';
+  String get welcomeToNexaStaff => 'Welcome to FlowShift Staff!';
 
   @override
   String get pleaseCompleteProfileToGetStarted =>
@@ -253,6 +256,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enterValidUSPhoneNumber => 'Enter a valid US phone number';
+
+  @override
+  String get letsGetYouSetUp => 'Let\'s get you set up';
+
+  @override
+  String get getStarted => 'Get Started';
+
+  @override
+  String get yourProfile => 'Your Profile';
+
+  @override
+  String get finishSetup => 'Finish Setup';
+
+  @override
+  String get youreAllSet => 'You\'re All Set!';
+
+  @override
+  String get yourProfileIsReady =>
+      'Your profile is ready. You can now start accepting events.';
+
+  @override
+  String get letsGo => 'Let\'s Go';
 
   @override
   String get calculatingEarnings => 'Calculating earnings...';
@@ -451,6 +476,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String guestsCount(String count) {
     return 'Guests: $count';
   }
+
+  @override
+  String get loadingMap => 'Loading map...';
 
   @override
   String get mon => 'Mon';
@@ -865,4 +893,659 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goToTeams => 'Go to Teams';
+
+  @override
+  String get flowShiftStaff => 'FlowShift Staff';
+
+  @override
+  String get signInToContinue => 'Sign in to continue';
+
+  @override
+  String get continueWithGoogle => 'Continue with Google';
+
+  @override
+  String get continueWithApple => 'Continue with Apple';
+
+  @override
+  String get continueWithPhone => 'Continue with Phone';
+
+  @override
+  String get orSignInWithEmail => 'or sign in with email';
+
+  @override
+  String get email => 'Email';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get signIn => 'Sign In';
+
+  @override
+  String get pleaseEnterEmailAndPassword => 'Please enter email and password';
+
+  @override
+  String get googleSignInFailed => 'Google sign-in failed';
+
+  @override
+  String get appleSignInFailed => 'Apple sign-in failed';
+
+  @override
+  String get emailSignInFailed => 'Email sign-in failed';
+
+  @override
+  String get bySigningInYouAgree => 'By signing in, you agree to our';
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get andWord => 'and';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get phoneSignIn => 'Phone Sign In';
+
+  @override
+  String get wellSendVerificationCode => 'We\'ll send you a verification code';
+
+  @override
+  String get enterPhoneNumber => 'Enter phone number';
+
+  @override
+  String get enterValidPhoneNumber => 'Enter a valid phone number';
+
+  @override
+  String get sendVerificationCode => 'Send Verification Code';
+
+  @override
+  String get change => 'Change';
+
+  @override
+  String get verifyCode => 'Verify Code';
+
+  @override
+  String get enter6DigitCode => 'Enter 6-digit code';
+
+  @override
+  String get pleaseEnterVerificationCode =>
+      'Please enter the verification code';
+
+  @override
+  String get didntReceiveCode => 'Didn\'t receive the code?';
+
+  @override
+  String get resend => 'Resend';
+
+  @override
+  String verificationCodeSentTo(String phone) {
+    return 'Verification code sent to $phone';
+  }
+
+  @override
+  String phoneVerificationFailed(String error) {
+    return 'Phone verification failed: $error';
+  }
+
+  @override
+  String get teamCenter => 'Team Center';
+
+  @override
+  String get invitations => 'Invitations';
+
+  @override
+  String get noPendingInvites => 'No pending invites';
+
+  @override
+  String get enterInviteCode => 'Enter Invite Code';
+
+  @override
+  String failedToAcceptInvite(String error) {
+    return 'Failed to accept invite: $error';
+  }
+
+  @override
+  String failedToDeclineInvite(String error) {
+    return 'Failed to decline invite: $error';
+  }
+
+  @override
+  String get myTeams => 'My Teams';
+
+  @override
+  String get youHaveNotJoinedAnyTeams => 'You have not joined any teams yet.';
+
+  @override
+  String get manager => 'Manager';
+
+  @override
+  String get expires => 'Expires';
+
+  @override
+  String get joined => 'Joined';
+
+  @override
+  String get joinATeam => 'Join a Team';
+
+  @override
+  String get enterInviteCodePrompt =>
+      'Enter the invite code your manager gave you';
+
+  @override
+  String get inviteCode => 'Invite Code';
+
+  @override
+  String get validateCode => 'Validate Code';
+
+  @override
+  String get validInvite => 'Valid Invite!';
+
+  @override
+  String get team => 'Team';
+
+  @override
+  String get description => 'Description';
+
+  @override
+  String get successfullyJoinedTeam => 'Successfully joined team!';
+
+  @override
+  String get joining => 'Joining...';
+
+  @override
+  String get joinTeam => 'Join Team';
+
+  @override
+  String failedToValidateCode(String error) {
+    return 'Failed to validate code: $error';
+  }
+
+  @override
+  String failedToJoinTeam(String error) {
+    return 'Failed to join team: $error';
+  }
+
+  @override
+  String get pleaseEnterInviteCode => 'Please enter an invite code';
+
+  @override
+  String get teamChatEnabledBefore =>
+      'Team chat will be enabled 1 hour before the event';
+
+  @override
+  String get chatOpensSoon => 'Chat Opens Soon';
+
+  @override
+  String get teamChatWillOpen =>
+      'Team chat will automatically open 1 hour before the event starts';
+
+  @override
+  String get comeBackCloserToShift =>
+      'Come back closer to your shift time to chat with your team';
+
+  @override
+  String get startTheConversation => 'Start the conversation!';
+
+  @override
+  String get managerBadge => 'Manager';
+
+  @override
+  String get composeProfessionalMessages =>
+      'Compose professional messages with AI assistance';
+
+  @override
+  String get composingYourMessage => 'Composing your message...';
+
+  @override
+  String get messageInserted => 'Message inserted!';
+
+  @override
+  String get copiedToClipboard => 'Copied to clipboard!';
+
+  @override
+  String failedToComposeMessage(String error) {
+    return 'Failed to compose message: $error';
+  }
+
+  @override
+  String get whatWouldYouLikeToSay => 'What would you like to say?';
+
+  @override
+  String get describeYourMessage => 'Describe what you\'d like to say...';
+
+  @override
+  String get tone => 'Tone';
+
+  @override
+  String get professionalFriendly => 'Professional & Friendly';
+
+  @override
+  String get casualFriendly => 'Casual & Friendly';
+
+  @override
+  String get useMessage => 'Use Message';
+
+  @override
+  String get useBoth => 'Use Both';
+
+  @override
+  String get tryDifferentScenario => 'Try Different Scenario';
+
+  @override
+  String get insertIntoChat => 'Insert Into Chat';
+
+  @override
+  String get copyToClipboard => 'Copy to Clipboard';
+
+  @override
+  String get generatedMessage => 'Generated Message';
+
+  @override
+  String get originalMessage => 'Original Message';
+
+  @override
+  String get aiAssistant => 'AI Assistant';
+
+  @override
+  String get clearConversation => 'Clear Conversation?';
+
+  @override
+  String get clearConversationConfirm =>
+      'This will delete all messages in this conversation.';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String failedToGetAIResponse(String error) {
+    return 'Failed to get AI response: $error';
+  }
+
+  @override
+  String get askAboutSchedule =>
+      'Ask about your schedule, earnings, or shifts...';
+
+  @override
+  String get aiIsThinking => 'AI is thinking...';
+
+  @override
+  String get recordingTapToStop => 'Recording... Tap mic to stop';
+
+  @override
+  String get transcribingVoice => 'Transcribing voice...';
+
+  @override
+  String get microphonePermissionRequired =>
+      'Microphone permission required. Please enable it in Settings.';
+
+  @override
+  String get upgradeToPro => 'Upgrade to Pro';
+
+  @override
+  String get flowShiftPro => 'FlowShift Pro';
+
+  @override
+  String get unlimitedAiChat => 'Unlimited AI Chat Messages';
+
+  @override
+  String get prioritySupport => 'Priority Support';
+
+  @override
+  String get advancedAnalytics => 'Advanced Analytics';
+
+  @override
+  String get customNotifications => 'Custom Notifications';
+
+  @override
+  String get earlyAccessFeatures => 'Early Access to New Features';
+
+  @override
+  String monthlyPrice(String price) {
+    return '$price/month';
+  }
+
+  @override
+  String yearlyPrice(String price) {
+    return '$price/year';
+  }
+
+  @override
+  String get subscribeNow => 'Subscribe Now';
+
+  @override
+  String get restorePurchase => 'Restore Purchase';
+
+  @override
+  String get bestValue => 'Best Value';
+
+  @override
+  String get popular => 'Popular';
+
+  @override
+  String freeTrialDays(int days) {
+    return '$days-day free trial';
+  }
+
+  @override
+  String get cancelAnytime => 'Cancel anytime';
+
+  @override
+  String get subscriptionDisclaimer =>
+      'Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.';
+
+  @override
+  String get purchaseSuccessful => 'Purchase successful! Enjoy Pro features.';
+
+  @override
+  String get failedToPurchase => 'Failed to complete purchase';
+
+  @override
+  String get failedToRestore => 'Failed to restore purchase';
+
+  @override
+  String get noPreviousPurchase => 'No previous purchase found';
+
+  @override
+  String get upload => 'Upload';
+
+  @override
+  String get glowUp => 'Glow Up';
+
+  @override
+  String get originalPhoto => 'Original Photo';
+
+  @override
+  String get myCreations => 'My Creations';
+
+  @override
+  String get activeBadge => 'Active';
+
+  @override
+  String get deleteCreation => 'Delete creation?';
+
+  @override
+  String get deleteCreationConfirm =>
+      'This will permanently remove this creation.';
+
+  @override
+  String get newLookSaved => 'New look saved!';
+
+  @override
+  String get profilePictureUpdated => 'Profile picture updated!';
+
+  @override
+  String get failedToSaveCreation => 'Failed to save creation';
+
+  @override
+  String get failedToDeleteCreation => 'Failed to delete creation';
+
+  @override
+  String get failedToUpdateProfilePicture => 'Failed to update profile picture';
+
+  @override
+  String get noCreationsYet => 'No creations yet';
+
+  @override
+  String shareFailed(String error) {
+    return 'Share failed: $error';
+  }
+
+  @override
+  String exportError(String error) {
+    return 'Export error: $error';
+  }
+
+  @override
+  String get export => 'Export';
+
+  @override
+  String get exporting => 'Exporting...';
+
+  @override
+  String get exportShifts => 'Export Shifts';
+
+  @override
+  String get downloadShiftHistory => 'Download your shift history';
+
+  @override
+  String get format => 'Format';
+
+  @override
+  String get csvFormat => 'CSV (Spreadsheet)';
+
+  @override
+  String get pdfFormat => 'PDF (Document)';
+
+  @override
+  String get timePeriod => 'Time Period';
+
+  @override
+  String get thisYear => 'This Year';
+
+  @override
+  String get allTime => 'All Time';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get exportInfo =>
+      'Export includes event name, date, hours worked, and pay rate.';
+
+  @override
+  String get generating => 'Generating...';
+
+  @override
+  String get startDate => 'Start Date';
+
+  @override
+  String get endDate => 'End Date';
+
+  @override
+  String get updatedSuccessfully => 'Updated successfully';
+
+  @override
+  String refreshFailed(String error) {
+    return 'Refresh failed: $error';
+  }
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get refreshData => 'Refresh data';
+
+  @override
+  String get dataMayBeOutdated => 'Data may be outdated';
+
+  @override
+  String get newRecord => 'New Record!';
+
+  @override
+  String get clockedInCelebration => 'Clocked In!';
+
+  @override
+  String plusPoints(int points) {
+    return '+$points points';
+  }
+
+  @override
+  String dayStreak(int days) {
+    return '$days day streak!';
+  }
+
+  @override
+  String get tapToDismiss => 'Tap anywhere to dismiss';
+
+  @override
+  String levelLabel(int level) {
+    return 'Level $level';
+  }
+
+  @override
+  String ptsLabel(int pts) {
+    return '$pts pts';
+  }
+
+  @override
+  String get points => 'Points';
+
+  @override
+  String get streak => 'Streak';
+
+  @override
+  String get best => 'Best';
+
+  @override
+  String get nextLevel => 'Next level';
+
+  @override
+  String ptsToGo(int pts) {
+    return '$pts pts to go';
+  }
+
+  @override
+  String get keepItUp => 'Keep it up!';
+
+  @override
+  String get onFire => 'On fire!';
+
+  @override
+  String get unstoppable => 'Unstoppable!';
+
+  @override
+  String get justGettingStarted => 'Just getting started';
+
+  @override
+  String daysCount(int count) {
+    return '$count days';
+  }
+
+  @override
+  String get profileGlowUp => 'Profile Glow Up';
+
+  @override
+  String get yourRoleYourStyle => 'Your role. Your style. Your look.';
+
+  @override
+  String get whoAreYouToday => 'Who are you today?';
+
+  @override
+  String get pickYourVibe => 'Pick your vibe';
+
+  @override
+  String get qualityLabel => 'Quality';
+
+  @override
+  String get standardQuality => 'Standard';
+
+  @override
+  String get hdQuality => 'HD';
+
+  @override
+  String get textInImage => 'Text in image';
+
+  @override
+  String get optional => 'Optional';
+
+  @override
+  String get none => 'None';
+
+  @override
+  String get readyForNewLook => 'Ready for a new look?';
+
+  @override
+  String get getMyNewLook => 'Get My New Look';
+
+  @override
+  String get lookingGood => 'Looking good!';
+
+  @override
+  String get before => 'Before';
+
+  @override
+  String get after => 'After';
+
+  @override
+  String get aiDisclaimer =>
+      'AI-generated images may not be accurate representations.';
+
+  @override
+  String get useThisPhoto => 'Use This Photo';
+
+  @override
+  String get saving => 'Saving...';
+
+  @override
+  String get generateNew => 'Generate New';
+
+  @override
+  String seeMore(int count) {
+    return 'See $count more';
+  }
+
+  @override
+  String get showLess => 'Less';
+
+  @override
+  String freeMonthBanner(int days) {
+    return 'Free month: $days days remaining';
+  }
+
+  @override
+  String get freeMonthExpired =>
+      'Your free month has ended — Subscribe to unlock all features';
+
+  @override
+  String get subscriptionRequired => 'Subscription Required';
+
+  @override
+  String get featureLocked => 'requires FlowShift Pro';
+
+  @override
+  String get subscribeToUnlock => 'Subscribe to Unlock';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get readOnlyMode => 'Read-only mode';
+
+  @override
+  String get acceptShifts => 'Accept shifts';
+
+  @override
+  String get declineShifts => 'Decline shifts';
+
+  @override
+  String get chatWithManagers => 'Chat with managers';
+
+  @override
+  String get generateCaricature => 'Generate caricature';
+
+  @override
+  String get freeMonthExplore => 'You have a free month to explore everything!';
+
+  @override
+  String get proFeatureAcceptDecline => 'Accept & decline shifts';
+
+  @override
+  String get proFeatureChat => 'Chat with managers and team';
+
+  @override
+  String get proFeatureAI => 'AI Assistant (20 messages/month)';
+
+  @override
+  String get proFeatureClockInOut => 'Clock in/out';
+
+  @override
+  String get proFeatureAvailability => 'Set availability';
+
+  @override
+  String get proFeatureCaricatures => 'Generate profile caricatures';
+
+  @override
+  String get proPrice => '\$7.99/month';
 }

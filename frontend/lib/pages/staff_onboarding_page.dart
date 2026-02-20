@@ -446,6 +446,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
   // --------------- Step 0: Welcome ---------------
 
   Widget _buildWelcomeStep() {
+    final l10n = AppLocalizations.of(context)!;
     return FadeTransition(
       opacity: _fadeAnimations[0],
       child: SlideTransition(
@@ -479,9 +480,9 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  'Welcome to FlowShift',
-                  style: TextStyle(
+                Text(
+                  l10n.welcomeToNexaStaff,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -491,7 +492,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Let's get you set up in just a few steps",
+                  l10n.letsGetYouSetUp,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withValues(alpha: 0.6),
@@ -500,7 +501,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
                 ),
                 const SizedBox(height: 48),
                 _buildYellowButton(
-                  label: 'Get Started',
+                  label: l10n.getStarted,
                   onPressed: () => _goToStep(1),
                 ),
               ],
@@ -527,9 +528,9 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                const Text(
-                  'Your Profile',
-                  style: TextStyle(
+                Text(
+                  l10n.yourProfile,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: _kNavy,
@@ -616,7 +617,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
                 ],
                 const SizedBox(height: 24),
                 _buildYellowButton(
-                  label: 'Finish Setup',
+                  label: l10n.finishSetup,
                   loading: _saving,
                   onPressed: _saving ? null : _saveProfile,
                 ),
@@ -632,6 +633,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
   // --------------- Step 2: All Done ---------------
 
   Widget _buildDoneStep() {
+    final l10n = AppLocalizations.of(context)!;
     return FadeTransition(
       opacity: _fadeAnimations[2],
       child: SlideTransition(
@@ -656,9 +658,9 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
                   ),
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  "You're All Set!",
-                  style: TextStyle(
+                Text(
+                  l10n.youreAllSet,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
@@ -668,16 +670,48 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Your profile is ready. Time to get to work!',
+                  l10n.yourProfileIsReady,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withValues(alpha: 0.6),
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 24),
+                // Free month info card
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _kYellow.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: _kYellow,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          l10n.freeMonthExplore,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
                 _buildYellowButton(
-                  label: "Let's Go",
+                  label: l10n.letsGo,
                   onPressed: widget.onComplete,
                 ),
               ],

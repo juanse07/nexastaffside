@@ -14,6 +14,8 @@ import '../services/data_service.dart';
 import '../utils/id.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../services/subscription_service.dart';
+import '../shared/widgets/subscription_gate.dart';
 import 'event_team_chat_page.dart';
 
 class EventDetailPage extends StatefulWidget {
@@ -1695,9 +1697,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
     ThemeData theme,
     String response,
   ) async {
+    // Check subscription - block read-only users
+    if (SubscriptionService().isReadOnly) {
+      final featureName = response == 'accept'
+          ? AppLocalizations.of(context)!.acceptShifts
+          : AppLocalizations.of(context)!.declineShifts;
+      await showSubscriptionRequiredSheet(context, featureName: featureName);
+      return;
+    }
+
     // Prevent duplicate submissions
     if (_isResponding) {
-      debugPrint('⚠️ Response already in progress, ignoring duplicate click');
+      debugPrint('Response already in progress, ignoring duplicate click');
       return;
     }
 

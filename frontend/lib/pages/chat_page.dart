@@ -13,6 +13,8 @@ import '../services/data_service.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../shared/widgets/initials_avatar.dart';
+import '../services/subscription_service.dart';
+import '../shared/widgets/subscription_gate.dart';
 import '../widgets/ai_message_composer.dart';
 import '../widgets/event_invitation_card.dart';
 
@@ -175,6 +177,12 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty || _sending) return;
+
+    // Block read-only users from sending chat messages
+    if (SubscriptionService().isReadOnly) {
+      showSubscriptionRequiredSheet(context, featureName: AppLocalizations.of(context)!.chatWithManagers);
+      return;
+    }
 
     setState(() {
       _sending = true;

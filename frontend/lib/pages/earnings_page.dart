@@ -1,5 +1,6 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +11,7 @@ import '../widgets/export_options_sheet.dart';
 import '../providers/terminology_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../shared/widgets/free_month_banner.dart';
 
 /// Earnings page with optimized performance and pagination
 class EarningsPage extends StatefulWidget {
@@ -33,6 +35,10 @@ class EarningsPage extends StatefulWidget {
   @override
   State<EarningsPage> createState() => _EarningsPageState();
 }
+
+// Thousand-separator formatters
+final _currencyFmt = NumberFormat('#,##0.00', 'en_US');
+final _wholeFmt = NumberFormat('#,##0', 'en_US');
 
 class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClientMixin {
   late EarningsService _earningsService;
@@ -173,7 +179,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
 
         if (shareError != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Share failed: $shareError')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.shareFailed(shareError))),
           );
         }
       } else if (mounted) {
@@ -184,7 +190,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export error: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.exportError(e.toString()))),
         );
       }
     } finally {
@@ -253,6 +259,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
     super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return VisibilityDetector(
       key: const Key('earnings-page'),
@@ -315,7 +322,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                                 if (!_isScrolled) ...[
                                   const SizedBox(width: 8),
                                   Text(
-                                    _isExporting ? 'Exporting...' : 'Export',
+                                    _isExporting ? l10n.exporting : l10n.export,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 14,
@@ -351,6 +358,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
             profileMenu: widget.profileMenu,
             onTitleTap: widget.onTitleTap,
           ),
+          const SliverToBoxAdapter(child: FreeMonthBanner()),
           SliverFillRemaining(
             child: Center(
               child: Text(
@@ -373,6 +381,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
             profileMenu: widget.profileMenu,
             onTitleTap: widget.onTitleTap,
           ),
+          const SliverToBoxAdapter(child: FreeMonthBanner()),
           const SliverFillRemaining(
             child: Center(child: CircularProgressIndicator()),
           ),
@@ -396,6 +405,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 title: l10n.myEarnings,
                 profileMenu: widget.profileMenu,
               ),
+              const SliverToBoxAdapter(child: FreeMonthBanner()),
               SliverFillRemaining(
                 child: Center(
                   child: Column(
@@ -421,6 +431,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 title: l10n.myEarnings,
                 profileMenu: widget.profileMenu,
               ),
+              const SliverToBoxAdapter(child: FreeMonthBanner()),
               SliverFillRemaining(
                 child: Center(
                   child: Padding(
@@ -480,6 +491,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                 title: l10n.myEarnings,
                 profileMenu: widget.profileMenu,
               ),
+              const SliverToBoxAdapter(child: FreeMonthBanner()),
               SliverPadding(
                 padding: const EdgeInsets.all(16),
                 sliver: SliverList(
@@ -702,7 +714,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
 
                   // Main earnings amount
                   Text(
-                    '\$${total.toStringAsFixed(2)}',
+                    '\$${_currencyFmt.format(total)}',
                     style: const TextStyle(
                       color: AppColors.navySpaceCadet,
                       fontSize: 56,
@@ -731,7 +743,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                           child: _buildStatPill(
                             theme,
                             l10n.avgRate,
-                            '\$${(stats.totalEarnings / stats.totalHours).toStringAsFixed(0)}/hr',
+                            '\$${_wholeFmt.format(stats.totalEarnings / stats.totalHours)}/hr',
                             Icons.trending_up_rounded,
                           ),
                         ),
@@ -885,7 +897,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '\$${month.totalEarnings.toStringAsFixed(2)}',
+                      '\$${_currencyFmt.format(month.totalEarnings)}',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.yellow,
@@ -916,7 +928,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                     child: _MonthStatItem(
                       icon: Icons.trending_up,
                       label: AppLocalizations.of(context)!.avgRate,
-                      value: '\$${avgRate.toStringAsFixed(0)}/hr',
+                      value: '\$${_wholeFmt.format(avgRate)}/hr',
                     ),
                   ),
                 ],
@@ -1051,7 +1063,7 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
                           children: [
                             _HeaderStat(
                               label: l10n.totalEarningsTitle,
-                              value: '\$${totalEarnings.toStringAsFixed(2)}',
+                              value: '\$${_currencyFmt.format(totalEarnings)}',
                               isHighlighted: true,
                             ),
                             const SizedBox(width: 24),
@@ -1062,7 +1074,7 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
                             const SizedBox(width: 24),
                             _HeaderStat(
                               label: l10n.avgRate,
-                              value: '\$${avgRate.toStringAsFixed(0)}/hr',
+                              value: '\$${_wholeFmt.format(avgRate)}/hr',
                             ),
                           ],
                         ),
@@ -1183,7 +1195,7 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '\$${eventData.earnings.toStringAsFixed(2)}',
+                    '\$${_currencyFmt.format(eventData.earnings)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       color: AppColors.yellow,
@@ -1255,7 +1267,7 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
                   Expanded(
                     child: _EventStat(
                       label: l10n.rate,
-                      value: '\$${eventData.rate.toStringAsFixed(2)}/hr',
+                      value: '\$${_currencyFmt.format(eventData.rate)}/hr',
                       icon: Icons.trending_up_rounded,
                     ),
                   ),

@@ -35,6 +35,9 @@ import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
 import '../core/navigation/route_error_manager.dart';
+import '../services/subscription_service.dart';
+import '../shared/widgets/free_month_banner.dart';
+import '../shared/widgets/subscription_gate.dart';
 
 enum _AccountMenuAction { profile, teams, logout }
 
@@ -289,6 +292,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
   // Bottom bar visibility - Optimized for performance
   bool _isBottomBarVisible = true;
+  bool _showAskLabel = true; // Collapses to icon-only on scroll
   late AnimationController _bottomBarAnimationController;
   late Animation<Offset> _bottomBarAnimation;
   final GlobalKey _bottomBarKey = GlobalKey();
@@ -420,8 +424,20 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
       context.read<DataService>().loadInitialData();
     }
 
+    // Load subscription status (for free month banner / read-only gating)
+    unawaited(_loadSubscriptionStatus());
+
     // Load user profile (for avatar)
     unawaited(_loadUserProfile());
+  }
+
+  Future<void> _loadSubscriptionStatus() async {
+    try {
+      await SubscriptionService().getBackendStatus();
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error loading subscription status: $e');
+    }
   }
 
   Future<void> _loadUserProfile() async {
@@ -455,6 +471,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
         _isAnimating = false;
       });
     }
+    if (_showAskLabel) setState(() => _showAskLabel = false);
   }
 
   void _showBottomBar() {
@@ -465,6 +482,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
         _isAnimating = false;
       });
     }
+    if (!_showAskLabel) setState(() => _showAskLabel = true);
   }
 
   // Optimized scroll-end detection for auto-showing bottom bar
@@ -759,7 +777,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               }
               return false;
             },
-            child: IndexedStack(
+            child: Column(
+              children: [
+              Expanded(child: IndexedStack(
               index: _selectedBottomIndex,
               children: [
               _RolesSection(
@@ -796,25 +816,36 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 onShowBottomBar: _showBottomBar,
                 onTitleTap: _goToMyShifts,
               ),
-            ],
-            ),
-              ),
-              // AI Assistant floating button — visible across all tabs
+              ],
+              )), // close IndexedStack + Expanded
+              ], // close Column children
+              ), // close Column
+              ), // close NotificationListener
+              // AI Assistant floating button — visible across all tabs, animates on scroll
               Positioned(
                 right: 16,
                 bottom: MediaQuery.of(context).padding.bottom + 92,
                 child: GestureDetector(
                   onTap: () {
+                    if (SubscriptionService().isReadOnly) {
+                      showSubscriptionRequiredSheet(context, featureName: AppLocalizations.of(context)!.aiAssistant);
+                      return;
+                    }
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
                     );
                   },
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.only(left: 4, right: 14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    height: _showAskLabel ? 44 : 38,
+                    padding: EdgeInsets.only(
+                      left: 4,
+                      right: _showAskLabel ? 14 : 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(_showAskLabel ? 22 : 19),
                       boxShadow: [
                         BoxShadow(
                           color: AppColors.navySpaceCadet.withValues(alpha: 0.5),
@@ -829,110 +860,119 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                         ClipOval(
                           child: Image.asset(
                             'assets/ai_assistant_logo.png',
-                            width: 36,
-                            height: 36,
+                            width: _showAskLabel ? 36 : 30,
+                            height: _showAskLabel ? 36 : 30,
                             fit: BoxFit.cover,
                           ),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.only(left: 8),
-                          child: Text(
-                            'Ask',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          child: _showAskLabel
+                              ? const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: Text(
+                                    'Ask',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
-          bottomNavigationBar: RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: _bottomBarAnimation,
-              builder: (context, _) {
-                // Measure the bar height after first layout
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  final box = _bottomBarKey.currentContext?.findRenderObject() as RenderBox?;
-                  if (box != null && box.hasSize && _bottomBarHeight != box.size.height) {
-                    _bottomBarHeight = box.size.height;
-                  }
-                });
-                final progress = _bottomBarAnimation.value.dy; // 0 = visible, 1 = hidden
-                final slideDistance = _bottomBarHeight > 0 ? _bottomBarHeight * 0.72 : 0.0;
-                final translateY = progress * slideDistance;
-                // Fade out icons faster than the slide so only a clean bar peeks
-                final contentOpacity = (1.0 - progress * 2.5).clamp(0.0, 1.0);
-                return Transform.translate(
-                  offset: Offset(0, translateY),
-                  filterQuality: FilterQuality.none,
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                      child: Container(
-                        key: _bottomBarKey,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.75),
-                          border: const Border(
-                            top: BorderSide(
-                              color: Color(0x1A000000),
-                              width: 0.5,
+            // Nav bar in Stack so BackdropFilter can sample the scroll content behind it
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AnimatedBuilder(
+                  animation: _bottomBarAnimation,
+                  builder: (context, _) {
+                    // Measure the bar height after first layout
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      final box = _bottomBarKey.currentContext?.findRenderObject() as RenderBox?;
+                      if (box != null && box.hasSize && _bottomBarHeight != box.size.height) {
+                        _bottomBarHeight = box.size.height;
+                      }
+                    });
+                    final progress = _bottomBarAnimation.value.dy;
+                    final slideDistance = _bottomBarHeight > 0 ? _bottomBarHeight * 0.72 : 0.0;
+                    final translateY = progress * slideDistance;
+                    final contentOpacity = (1.0 - progress * 2.5).clamp(0.0, 1.0);
+                    return Transform.translate(
+                      offset: Offset(0, translateY),
+                      child: ClipRect(
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                          child: Container(
+                            key: _bottomBarKey,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              border: const Border(
+                                top: BorderSide(
+                                  color: Color(0x1A000000),
+                                  width: 0.5,
+                                ),
+                              ),
+                            ),
+                            child: SafeArea(
+                              top: false,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 8,
+                                ),
+                                child: Opacity(
+                                  opacity: contentOpacity,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      _buildNavItem(
+                                        icon: Icons.work_outline_rounded,
+                                        selectedIcon: Icons.work_rounded,
+                                        label: terminologyProvider.plural,
+                                        index: 0,
+                                      ),
+                                      _buildNavItem(
+                                        icon: Icons.chat_bubble_outline,
+                                        selectedIcon: Icons.chat_bubble,
+                                        label: 'Chats',
+                                        index: 1,
+                                      ),
+                                      _buildNavItem(
+                                        icon: Icons.account_balance_wallet_outlined,
+                                        selectedIcon: Icons.account_balance_wallet,
+                                        label: 'Earnings',
+                                        index: 2,
+                                      ),
+                                      _buildNavItem(
+                                        icon: Icons.access_time_outlined,
+                                        selectedIcon: Icons.access_time,
+                                        label: 'Clock In',
+                                        index: 3,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        child: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        child: Opacity(
-                          opacity: contentOpacity,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildNavItem(
-                                icon: Icons.work_outline_rounded,
-                                selectedIcon: Icons.work_rounded,
-                                label: terminologyProvider.plural,
-                                index: 0,
-                              ),
-                              _buildNavItem(
-                                icon: Icons.chat_bubble_outline,
-                                selectedIcon: Icons.chat_bubble,
-                                label: 'Chats',
-                                index: 1,
-                              ),
-                              _buildNavItem(
-                                icon: Icons.account_balance_wallet_outlined,
-                                selectedIcon: Icons.account_balance_wallet,
-                                label: 'Earnings',
-                                index: 2,
-                              ),
-                              _buildNavItem(
-                                icon: Icons.access_time_outlined,
-                                selectedIcon: Icons.access_time,
-                                label: 'Clock In',
-                                index: 3,
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
-                    ),
-                  ),
-                  ),  // BackdropFilter
-                  ),  // ClipRect
-                );
-              },
+                    );
+                  },
+              ),
             ),
-          ), // Close RepaintBoundary
+            ],
+          ),
         );
       },
     );
@@ -2340,6 +2380,7 @@ class _HomeTabState extends State<_HomeTab> {
             profileMenu: widget.profileMenu,
             onTitleTap: widget.onTitleTap,
           ),
+          const SliverToBoxAdapter(child: FreeMonthBanner()),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -3634,6 +3675,21 @@ class _RolesSectionState extends State<_RolesSection> {
     // Dynamic title based on selected view (no subtitle in new compact design)
     final String appBarTitle = terminologyProvider.plural;
 
+    // Calculate header heights - account for safe area (notch/Dynamic Island)
+    final double safeAreaTop = MediaQuery.of(context).padding.top;
+    final double appBarHeight = safeAreaTop + 56.0; // Safe area + content height
+    const double chipsHeight = 60.0;
+    const double toggleHeight = 34.0; // Unavailable dates toggle height (only in Available view)
+    final double totalHeaderHeight = appBarHeight + chipsHeight + (_selectedView == _ViewMode.available ? toggleHeight : 0);
+
+    // Banner height: accounts for free-month/expired banner below chips
+    final subscriptionService = SubscriptionService();
+    const double bannerHeight40 = 40.0;
+    final bool showFreeBanner = subscriptionService.statusLoaded &&
+        (subscriptionService.isReadOnly || subscriptionService.isInFreeMonth);
+    final double bannerHeight = showFreeBanner ? bannerHeight40 : 0.0;
+    final double totalSpacerHeight = totalHeaderHeight + bannerHeight;
+
     // Build content widget based on selected view
     Widget content;
     switch (_selectedView) {
@@ -3644,6 +3700,7 @@ class _RolesSectionState extends State<_RolesSection> {
           allEvents: widget.events,
           userKey: widget.userKey,
           availability: widget.availability,
+          headerHeight: totalSpacerHeight,
         );
         break;
       case _ViewMode.myEvents:
@@ -3654,6 +3711,7 @@ class _RolesSectionState extends State<_RolesSection> {
           onHideBottomBar: widget.onHideBottomBar,
           onShowBottomBar: widget.onShowBottomBar,
           availability: widget.availability,
+          headerHeight: totalSpacerHeight,
         );
         break;
       case _ViewMode.calendar:
@@ -3662,16 +3720,10 @@ class _RolesSectionState extends State<_RolesSection> {
           userKey: widget.userKey,
           loading: widget.loading,
           availability: widget.availability,
+          headerHeight: totalSpacerHeight,
         );
         break;
     }
-
-    // Calculate header heights - account for safe area (notch/Dynamic Island)
-    final double safeAreaTop = MediaQuery.of(context).padding.top;
-    final double appBarHeight = safeAreaTop + 56.0; // Safe area + content height
-    const double chipsHeight = 60.0;
-    const double toggleHeight = 34.0; // Unavailable dates toggle height (only in Available view)
-    final double totalHeaderHeight = appBarHeight + chipsHeight + (_selectedView == _ViewMode.available ? toggleHeight : 0);
 
     // Check if user has no teams (show banner)
     final dataService = context.watch<DataService>();
@@ -3912,6 +3964,8 @@ class _RolesSectionState extends State<_RolesSection> {
                   ),  // BackdropFilter
                 ),    // ClipRect
               ),      // SizedBox
+              // Free month / expired subscription banner — below chips, above content
+              const FreeMonthBanner(),
             ],
           ),
         ),
@@ -4018,6 +4072,7 @@ class _MyEventsList extends StatefulWidget {
   final VoidCallback? onHideBottomBar;
   final VoidCallback? onShowBottomBar;
   final List<Map<String, dynamic>> availability;
+  final double headerHeight;
 
   const _MyEventsList({
     required this.events,
@@ -4027,6 +4082,7 @@ class _MyEventsList extends StatefulWidget {
     this.onHideBottomBar,
     this.onShowBottomBar,
     this.availability = const [],
+    this.headerHeight = 160.0,
   });
 
   @override
@@ -4274,7 +4330,7 @@ class _MyEventsListState extends State<_MyEventsList> {
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
             child: Container(
-              height: 160, // AppBar (100) + Chips (60)
+              height: widget.headerHeight, // AppBar + Chips + banner
               color: Colors.transparent,
             ),
           ),
@@ -4947,6 +5003,7 @@ class _RoleList extends StatelessWidget {
   final List<Map<String, dynamic>> allEvents;
   final String? userKey;
   final List<Map<String, dynamic>> availability;
+  final double headerHeight;
 
   const _RoleList({
     required this.summaries,
@@ -4954,6 +5011,7 @@ class _RoleList extends StatelessWidget {
     required this.allEvents,
     required this.userKey,
     this.availability = const [],
+    this.headerHeight = 194.0,
   });
 
   List<Map<String, dynamic>> _acceptedEventsForUser(
@@ -5068,7 +5126,7 @@ class _RoleList extends StatelessWidget {
           // Transparent spacer that scrolls behind headers
           SliverToBoxAdapter(
             child: Container(
-              height: 194, // AppBar (100) + Chips (60) + Toggle (34)
+              height: headerHeight, // AppBar + Chips + Toggle + banner
               color: Colors.transparent,
             ),
           ),
@@ -5701,12 +5759,14 @@ class _CalendarTab extends StatefulWidget {
   final String? userKey;
   final bool loading;
   final List<Map<String, dynamic>> availability;
+  final double headerHeight;
 
   const _CalendarTab({
     required this.events,
     required this.userKey,
     required this.loading,
     required this.availability,
+    this.headerHeight = 200.0,
   });
 
   @override
@@ -5763,7 +5823,7 @@ class _CalendarTabState extends State<_CalendarTab> {
                   : SliverToBoxAdapter(
                       child: Column(
                         children: [
-                          const SizedBox(height: 200), // Space for app bar and filter chips (140 + 60)
+                          SizedBox(height: widget.headerHeight), // AppBar + chips + banner
                           // View toggle row
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -5834,8 +5894,19 @@ class _CalendarTabState extends State<_CalendarTab> {
                           ),
                           if (!_isAgendaView) ...[
                             Container(
-                              color: theme.colorScheme.surface,
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.06),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.only(bottom: 8),
                               child: TableCalendar<Map<String, dynamic>>(
                                 firstDay: DateTime.utc(2020, 1, 1),
                                 lastDay: DateTime.utc(2030, 12, 31),
@@ -5843,27 +5914,37 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 calendarFormat: _calendarFormat,
                                 eventLoader: _getEventsForDay,
                                 startingDayOfWeek: StartingDayOfWeek.sunday,
-                                availableGestures:
-                                    AvailableGestures.horizontalSwipe,
-                                daysOfWeekHeight: 40,
-                                rowHeight: 52,
+                                availableGestures: AvailableGestures.horizontalSwipe,
+                                daysOfWeekHeight: 30,
+                                rowHeight: 46,
+                                daysOfWeekStyle: DaysOfWeekStyle(
+                                  weekdayStyle: TextStyle(
+                                    color: AppColors.navySpaceCadet.withValues(alpha: 0.4),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.6,
+                                  ),
+                                  weekendStyle: TextStyle(
+                                    color: AppColors.navySpaceCadet.withValues(alpha: 0.4),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.6,
+                                  ),
+                                  dowTextFormatter: (date, locale) =>
+                                      ['SUN','MON','TUE','WED','THU','FRI','SAT'][date.weekday % 7],
+                                ),
                                 calendarBuilders: CalendarBuilders(
                                   markerBuilder: (context, day, events) {
                                     final hasEvents = events.isNotEmpty;
-                                    final availability = _getAvailabilityForDay(
-                                      day,
-                                    );
-
+                                    final availability = _getAvailabilityForDay(day);
                                     return Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         if (hasEvents)
                                           Container(
-                                            width: 6,
-                                            height: 6,
-                                            margin: const EdgeInsets.only(
-                                              right: 2,
-                                            ),
+                                            width: 5,
+                                            height: 5,
+                                            margin: const EdgeInsets.only(right: 2),
                                             decoration: const BoxDecoration(
                                               color: AppColors.oceanBlue,
                                               shape: BoxShape.circle,
@@ -5871,14 +5952,12 @@ class _CalendarTabState extends State<_CalendarTab> {
                                           ),
                                         if (availability != null)
                                           Container(
-                                            width: 6,
-                                            height: 6,
+                                            width: 5,
+                                            height: 5,
                                             decoration: BoxDecoration(
-                                              color:
-                                                  availability['status'] ==
-                                                      'available'
-                                                  ? Colors.green
-                                                  : Colors.red,
+                                              color: availability['status'] == 'available'
+                                                  ? AppColors.success
+                                                  : AppColors.error,
                                               shape: BoxShape.circle,
                                             ),
                                           ),
@@ -5888,46 +5967,82 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 ),
                                 calendarStyle: CalendarStyle(
                                   outsideDaysVisible: false,
-                                  weekendTextStyle: TextStyle(
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                  holidayTextStyle: TextStyle(
+                                  cellMargin: const EdgeInsets.all(3),
+                                  defaultTextStyle: const TextStyle(
                                     color: AppColors.navySpaceCadet,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  weekendTextStyle: const TextStyle(
+                                    color: AppColors.navySpaceCadet,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  todayDecoration: const BoxDecoration(
+                                    color: AppColors.primaryIndigo,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  todayTextStyle: const TextStyle(
+                                    color: AppColors.navySpaceCadet,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                   selectedDecoration: const BoxDecoration(
                                     color: AppColors.navySpaceCadet,
                                     shape: BoxShape.circle,
                                   ),
                                   selectedTextStyle: const TextStyle(
-                                    color: AppColors.yellow,
+                                    color: Colors.white,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                  todayDecoration: BoxDecoration(
-                                    color: AppColors.oceanBlue.withOpacity(0.3),
-                                    shape: BoxShape.circle,
-                                  ),
                                 ),
-                                headerStyle: const HeaderStyle(
+                                headerStyle: HeaderStyle(
                                   formatButtonVisible: false,
                                   titleCentered: true,
-                                  leftChevronIcon: Icon(
-                                    Icons.chevron_left,
+                                  titleTextStyle: const TextStyle(
                                     color: AppColors.navySpaceCadet,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
                                   ),
-                                  rightChevronIcon: Icon(
-                                    Icons.chevron_right,
-                                    color: AppColors.navySpaceCadet,
+                                  headerPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                                  leftChevronMargin: const EdgeInsets.only(left: 8),
+                                  rightChevronMargin: const EdgeInsets.only(right: 8),
+                                  leftChevronPadding: EdgeInsets.zero,
+                                  rightChevronPadding: EdgeInsets.zero,
+                                  leftChevronIcon: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.navySpaceCadet.withValues(alpha: 0.07),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.chevron_left_rounded,
+                                      color: AppColors.navySpaceCadet,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  rightChevronIcon: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.navySpaceCadet.withValues(alpha: 0.07),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: AppColors.navySpaceCadet,
+                                      size: 20,
+                                    ),
                                   ),
                                 ),
-                                selectedDayPredicate: (day) {
-                                  return isSameDay(_selectedDay, day);
-                                },
+                                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                                 onDaySelected: _onDaySelected,
                                 onFormatChanged: (format) {
                                   if (_calendarFormat != format) {
-                                    setState(() {
-                                      _calendarFormat = format;
-                                    });
+                                    setState(() => _calendarFormat = format);
                                   }
                                 },
                                 onPageChanged: (focusedDay) {
@@ -5935,7 +6050,6 @@ class _CalendarTabState extends State<_CalendarTab> {
                                 },
                               ),
                             ),
-                            const Divider(height: 1),
                           ],
                         ],
                       ),

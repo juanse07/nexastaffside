@@ -242,7 +242,6 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
                                 children: [
                                   _buildReasoningSection(),
                                   _buildMessageContent(),
-                                  _buildUsageIndicator(),
                                 ],
                               );
                         },
@@ -345,43 +344,6 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
           ],
         );
       },
-    );
-  }
-
-  Widget _buildUsageIndicator() {
-    final usage = widget.message.usage;
-    if (usage == null || usage.totalTokens == 0) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.token, size: 11, color: Colors.grey.shade400),
-          const SizedBox(width: 3),
-          Text(
-            '${usage.totalTokens} tokens',
-            style: TextStyle(
-              color: Colors.grey.shade400,
-              fontSize: 10,
-            ),
-          ),
-          if (usage.reasoningTokens > 0) ...[
-            const SizedBox(width: 6),
-            Icon(Icons.psychology, size: 11, color: Colors.orange.shade300),
-            const SizedBox(width: 2),
-            Text(
-              '${usage.reasoningTokens} reasoning',
-              style: TextStyle(
-                color: Colors.orange.shade300,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 

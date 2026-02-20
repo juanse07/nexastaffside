@@ -13,6 +13,8 @@ import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../shared/widgets/initials_avatar.dart';
 import '../shared/widgets/caricature_generator_sheet.dart';
+import '../services/subscription_service.dart';
+import '../shared/widgets/subscription_gate.dart';
 import 'chat_page.dart';
 
 class UserProfilePage extends StatefulWidget {
@@ -100,7 +102,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     } catch (e) {
       setState(() {
         _uploading = false;
-        _error = 'Failed to upload image: $e';
+        _error = AppLocalizations.of(context)!.failedToUploadPicture;
       });
     }
   }
@@ -131,11 +133,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _caricatureHistory = me.caricatureHistory;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('New look saved!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.newLookSaved)),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Failed to save: $e');
+      setState(() => _error = AppLocalizations.of(context)!.failedToSaveCreation);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -163,11 +165,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _originalPicture = updated.originalPicture;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile picture updated!')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.profilePictureUpdated)),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Failed to update: $e');
+      setState(() => _error = AppLocalizations.of(context)!.failedToUpdateProfilePicture);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -178,13 +180,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete creation?'),
-        content: const Text('This will remove it from your gallery.'),
+        title: Text(AppLocalizations.of(context)!.deleteCreation),
+        content: Text(AppLocalizations.of(context)!.deleteCreationConfirm),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -201,7 +203,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.failedToDeleteCreation)),
       );
     }
   }
@@ -290,6 +292,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   void _showCaricatureSheet() {
+    // Block read-only users
+    if (SubscriptionService().isReadOnly) {
+      showSubscriptionRequiredSheet(context, featureName: AppLocalizations.of(context)!.generateCaricature);
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -503,6 +510,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   /// Builds the row of action buttons below the avatar.
   Widget _buildPictureActions() {
+    final l10n = AppLocalizations.of(context)!;
     final hasPicture = _pictureCtrl.text.trim().isNotEmpty;
     final canRevert = _originalPicture != null && _originalPicture!.isNotEmpty;
 
@@ -519,7 +527,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             : TextButton.icon(
                 onPressed: _pickAndUploadImage,
                 icon: const Icon(Icons.photo_library_rounded, size: 16),
-                label: const Text('Upload'),
+                label: Text(l10n.upload),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.grey.shade600,
                   textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -529,7 +537,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           TextButton.icon(
             onPressed: _showCaricatureSheet,
             icon: const Icon(Icons.camera_enhance_rounded, size: 16),
-            label: const Text('Glow Up'),
+            label: Text(l10n.glowUp),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.secondary,
               textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
@@ -544,7 +552,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
               : TextButton.icon(
                   onPressed: _revertPicture,
                   icon: const Icon(Icons.undo_rounded, size: 16),
-                  label: const Text('Original Photo'),
+                  label: Text(l10n.originalPhoto),
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.grey.shade600,
                     textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
@@ -556,6 +564,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   /// Horizontal gallery of previous caricature creations.
   Widget _buildCreationsGallery() {
+    final l10n = AppLocalizations.of(context)!;
     // Show newest first, max 5
     final items = _caricatureHistory.reversed.take(5).toList();
 
@@ -567,7 +576,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             Icon(Icons.collections_rounded, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
             const SizedBox(width: 8),
             Text(
-              'My Creations',
+              l10n.myCreations,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -601,6 +610,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _buildCreationCard(CaricatureHistoryItem item, bool isActive, int originalIndex) {
+    final l10n = AppLocalizations.of(context)!;
     final roleLabel = _formatLabel(item.role);
     final styleLabel = _formatLabel(item.artStyle);
 
@@ -644,9 +654,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             color: AppColors.primaryPurple,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'Active',
-                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+                          child: Text(
+                            l10n.activeBadge,
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -684,6 +694,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   /// Show a bottom sheet with the full creation + actions.
   void _showCreationDetail(CaricatureHistoryItem item, bool isActive, int originalIndex) {
+    final l10n = AppLocalizations.of(context)!;
     final roleLabel = _formatLabel(item.role);
     final styleLabel = _formatLabel(item.artStyle);
     final dateStr = '${item.createdAt.month}/${item.createdAt.day}/${item.createdAt.year}';
@@ -751,7 +762,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       _deleteCaricature(originalIndex);
                     },
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    label: const Text('Delete'),
+                    label: Text(l10n.delete),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red.shade400,
                       side: BorderSide(color: Colors.red.shade200),

@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:frontend/services/caricature_service.dart';
 import 'package:frontend/shared/presentation/theme/app_colors.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Icon mapping from backend icon names to Flutter IconData.
 const _iconMap = <String, IconData>{
   // Hospitality & Events
@@ -211,7 +213,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   bool _loadingStyles = true;
   String? _selectedRoleId;
   String? _selectedArtStyleId;
-  String _selectedModel = 'dev'; // 'dev' = Standard, 'pro' = HD
+  String _selectedModel = 'pro'; // 'dev' = Standard, 'pro' = HD (default to pro)
   CaricatureResult? _preview;
   int _selectedImageIndex = 0;
   PageController? _pageController;
@@ -461,6 +463,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 14),
       child: Row(
@@ -474,23 +477,23 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
             child: const Icon(Icons.camera_enhance_rounded, color: AppColors.primaryIndigo, size: 24),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Profile Glow Up',
-                  style: TextStyle(
+                  l10n.profileGlowUp,
+                  style: const TextStyle(
                     fontSize: 21,
                     fontWeight: FontWeight.w800,
                     color: AppColors.primaryPurple,
                     letterSpacing: -0.3,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Your role. Your style. Your look.',
-                  style: TextStyle(
+                  l10n.yourRoleYourStyle,
+                  style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textMuted,
@@ -573,6 +576,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   }
 
   Widget _buildRoleSection() {
+    final l10n = AppLocalizations.of(context)!;
     if (_loadingStyles) {
       return const Center(
         child: Padding(
@@ -593,9 +597,9 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
             children: [
               Icon(Icons.badge_outlined, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
               const SizedBox(width: 8),
-              const Text(
-                'Who are you today?',
-                style: TextStyle(
+              Text(
+                l10n.whoAreYouToday,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppColors.primaryPurple,
@@ -631,7 +635,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
                         Icon(Icons.expand_more_rounded, size: 16, color: AppColors.primaryPurple),
                         const SizedBox(width: 4),
                         Text(
-                          'See $hiddenCount more',
+                          l10n.seeMore(hiddenCount),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -657,10 +661,10 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
           children: [
             Icon(Icons.badge_outlined, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Who are you today?',
-                style: TextStyle(
+                l10n.whoAreYouToday,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: AppColors.primaryPurple,
@@ -684,7 +688,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
                     Icon(Icons.expand_less_rounded, size: 16, color: AppColors.textMuted),
                     const SizedBox(width: 2),
                     Text(
-                      'Less',
+                      l10n.showLess,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -733,6 +737,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
 
   Widget _buildStyleSection() {
     if (_loadingStyles) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -741,9 +746,9 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
           children: [
             Icon(Icons.palette_outlined, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
             const SizedBox(width: 8),
-            const Text(
-              'Pick your vibe',
-              style: TextStyle(
+            Text(
+              l10n.pickYourVibe,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primaryPurple,
@@ -819,6 +824,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
 
   Widget _buildModelSection() {
     if (_loadingStyles) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -827,9 +833,9 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
           children: [
             Icon(Icons.tune_rounded, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
             const SizedBox(width: 8),
-            const Text(
-              'Quality',
-              style: TextStyle(
+            Text(
+              l10n.qualityLabel,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primaryPurple,
@@ -841,16 +847,16 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
         SizedBox(
           width: double.infinity,
           child: SegmentedButton<String>(
-            segments: const [
+            segments: [
               ButtonSegment<String>(
                 value: 'dev',
-                label: Text('Standard'),
-                icon: Icon(Icons.speed_rounded, size: 18),
+                label: Text(l10n.standardQuality),
+                icon: const Icon(Icons.speed_rounded, size: 18),
               ),
               ButtonSegment<String>(
                 value: 'pro',
-                label: Text('HD'),
-                icon: Icon(Icons.hd_rounded, size: 18),
+                label: Text(l10n.hdQuality),
+                icon: const Icon(Icons.hd_rounded, size: 18),
               ),
             ],
             selected: {_selectedModel},
@@ -912,6 +918,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
 
   Widget _buildTextOverlaySection() {
     if (_loadingStyles) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
 
     final name = _fullName;
     final taglines = _availableTaglines();
@@ -923,9 +930,9 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
           children: [
             Icon(Icons.text_fields_rounded, size: 18, color: AppColors.primaryPurple.withValues(alpha: 0.7)),
             const SizedBox(width: 8),
-            const Text(
-              'Text in image',
-              style: TextStyle(
+            Text(
+              l10n.textInImage,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primaryPurple,
@@ -938,9 +945,9 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
                 color: AppColors.surfaceGray,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Text(
-                'Optional',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+              child: Text(
+                l10n.optional,
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textMuted),
               ),
             ),
           ],
@@ -951,7 +958,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
           runSpacing: 6,
           children: [
             _buildToggleChip(
-              label: 'None',
+              label: l10n.none,
               selected: !_includeNameChip && _selectedTagline == null,
               icon: Icons.block_rounded,
               onTap: () => setState(() {
@@ -1040,6 +1047,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   }
 
   Widget _buildPreview() {
+    final l10n = AppLocalizations.of(context)!;
     if (_generating) return _buildGeneratingState();
     if (_preview != null) return _buildBeforeAfter();
 
@@ -1073,9 +1081,9 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Ready for a new look?',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.primaryPurple),
+          Text(
+            l10n.readyForNewLook,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.primaryPurple),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -1125,13 +1133,14 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   }
 
   Widget _buildBeforeAfter() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 14),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 14),
           child: Text(
-            'Looking good!',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primaryPurple),
+            l10n.lookingGood,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.primaryPurple),
           ),
         ),
         if (_preview!.cached)
@@ -1158,7 +1167,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
           ),
         Row(
           children: [
-            Expanded(child: _buildImageCard('Before', widget.currentPictureUrl, false)),
+            Expanded(child: _buildImageCard(l10n.before, widget.currentPictureUrl, false)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Container(
@@ -1170,9 +1179,9 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
             Expanded(
               child: Column(
                 children: [
-                  const Text(
-                    'After',
-                    style: TextStyle(
+                  Text(
+                    l10n.after,
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primaryPurple,
@@ -1383,13 +1392,14 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   }
 
   Widget _buildAiDisclaimer() {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(Icons.info_outline_rounded, size: 14, color: AppColors.textMuted.withValues(alpha: 0.7)),
         const SizedBox(width: 6),
         Text(
-          'AI-generated images may not be accurate',
+          l10n.aiDisclaimer,
           style: TextStyle(
             fontSize: 12,
             color: AppColors.textMuted.withValues(alpha: 0.7),
@@ -1400,6 +1410,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
   }
 
   Widget _buildActions() {
+    final l10n = AppLocalizations.of(context)!;
     if (_preview != null) {
       return Row(
         children: [
@@ -1414,7 +1425,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
                 _preview!.cached ? Icons.auto_awesome_rounded : Icons.refresh_rounded,
                 size: 18,
               ),
-              label: Text(_preview!.cached ? 'Generate New' : 'Try Again'),
+              label: Text(_preview!.cached ? l10n.generateNew : l10n.tryAgain),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.textSecondary,
                 side: const BorderSide(color: AppColors.border),
@@ -1431,7 +1442,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
               icon: _accepting
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.check_rounded, size: 20),
-              label: Text(_accepting ? 'Saving...' : 'Use This Photo'),
+              label: Text(_accepting ? l10n.saving : l10n.useThisPhoto),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryPurple,
                 foregroundColor: Colors.white,
@@ -1461,7 +1472,7 @@ class _CaricatureGeneratorSheetState extends State<CaricatureGeneratorSheet>
             child: ElevatedButton.icon(
               onPressed: canGenerate ? _generate : null,
               icon: const Icon(Icons.camera_enhance_rounded, size: 20),
-              label: const Text('Get My New Look'),
+              label: Text(l10n.getMyNewLook),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryPurple,
                 foregroundColor: Colors.white,

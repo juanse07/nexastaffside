@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'auth_service.dart';
 import 'core/navigation/route_error_manager.dart';
+import 'l10n/app_localizations.dart';
 import 'pages/staff_onboarding_page.dart';
 import 'widgets/phone_login_widget.dart';
 
@@ -44,11 +45,12 @@ class _LoginPageState extends State<LoginPage> {
     final ok = await AuthService.signInWithGoogle(onError: (m) => err = m);
     if (!mounted) return;
 
+    final googleFailedMsg = AppLocalizations.of(context)!.googleSignInFailed;
     setState(() {
       _loadingGoogle = false;
       if (!ok) {
-        final errorMsg = err?.trim() ?? 'Google sign-in failed';
-        _error = errorMsg.isEmpty ? 'Google sign-in failed' : errorMsg;
+        final errorMsg = err?.trim() ?? googleFailedMsg;
+        _error = errorMsg.isEmpty ? googleFailedMsg : errorMsg;
       }
     });
 
@@ -69,7 +71,7 @@ class _LoginPageState extends State<LoginPage> {
     final ok = await AuthService.signInWithApple();
     setState(() {
       _loadingApple = false;
-      if (!ok) _error = 'Apple sign-in failed';
+      if (!ok) _error = AppLocalizations.of(context)!.appleSignInFailed;
     });
     if (ok && mounted) {
       await RouteErrorManager.instance.navigateSafely(
@@ -84,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Please enter email and password');
+      setState(() => _error = AppLocalizations.of(context)!.pleaseEnterEmailAndPassword);
       return;
     }
     setState(() {
@@ -100,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     setState(() {
       _loadingEmail = false;
-      if (!ok) _error = err ?? 'Email sign-in failed';
+      if (!ok) _error = err ?? AppLocalizations.of(context)!.emailSignInFailed;
     });
     if (ok && mounted) {
       await RouteErrorManager.instance.navigateSafely(
@@ -144,6 +146,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final bool showApple = Platform.isIOS;
 
@@ -195,9 +198,9 @@ class _LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 24),
 
                       // Brand Name
-                      const Text(
-                        'FlowShift Staff',
-                        style: TextStyle(
+                      Text(
+                        l10n.flowShiftStaff,
+                        style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
@@ -207,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Sign in to continue',
+                        l10n.signInToContinue,
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.white.withOpacity(0.6),
@@ -273,7 +276,7 @@ class _LoginPageState extends State<LoginPage> {
                               loading: _loadingGoogle,
                               icon: Icons.g_mobiledata_rounded,
                               iconSize: 28,
-                              label: 'Continue with Google',
+                              label: l10n.continueWithGoogle,
                               backgroundColor: _kNavy,
                               foregroundColor: Colors.white,
                             ),
@@ -284,7 +287,7 @@ class _LoginPageState extends State<LoginPage> {
                                 onPressed: _loadingApple ? null : _handleApple,
                                 loading: _loadingApple,
                                 icon: Icons.apple,
-                                label: 'Continue with Apple',
+                                label: l10n.continueWithApple,
                                 backgroundColor: Colors.black,
                                 foregroundColor: Colors.white,
                               ),
@@ -294,7 +297,7 @@ class _LoginPageState extends State<LoginPage> {
                             _SocialButton(
                               onPressed: _handlePhone,
                               icon: Icons.phone_android,
-                              label: 'Continue with Phone',
+                              label: l10n.continueWithPhone,
                               backgroundColor: Colors.transparent,
                               foregroundColor: _kNavy,
                               outlined: true,
@@ -309,7 +312,7 @@ class _LoginPageState extends State<LoginPage> {
                                   Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 16),
                                     child: Text(
-                                      'or sign in with email',
+                                      l10n.orSignInWithEmail,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: Colors.grey.shade500,
@@ -333,7 +336,7 @@ class _LoginPageState extends State<LoginPage> {
                                   color: Colors.grey.shade400,
                                   size: 20,
                                 ),
-                                hintText: 'Email',
+                                hintText: l10n.email,
                                 hintStyle: TextStyle(color: Colors.grey.shade400),
                                 filled: true,
                                 fillColor: Colors.grey.shade50,
@@ -369,7 +372,7 @@ class _LoginPageState extends State<LoginPage> {
                                   color: Colors.grey.shade400,
                                   size: 20,
                                 ),
-                                hintText: 'Password',
+                                hintText: l10n.password,
                                 hintStyle: TextStyle(color: Colors.grey.shade400),
                                 filled: true,
                                 fillColor: Colors.grey.shade50,
@@ -417,9 +420,9 @@ class _LoginPageState extends State<LoginPage> {
                                           color: _kNavy,
                                         ),
                                       )
-                                    : const Text(
-                                        'Sign In',
-                                        style: TextStyle(
+                                    : Text(
+                                        l10n.signIn,
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -433,7 +436,7 @@ class _LoginPageState extends State<LoginPage> {
 
                       // Footer
                       Text(
-                        'By continuing, you agree to our\nTerms of Service and Privacy Policy',
+                        '${l10n.bySigningInYouAgree}\n${l10n.termsOfService} ${l10n.andWord} ${l10n.privacyPolicy}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.white.withOpacity(0.4),

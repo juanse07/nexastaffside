@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/terminology_provider.dart';
 import '../../../shared/presentation/theme/theme.dart';
 import '../../../services/data_service.dart';
@@ -18,6 +19,7 @@ import '../widgets/chat_input_widget.dart';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/shift_action_card.dart';
 import 'subscription_paywall_screen.dart';
+import '../../../shared/widgets/subscription_gate.dart';
 
 /// Staff AI Assistant Chat Screen
 /// Main interface for staff to interact with AI assistant
@@ -107,6 +109,12 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   Future<void> _sendMessage(String message) async {
     if (message.trim().isEmpty) return;
 
+    // Block read-only users
+    if (_subscriptionService.isReadOnly) {
+      showSubscriptionRequiredSheet(context, featureName: 'AI Assistant');
+      return;
+    }
+
     // Clear old pending actions
     setState(() {});
 
@@ -130,9 +138,10 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     } else {
       // Show error
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to get AI response. Please try again.'),
+            content: Text(l10n.failedToGetAIResponse('')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -257,15 +266,16 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
 
   /// Clear conversation
   void _clearConversation() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Conversation?'),
-        content: const Text('This will delete all messages in the current conversation.'),
+        title: Text(l10n.clearConversation),
+        content: Text(l10n.clearConversationConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -289,7 +299,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
               );
               setState(() {});
             },
-            child: const Text('Clear', style: TextStyle(color: AppColors.error)),
+            child: Text(l10n.clear, style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -362,14 +372,16 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       });
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.surfaceLight,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text(
-          'AI Assistant',
-          style: TextStyle(color: AppColors.navySpaceCadet),
+        title: Text(
+          l10n.aiAssistant,
+          style: const TextStyle(color: AppColors.navySpaceCadet),
         ),
         backgroundColor: Colors.white.withValues(alpha: 0.75),
         foregroundColor: AppColors.navySpaceCadet,

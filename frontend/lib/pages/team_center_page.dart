@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/data_service.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../widgets/enter_invite_code_dialog.dart';
@@ -34,14 +35,16 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
     try {
       await service.acceptInvite(token);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Invite accepted')));
+      ).showSnackBar(SnackBar(content: Text(l10n.invitationAccepted)));
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to accept invite: \$e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToAcceptInvite(e.toString()))));
       }
     } finally {
       if (mounted) {
@@ -55,14 +58,16 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
     try {
       await service.declineInvite(token);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Invite declined')));
+      ).showSnackBar(SnackBar(content: Text(l10n.invitationDeclined)));
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to decline invite: \$e')));
+        ).showSnackBar(SnackBar(content: Text(l10n.failedToDeclineInvite(e.toString()))));
       }
     } finally {
       if (mounted) {
@@ -85,9 +90,10 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Team Center'),
+        title: Text(l10n.teamCenter),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
@@ -119,6 +125,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
     DataService service,
     List<Map<String, dynamic>> invites,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 2,
       child: Padding(
@@ -134,7 +141,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Invitations',
+                  l10n.invitations,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
@@ -149,7 +156,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
             const SizedBox(height: 16),
             if (invites.isEmpty) ...[
               Text(
-                'No pending invites right now. New invitations will appear here.',
+                l10n.noPendingInvites,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
@@ -163,7 +170,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
                 icon: const Icon(Icons.vpn_key),
-                label: const Text('Enter Invite Code'),
+                label: Text(l10n.enterInviteCode),
               ),
             ] else
               ...invites.map((invite) {
@@ -191,7 +198,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              'Manager: \$managerId',
+                              '${l10n.manager}: $managerId',
                               style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
@@ -199,7 +206,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
-                              'Expires: \$expiresAt',
+                              '${l10n.expires}: $expiresAt',
                               style: TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 12,
@@ -219,13 +226,13 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                             backgroundColor: AppColors.purple,
                             minimumSize: const Size(90, 36),
                           ),
-                          child: const Text('Accept'),
+                          child: Text(l10n.accept),
                         ),
                         TextButton(
                           onPressed: _processing
                               ? null
                               : () => _declineInvite(service, token),
-                          child: const Text('Decline'),
+                          child: Text(l10n.declineInvitation),
                         ),
                       ],
                     ),
@@ -239,6 +246,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
   }
 
   Widget _buildTeamsSection(List<Map<String, dynamic>> teams) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 2,
       child: Padding(
@@ -251,7 +259,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                 const Icon(Icons.groups_outlined, color: AppColors.secondaryPurple),
                 const SizedBox(width: 8),
                 Text(
-                  'My teams',
+                  l10n.myTeams,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
@@ -259,7 +267,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
             const SizedBox(height: 16),
             if (teams.isEmpty)
               Text(
-                'You have not joined any teams yet.',
+                l10n.youHaveNotJoinedAnyTeams,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
@@ -306,7 +314,7 @@ class _TeamCenterPageState extends State<TeamCenterPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
-                              'Joined: \$joinedAt',
+                              '${l10n.joined}: $joinedAt',
                               style: TextStyle(
                                 color: AppColors.textMuted,
                                 fontSize: 12,

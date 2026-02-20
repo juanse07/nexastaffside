@@ -416,6 +416,12 @@ abstract class AppLocalizations {
   /// **'Try Again'**
   String get tryAgain;
 
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
   /// No description provided for @pleaseLogin.
   ///
   /// In en, this message translates to:
@@ -443,7 +449,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeToNexaStaff.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to Tie Staff!'**
+  /// **'Welcome to FlowShift Staff!'**
   String get welcomeToNexaStaff;
 
   /// No description provided for @pleaseCompleteProfileToGetStarted.
@@ -571,6 +577,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid US phone number'**
   String get enterValidUSPhoneNumber;
+
+  /// No description provided for @letsGetYouSetUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s get you set up'**
+  String get letsGetYouSetUp;
+
+  /// No description provided for @getStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get getStarted;
+
+  /// No description provided for @yourProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Profile'**
+  String get yourProfile;
+
+  /// No description provided for @finishSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish Setup'**
+  String get finishSetup;
+
+  /// No description provided for @youreAllSet.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re All Set!'**
+  String get youreAllSet;
+
+  /// No description provided for @yourProfileIsReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile is ready. You can now start accepting events.'**
+  String get yourProfileIsReady;
+
+  /// No description provided for @letsGo.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s Go'**
+  String get letsGo;
 
   /// No description provided for @calculatingEarnings.
   ///
@@ -931,6 +979,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Guests: {count}'**
   String guestsCount(String count);
+
+  /// No description provided for @loadingMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading map...'**
+  String get loadingMap;
 
   /// No description provided for @mon.
   ///
@@ -1681,6 +1735,1200 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Teams'**
   String get goToTeams;
+
+  /// No description provided for @flowShiftStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'FlowShift Staff'**
+  String get flowShiftStaff;
+
+  /// No description provided for @signInToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get signInToContinue;
+
+  /// No description provided for @continueWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get continueWithGoogle;
+
+  /// No description provided for @continueWithApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get continueWithApple;
+
+  /// No description provided for @continueWithPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Phone'**
+  String get continueWithPhone;
+
+  /// No description provided for @orSignInWithEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'or sign in with email'**
+  String get orSignInWithEmail;
+
+  /// No description provided for @email.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get email;
+
+  /// No description provided for @password.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
+  /// No description provided for @signIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get signIn;
+
+  /// No description provided for @pleaseEnterEmailAndPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter email and password'**
+  String get pleaseEnterEmailAndPassword;
+
+  /// No description provided for @googleSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Google sign-in failed'**
+  String get googleSignInFailed;
+
+  /// No description provided for @appleSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Apple sign-in failed'**
+  String get appleSignInFailed;
+
+  /// No description provided for @emailSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Email sign-in failed'**
+  String get emailSignInFailed;
+
+  /// No description provided for @bySigningInYouAgree.
+  ///
+  /// In en, this message translates to:
+  /// **'By signing in, you agree to our'**
+  String get bySigningInYouAgree;
+
+  /// No description provided for @termsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
+
+  /// No description provided for @andWord.
+  ///
+  /// In en, this message translates to:
+  /// **'and'**
+  String get andWord;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @phoneSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Sign In'**
+  String get phoneSignIn;
+
+  /// No description provided for @wellSendVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send you a verification code'**
+  String get wellSendVerificationCode;
+
+  /// No description provided for @enterPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter phone number'**
+  String get enterPhoneNumber;
+
+  /// No description provided for @enterValidPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid phone number'**
+  String get enterValidPhoneNumber;
+
+  /// No description provided for @sendVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Verification Code'**
+  String get sendVerificationCode;
+
+  /// No description provided for @change.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get change;
+
+  /// No description provided for @verifyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Code'**
+  String get verifyCode;
+
+  /// No description provided for @enter6DigitCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 6-digit code'**
+  String get enter6DigitCode;
+
+  /// No description provided for @pleaseEnterVerificationCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the verification code'**
+  String get pleaseEnterVerificationCode;
+
+  /// No description provided for @didntReceiveCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn\'t receive the code?'**
+  String get didntReceiveCode;
+
+  /// No description provided for @resend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend'**
+  String get resend;
+
+  /// No description provided for @verificationCodeSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code sent to {phone}'**
+  String verificationCodeSentTo(String phone);
+
+  /// No description provided for @phoneVerificationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone verification failed: {error}'**
+  String phoneVerificationFailed(String error);
+
+  /// No description provided for @teamCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Team Center'**
+  String get teamCenter;
+
+  /// No description provided for @invitations.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitations'**
+  String get invitations;
+
+  /// No description provided for @noPendingInvites.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending invites'**
+  String get noPendingInvites;
+
+  /// No description provided for @enterInviteCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter Invite Code'**
+  String get enterInviteCode;
+
+  /// No description provided for @failedToAcceptInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to accept invite: {error}'**
+  String failedToAcceptInvite(String error);
+
+  /// No description provided for @failedToDeclineInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to decline invite: {error}'**
+  String failedToDeclineInvite(String error);
+
+  /// No description provided for @myTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'My Teams'**
+  String get myTeams;
+
+  /// No description provided for @youHaveNotJoinedAnyTeams.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not joined any teams yet.'**
+  String get youHaveNotJoinedAnyTeams;
+
+  /// No description provided for @manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager'**
+  String get manager;
+
+  /// No description provided for @expires.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires'**
+  String get expires;
+
+  /// No description provided for @joined.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined'**
+  String get joined;
+
+  /// No description provided for @joinATeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a Team'**
+  String get joinATeam;
+
+  /// No description provided for @enterInviteCodePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the invite code your manager gave you'**
+  String get enterInviteCodePrompt;
+
+  /// No description provided for @inviteCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Code'**
+  String get inviteCode;
+
+  /// No description provided for @validateCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Validate Code'**
+  String get validateCode;
+
+  /// No description provided for @validInvite.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid Invite!'**
+  String get validInvite;
+
+  /// No description provided for @team.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get team;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get description;
+
+  /// No description provided for @successfullyJoinedTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Successfully joined team!'**
+  String get successfullyJoinedTeam;
+
+  /// No description provided for @joining.
+  ///
+  /// In en, this message translates to:
+  /// **'Joining...'**
+  String get joining;
+
+  /// No description provided for @joinTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Team'**
+  String get joinTeam;
+
+  /// No description provided for @failedToValidateCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to validate code: {error}'**
+  String failedToValidateCode(String error);
+
+  /// No description provided for @failedToJoinTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to join team: {error}'**
+  String failedToJoinTeam(String error);
+
+  /// No description provided for @pleaseEnterInviteCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter an invite code'**
+  String get pleaseEnterInviteCode;
+
+  /// No description provided for @teamChatEnabledBefore.
+  ///
+  /// In en, this message translates to:
+  /// **'Team chat will be enabled 1 hour before the event'**
+  String get teamChatEnabledBefore;
+
+  /// No description provided for @chatOpensSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat Opens Soon'**
+  String get chatOpensSoon;
+
+  /// No description provided for @teamChatWillOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Team chat will automatically open 1 hour before the event starts'**
+  String get teamChatWillOpen;
+
+  /// No description provided for @comeBackCloserToShift.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back closer to your shift time to chat with your team'**
+  String get comeBackCloserToShift;
+
+  /// No description provided for @startTheConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Start the conversation!'**
+  String get startTheConversation;
+
+  /// No description provided for @managerBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager'**
+  String get managerBadge;
+
+  /// No description provided for @composeProfessionalMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Compose professional messages with AI assistance'**
+  String get composeProfessionalMessages;
+
+  /// No description provided for @composingYourMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Composing your message...'**
+  String get composingYourMessage;
+
+  /// No description provided for @messageInserted.
+  ///
+  /// In en, this message translates to:
+  /// **'Message inserted!'**
+  String get messageInserted;
+
+  /// No description provided for @copiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard!'**
+  String get copiedToClipboard;
+
+  /// No description provided for @failedToComposeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to compose message: {error}'**
+  String failedToComposeMessage(String error);
+
+  /// No description provided for @whatWouldYouLikeToSay.
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to say?'**
+  String get whatWouldYouLikeToSay;
+
+  /// No description provided for @describeYourMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what you\'d like to say...'**
+  String get describeYourMessage;
+
+  /// No description provided for @tone.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone'**
+  String get tone;
+
+  /// No description provided for @professionalFriendly.
+  ///
+  /// In en, this message translates to:
+  /// **'Professional & Friendly'**
+  String get professionalFriendly;
+
+  /// No description provided for @casualFriendly.
+  ///
+  /// In en, this message translates to:
+  /// **'Casual & Friendly'**
+  String get casualFriendly;
+
+  /// No description provided for @useMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Message'**
+  String get useMessage;
+
+  /// No description provided for @useBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Both'**
+  String get useBoth;
+
+  /// No description provided for @tryDifferentScenario.
+  ///
+  /// In en, this message translates to:
+  /// **'Try Different Scenario'**
+  String get tryDifferentScenario;
+
+  /// No description provided for @insertIntoChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert Into Chat'**
+  String get insertIntoChat;
+
+  /// No description provided for @copyToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy to Clipboard'**
+  String get copyToClipboard;
+
+  /// No description provided for @generatedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated Message'**
+  String get generatedMessage;
+
+  /// No description provided for @originalMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Original Message'**
+  String get originalMessage;
+
+  /// No description provided for @aiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Assistant'**
+  String get aiAssistant;
+
+  /// No description provided for @clearConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Conversation?'**
+  String get clearConversation;
+
+  /// No description provided for @clearConversationConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This will delete all messages in this conversation.'**
+  String get clearConversationConfirm;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @failedToGetAIResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to get AI response: {error}'**
+  String failedToGetAIResponse(String error);
+
+  /// No description provided for @askAboutSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about your schedule, earnings, or shifts...'**
+  String get askAboutSchedule;
+
+  /// No description provided for @aiIsThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is thinking...'**
+  String get aiIsThinking;
+
+  /// No description provided for @recordingTapToStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording... Tap mic to stop'**
+  String get recordingTapToStop;
+
+  /// No description provided for @transcribingVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing voice...'**
+  String get transcribingVoice;
+
+  /// No description provided for @microphonePermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission required. Please enable it in Settings.'**
+  String get microphonePermissionRequired;
+
+  /// No description provided for @upgradeToPro.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to Pro'**
+  String get upgradeToPro;
+
+  /// No description provided for @flowShiftPro.
+  ///
+  /// In en, this message translates to:
+  /// **'FlowShift Pro'**
+  String get flowShiftPro;
+
+  /// No description provided for @unlimitedAiChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited AI Chat Messages'**
+  String get unlimitedAiChat;
+
+  /// No description provided for @prioritySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority Support'**
+  String get prioritySupport;
+
+  /// No description provided for @advancedAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced Analytics'**
+  String get advancedAnalytics;
+
+  /// No description provided for @customNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Notifications'**
+  String get customNotifications;
+
+  /// No description provided for @earlyAccessFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Early Access to New Features'**
+  String get earlyAccessFeatures;
+
+  /// No description provided for @monthlyPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'{price}/month'**
+  String monthlyPrice(String price);
+
+  /// No description provided for @yearlyPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'{price}/year'**
+  String yearlyPrice(String price);
+
+  /// No description provided for @subscribeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe Now'**
+  String get subscribeNow;
+
+  /// No description provided for @restorePurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Purchase'**
+  String get restorePurchase;
+
+  /// No description provided for @bestValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Best Value'**
+  String get bestValue;
+
+  /// No description provided for @popular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get popular;
+
+  /// No description provided for @freeTrialDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}-day free trial'**
+  String freeTrialDays(int days);
+
+  /// No description provided for @cancelAnytime.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel anytime'**
+  String get cancelAnytime;
+
+  /// No description provided for @subscriptionDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.'**
+  String get subscriptionDisclaimer;
+
+  /// No description provided for @purchaseSuccessful.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase successful! Enjoy Pro features.'**
+  String get purchaseSuccessful;
+
+  /// No description provided for @failedToPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to complete purchase'**
+  String get failedToPurchase;
+
+  /// No description provided for @failedToRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to restore purchase'**
+  String get failedToRestore;
+
+  /// No description provided for @noPreviousPurchase.
+  ///
+  /// In en, this message translates to:
+  /// **'No previous purchase found'**
+  String get noPreviousPurchase;
+
+  /// No description provided for @upload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload'**
+  String get upload;
+
+  /// No description provided for @glowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Glow Up'**
+  String get glowUp;
+
+  /// No description provided for @originalPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Original Photo'**
+  String get originalPhoto;
+
+  /// No description provided for @myCreations.
+  ///
+  /// In en, this message translates to:
+  /// **'My Creations'**
+  String get myCreations;
+
+  /// No description provided for @activeBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeBadge;
+
+  /// No description provided for @deleteCreation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete creation?'**
+  String get deleteCreation;
+
+  /// No description provided for @deleteCreationConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This will permanently remove this creation.'**
+  String get deleteCreationConfirm;
+
+  /// No description provided for @newLookSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'New look saved!'**
+  String get newLookSaved;
+
+  /// No description provided for @profilePictureUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile picture updated!'**
+  String get profilePictureUpdated;
+
+  /// No description provided for @failedToSaveCreation.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save creation'**
+  String get failedToSaveCreation;
+
+  /// No description provided for @failedToDeleteCreation.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete creation'**
+  String get failedToDeleteCreation;
+
+  /// No description provided for @failedToUpdateProfilePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update profile picture'**
+  String get failedToUpdateProfilePicture;
+
+  /// No description provided for @noCreationsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No creations yet'**
+  String get noCreationsYet;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Share failed: {error}'**
+  String shareFailed(String error);
+
+  /// No description provided for @exportError.
+  ///
+  /// In en, this message translates to:
+  /// **'Export error: {error}'**
+  String exportError(String error);
+
+  /// No description provided for @export.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get export;
+
+  /// No description provided for @exporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Exporting...'**
+  String get exporting;
+
+  /// No description provided for @exportShifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Shifts'**
+  String get exportShifts;
+
+  /// No description provided for @downloadShiftHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Download your shift history'**
+  String get downloadShiftHistory;
+
+  /// No description provided for @format.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get format;
+
+  /// No description provided for @csvFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV (Spreadsheet)'**
+  String get csvFormat;
+
+  /// No description provided for @pdfFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF (Document)'**
+  String get pdfFormat;
+
+  /// No description provided for @timePeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Time Period'**
+  String get timePeriod;
+
+  /// No description provided for @thisYear.
+  ///
+  /// In en, this message translates to:
+  /// **'This Year'**
+  String get thisYear;
+
+  /// No description provided for @allTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All Time'**
+  String get allTime;
+
+  /// No description provided for @custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get custom;
+
+  /// No description provided for @exportInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Export includes event name, date, hours worked, and pay rate.'**
+  String get exportInfo;
+
+  /// No description provided for @generating.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating...'**
+  String get generating;
+
+  /// No description provided for @startDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Date'**
+  String get startDate;
+
+  /// No description provided for @endDate.
+  ///
+  /// In en, this message translates to:
+  /// **'End Date'**
+  String get endDate;
+
+  /// No description provided for @updatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated successfully'**
+  String get updatedSuccessfully;
+
+  /// No description provided for @refreshFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh failed: {error}'**
+  String refreshFailed(String error);
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @refreshData.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh data'**
+  String get refreshData;
+
+  /// No description provided for @dataMayBeOutdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Data may be outdated'**
+  String get dataMayBeOutdated;
+
+  /// No description provided for @newRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'New Record!'**
+  String get newRecord;
+
+  /// No description provided for @clockedInCelebration.
+  ///
+  /// In en, this message translates to:
+  /// **'Clocked In!'**
+  String get clockedInCelebration;
+
+  /// No description provided for @plusPoints.
+  ///
+  /// In en, this message translates to:
+  /// **'+{points} points'**
+  String plusPoints(int points);
+
+  /// No description provided for @dayStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} day streak!'**
+  String dayStreak(int days);
+
+  /// No description provided for @tapToDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap anywhere to dismiss'**
+  String get tapToDismiss;
+
+  /// No description provided for @levelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level}'**
+  String levelLabel(int level);
+
+  /// No description provided for @ptsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{pts} pts'**
+  String ptsLabel(int pts);
+
+  /// No description provided for @points.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get points;
+
+  /// No description provided for @streak.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streak;
+
+  /// No description provided for @best.
+  ///
+  /// In en, this message translates to:
+  /// **'Best'**
+  String get best;
+
+  /// No description provided for @nextLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Next level'**
+  String get nextLevel;
+
+  /// No description provided for @ptsToGo.
+  ///
+  /// In en, this message translates to:
+  /// **'{pts} pts to go'**
+  String ptsToGo(int pts);
+
+  /// No description provided for @keepItUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it up!'**
+  String get keepItUp;
+
+  /// No description provided for @onFire.
+  ///
+  /// In en, this message translates to:
+  /// **'On fire!'**
+  String get onFire;
+
+  /// No description provided for @unstoppable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unstoppable!'**
+  String get unstoppable;
+
+  /// No description provided for @justGettingStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Just getting started'**
+  String get justGettingStarted;
+
+  /// No description provided for @daysCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String daysCount(int count);
+
+  /// No description provided for @profileGlowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Glow Up'**
+  String get profileGlowUp;
+
+  /// No description provided for @yourRoleYourStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your role. Your style. Your look.'**
+  String get yourRoleYourStyle;
+
+  /// No description provided for @whoAreYouToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Who are you today?'**
+  String get whoAreYouToday;
+
+  /// No description provided for @pickYourVibe.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your vibe'**
+  String get pickYourVibe;
+
+  /// No description provided for @qualityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality'**
+  String get qualityLabel;
+
+  /// No description provided for @standardQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get standardQuality;
+
+  /// No description provided for @hdQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'HD'**
+  String get hdQuality;
+
+  /// No description provided for @textInImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Text in image'**
+  String get textInImage;
+
+  /// No description provided for @optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get optional;
+
+  /// No description provided for @none.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get none;
+
+  /// No description provided for @readyForNewLook.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for a new look?'**
+  String get readyForNewLook;
+
+  /// No description provided for @getMyNewLook.
+  ///
+  /// In en, this message translates to:
+  /// **'Get My New Look'**
+  String get getMyNewLook;
+
+  /// No description provided for @lookingGood.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking good!'**
+  String get lookingGood;
+
+  /// No description provided for @before.
+  ///
+  /// In en, this message translates to:
+  /// **'Before'**
+  String get before;
+
+  /// No description provided for @after.
+  ///
+  /// In en, this message translates to:
+  /// **'After'**
+  String get after;
+
+  /// No description provided for @aiDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'AI-generated images may not be accurate representations.'**
+  String get aiDisclaimer;
+
+  /// No description provided for @useThisPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Use This Photo'**
+  String get useThisPhoto;
+
+  /// No description provided for @saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get saving;
+
+  /// No description provided for @generateNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate New'**
+  String get generateNew;
+
+  /// No description provided for @seeMore.
+  ///
+  /// In en, this message translates to:
+  /// **'See {count} more'**
+  String seeMore(int count);
+
+  /// No description provided for @showLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Less'**
+  String get showLess;
+
+  /// No description provided for @freeMonthBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Free month: {days} days remaining'**
+  String freeMonthBanner(int days);
+
+  /// No description provided for @freeMonthExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your free month has ended — Subscribe to unlock all features'**
+  String get freeMonthExpired;
+
+  /// No description provided for @subscriptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Required'**
+  String get subscriptionRequired;
+
+  /// No description provided for @featureLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'requires FlowShift Pro'**
+  String get featureLocked;
+
+  /// No description provided for @subscribeToUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe to Unlock'**
+  String get subscribeToUnlock;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
+  /// No description provided for @readOnlyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only mode'**
+  String get readOnlyMode;
+
+  /// No description provided for @acceptShifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept shifts'**
+  String get acceptShifts;
+
+  /// No description provided for @declineShifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline shifts'**
+  String get declineShifts;
+
+  /// No description provided for @chatWithManagers.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with managers'**
+  String get chatWithManagers;
+
+  /// No description provided for @generateCaricature.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate caricature'**
+  String get generateCaricature;
+
+  /// No description provided for @freeMonthExplore.
+  ///
+  /// In en, this message translates to:
+  /// **'You have a free month to explore everything!'**
+  String get freeMonthExplore;
+
+  /// No description provided for @proFeatureAcceptDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept & decline shifts'**
+  String get proFeatureAcceptDecline;
+
+  /// No description provided for @proFeatureChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with managers and team'**
+  String get proFeatureChat;
+
+  /// No description provided for @proFeatureAI.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Assistant (20 messages/month)'**
+  String get proFeatureAI;
+
+  /// No description provided for @proFeatureClockInOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock in/out'**
+  String get proFeatureClockInOut;
+
+  /// No description provided for @proFeatureAvailability.
+  ///
+  /// In en, this message translates to:
+  /// **'Set availability'**
+  String get proFeatureAvailability;
+
+  /// No description provided for @proFeatureCaricatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate profile caricatures'**
+  String get proFeatureCaricatures;
+
+  /// No description provided for @proPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'\$7.99/month'**
+  String get proPrice;
 }
 
 class _AppLocalizationsDelegate

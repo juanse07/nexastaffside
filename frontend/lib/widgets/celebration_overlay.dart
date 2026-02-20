@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// A celebration overlay that shows points earned and streak achievements
 /// with animations when the user clocks in successfully.
 class CelebrationOverlay extends StatefulWidget {
@@ -165,6 +167,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
   }
 
   Widget _buildCelebrationCard() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 32),
       padding: const EdgeInsets.all(24),
@@ -206,7 +209,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
 
           // Title
           Text(
-            widget.isNewRecord ? 'New Record!' : 'Clocked In!',
+            widget.isNewRecord ? l10n.newRecord : l10n.clockedInCelebration,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -223,7 +226,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                 const Icon(Icons.star, color: Colors.amber, size: 28),
                 const SizedBox(width: 8),
                 Text(
-                  '+${widget.pointsEarned} points',
+                  l10n.plusPoints(widget.pointsEarned!),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -244,7 +247,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                     color: Colors.orange, size: 28),
                 const SizedBox(width: 8),
                 Text(
-                  '${widget.newStreak} day streak!',
+                  l10n.dayStreak(widget.newStreak!),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -259,7 +262,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
 
           // Tap to dismiss hint
           Text(
-            'Tap anywhere to dismiss',
+            l10n.tapToDismiss,
             style: TextStyle(
               color: Colors.white.withOpacity(0.7),
               fontSize: 12,

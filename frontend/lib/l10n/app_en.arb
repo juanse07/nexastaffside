@@ -65,6 +65,7 @@
   "loading": "Loading...",
   "error": "Error",
   "tryAgain": "Try Again",
+  "delete": "Delete",
 
   "@@ Auth": {},
   "pleaseLogin": "Please log in",
@@ -73,7 +74,7 @@
   "retry": "Retry",
   "completeYourProfile": "Complete Your Profile",
   "signOut": "Sign out",
-  "welcomeToNexaStaff": "Welcome to Tie Staff!",
+  "welcomeToNexaStaff": "Welcome to FlowShift Staff!",
   "pleaseCompleteProfileToGetStarted": "Please complete your profile to get started",
   "firstNameLabel": "First Name *",
   "enterYourFirstName": "Enter your first name",
@@ -102,6 +103,13 @@
   },
   "phoneNumberIsRequired": "Phone number is required",
   "enterValidUSPhoneNumber": "Enter a valid US phone number",
+  "letsGetYouSetUp": "Let's get you set up",
+  "getStarted": "Get Started",
+  "yourProfile": "Your Profile",
+  "finishSetup": "Finish Setup",
+  "youreAllSet": "You're All Set!",
+  "yourProfileIsReady": "Your profile is ready. You can now start accepting events.",
+  "letsGo": "Let's Go",
 
   "@@ Earnings Details": {},
   "calculatingEarnings": "Calculating earnings...",
@@ -218,6 +226,7 @@
       }
     }
   },
+  "loadingMap": "Loading map...",
 
   "@@ Date and Time": {},
   "mon": "Mon",
@@ -471,5 +480,392 @@
   "@@ No Team Banner": {},
   "noTeamBannerTitle": "You're not on a team yet",
   "noTeamBannerMessage": "Ask your manager for an invite link, or go to Teams to enter an invite code.",
-  "goToTeams": "Go to Teams"
+  "goToTeams": "Go to Teams",
+
+  "@@ Login Page": {},
+  "flowShiftStaff": "FlowShift Staff",
+  "signInToContinue": "Sign in to continue",
+  "continueWithGoogle": "Continue with Google",
+  "continueWithApple": "Continue with Apple",
+  "continueWithPhone": "Continue with Phone",
+  "orSignInWithEmail": "or sign in with email",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign In",
+  "pleaseEnterEmailAndPassword": "Please enter email and password",
+  "googleSignInFailed": "Google sign-in failed",
+  "appleSignInFailed": "Apple sign-in failed",
+  "emailSignInFailed": "Email sign-in failed",
+  "bySigningInYouAgree": "By signing in, you agree to our",
+  "termsOfService": "Terms of Service",
+  "andWord": "and",
+  "privacyPolicy": "Privacy Policy",
+
+  "@@ Phone Login": {},
+  "phoneSignIn": "Phone Sign In",
+  "wellSendVerificationCode": "We'll send you a verification code",
+  "enterPhoneNumber": "Enter phone number",
+  "enterValidPhoneNumber": "Enter a valid phone number",
+  "sendVerificationCode": "Send Verification Code",
+  "change": "Change",
+  "verifyCode": "Verify Code",
+  "enter6DigitCode": "Enter 6-digit code",
+  "pleaseEnterVerificationCode": "Please enter the verification code",
+  "didntReceiveCode": "Didn't receive the code?",
+  "resend": "Resend",
+  "verificationCodeSentTo": "Verification code sent to {phone}",
+  "@verificationCodeSentTo": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "phoneVerificationFailed": "Phone verification failed: {error}",
+  "@phoneVerificationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Team Center": {},
+  "teamCenter": "Team Center",
+  "invitations": "Invitations",
+  "noPendingInvites": "No pending invites",
+  "enterInviteCode": "Enter Invite Code",
+  "failedToAcceptInvite": "Failed to accept invite: {error}",
+  "@failedToAcceptInvite": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToDeclineInvite": "Failed to decline invite: {error}",
+  "@failedToDeclineInvite": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "myTeams": "My Teams",
+  "youHaveNotJoinedAnyTeams": "You have not joined any teams yet.",
+  "manager": "Manager",
+  "expires": "Expires",
+  "joined": "Joined",
+
+  "@@ Invite Code Dialog": {},
+  "joinATeam": "Join a Team",
+  "enterInviteCodePrompt": "Enter the invite code your manager gave you",
+  "inviteCode": "Invite Code",
+  "validateCode": "Validate Code",
+  "validInvite": "Valid Invite!",
+  "team": "Team",
+  "description": "Description",
+  "successfullyJoinedTeam": "Successfully joined team!",
+  "joining": "Joining...",
+  "joinTeam": "Join Team",
+  "failedToValidateCode": "Failed to validate code: {error}",
+  "@failedToValidateCode": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToJoinTeam": "Failed to join team: {error}",
+  "@failedToJoinTeam": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "pleaseEnterInviteCode": "Please enter an invite code",
+
+  "@@ Event Team Chat": {},
+  "teamChatEnabledBefore": "Team chat will be enabled 1 hour before the event",
+  "chatOpensSoon": "Chat Opens Soon",
+  "teamChatWillOpen": "Team chat will automatically open 1 hour before the event starts",
+  "comeBackCloserToShift": "Come back closer to your shift time to chat with your team",
+  "startTheConversation": "Start the conversation!",
+  "managerBadge": "Manager",
+
+  "@@ AI Message Composer": {},
+  "composeProfessionalMessages": "Compose professional messages with AI assistance",
+  "composingYourMessage": "Composing your message...",
+  "messageInserted": "Message inserted!",
+  "copiedToClipboard": "Copied to clipboard!",
+  "failedToComposeMessage": "Failed to compose message: {error}",
+  "@failedToComposeMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "whatWouldYouLikeToSay": "What would you like to say?",
+  "describeYourMessage": "Describe what you'd like to say...",
+  "tone": "Tone",
+  "professionalFriendly": "Professional & Friendly",
+  "casualFriendly": "Casual & Friendly",
+  "useMessage": "Use Message",
+  "useBoth": "Use Both",
+  "tryDifferentScenario": "Try Different Scenario",
+  "insertIntoChat": "Insert Into Chat",
+  "copyToClipboard": "Copy to Clipboard",
+  "generatedMessage": "Generated Message",
+  "originalMessage": "Original Message",
+
+  "@@ Staff AI Chat": {},
+  "aiAssistant": "AI Assistant",
+  "clearConversation": "Clear Conversation?",
+  "clearConversationConfirm": "This will delete all messages in this conversation.",
+  "clear": "Clear",
+  "failedToGetAIResponse": "Failed to get AI response: {error}",
+  "@failedToGetAIResponse": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "@@ Chat Input": {},
+  "askAboutSchedule": "Ask about your schedule, earnings, or shifts...",
+  "aiIsThinking": "AI is thinking...",
+  "recordingTapToStop": "Recording... Tap mic to stop",
+  "transcribingVoice": "Transcribing voice...",
+  "microphonePermissionRequired": "Microphone permission required. Please enable it in Settings.",
+
+  "@@ Subscription Paywall": {},
+  "upgradeToPro": "Upgrade to Pro",
+  "flowShiftPro": "FlowShift Pro",
+  "unlimitedAiChat": "Unlimited AI Chat Messages",
+  "prioritySupport": "Priority Support",
+  "advancedAnalytics": "Advanced Analytics",
+  "customNotifications": "Custom Notifications",
+  "earlyAccessFeatures": "Early Access to New Features",
+  "monthlyPrice": "{price}/month",
+  "@monthlyPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "yearlyPrice": "{price}/year",
+  "@yearlyPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "subscribeNow": "Subscribe Now",
+  "restorePurchase": "Restore Purchase",
+  "bestValue": "Best Value",
+  "popular": "Popular",
+  "freeTrialDays": "{days}-day free trial",
+  "@freeTrialDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "cancelAnytime": "Cancel anytime",
+  "subscriptionDisclaimer": "Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.",
+  "purchaseSuccessful": "Purchase successful! Enjoy Pro features.",
+  "failedToPurchase": "Failed to complete purchase",
+  "failedToRestore": "Failed to restore purchase",
+  "noPreviousPurchase": "No previous purchase found",
+
+  "@@ User Profile Extended": {},
+  "upload": "Upload",
+  "glowUp": "Glow Up",
+  "originalPhoto": "Original Photo",
+  "myCreations": "My Creations",
+  "activeBadge": "Active",
+  "deleteCreation": "Delete creation?",
+  "deleteCreationConfirm": "This will permanently remove this creation.",
+  "newLookSaved": "New look saved!",
+  "profilePictureUpdated": "Profile picture updated!",
+  "failedToSaveCreation": "Failed to save creation",
+  "failedToDeleteCreation": "Failed to delete creation",
+  "failedToUpdateProfilePicture": "Failed to update profile picture",
+  "noCreationsYet": "No creations yet",
+
+  "@@ Earnings Extended": {},
+  "shareFailed": "Share failed: {error}",
+  "@shareFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "exportError": "Export error: {error}",
+  "@exportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "export": "Export",
+  "exporting": "Exporting...",
+
+  "@@ Export Options": {},
+  "exportShifts": "Export Shifts",
+  "downloadShiftHistory": "Download your shift history",
+  "format": "Format",
+  "csvFormat": "CSV (Spreadsheet)",
+  "pdfFormat": "PDF (Document)",
+  "timePeriod": "Time Period",
+  "thisYear": "This Year",
+  "allTime": "All Time",
+  "custom": "Custom",
+  "exportInfo": "Export includes event name, date, hours worked, and pay rate.",
+  "generating": "Generating...",
+  "startDate": "Start Date",
+  "endDate": "End Date",
+
+  "@@ Enhanced Refresh": {},
+  "updatedSuccessfully": "Updated successfully",
+  "refreshFailed": "Refresh failed: {error}",
+  "@refreshFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "refresh": "Refresh",
+  "refreshData": "Refresh data",
+  "dataMayBeOutdated": "Data may be outdated",
+
+  "@@ Celebration Overlay": {},
+  "newRecord": "New Record!",
+  "clockedInCelebration": "Clocked In!",
+  "plusPoints": "+{points} points",
+  "@plusPoints": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  },
+  "dayStreak": "{days} day streak!",
+  "@dayStreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "tapToDismiss": "Tap anywhere to dismiss",
+
+  "@@ Gamification Card": {},
+  "levelLabel": "Level {level}",
+  "@levelLabel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "ptsLabel": "{pts} pts",
+  "@ptsLabel": {
+    "placeholders": {
+      "pts": {
+        "type": "int"
+      }
+    }
+  },
+  "points": "Points",
+  "streak": "Streak",
+  "best": "Best",
+  "nextLevel": "Next level",
+  "ptsToGo": "{pts} pts to go",
+  "@ptsToGo": {
+    "placeholders": {
+      "pts": {
+        "type": "int"
+      }
+    }
+  },
+  "keepItUp": "Keep it up!",
+  "onFire": "On fire!",
+  "unstoppable": "Unstoppable!",
+  "justGettingStarted": "Just getting started",
+  "daysCount": "{count} days",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "@@ Caricature Generator": {},
+  "profileGlowUp": "Profile Glow Up",
+  "yourRoleYourStyle": "Your role. Your style. Your look.",
+  "whoAreYouToday": "Who are you today?",
+  "pickYourVibe": "Pick your vibe",
+  "qualityLabel": "Quality",
+  "standardQuality": "Standard",
+  "hdQuality": "HD",
+  "textInImage": "Text in image",
+  "optional": "Optional",
+  "none": "None",
+  "readyForNewLook": "Ready for a new look?",
+  "getMyNewLook": "Get My New Look",
+  "lookingGood": "Looking good!",
+  "before": "Before",
+  "after": "After",
+  "aiDisclaimer": "AI-generated images may not be accurate representations.",
+  "useThisPhoto": "Use This Photo",
+  "saving": "Saving...",
+  "generateNew": "Generate New",
+  "seeMore": "See {count} more",
+  "@seeMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "showLess": "Less",
+
+  "freeMonthBanner": "Free month: {days} days remaining",
+  "@freeMonthBanner": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "freeMonthExpired": "Your free month has ended — Subscribe to unlock all features",
+  "subscriptionRequired": "Subscription Required",
+  "featureLocked": "requires FlowShift Pro",
+  "subscribeToUnlock": "Subscribe to Unlock",
+  "notNow": "Not now",
+  "readOnlyMode": "Read-only mode",
+  "acceptShifts": "Accept shifts",
+  "declineShifts": "Decline shifts",
+  "chatWithManagers": "Chat with managers",
+  "generateCaricature": "Generate caricature",
+  "aiAssistant": "AI Assistant",
+  "freeMonthExplore": "You have a free month to explore everything!",
+  "proFeatureAcceptDecline": "Accept & decline shifts",
+  "proFeatureChat": "Chat with managers and team",
+  "proFeatureAI": "AI Assistant (20 messages/month)",
+  "proFeatureClockInOut": "Clock in/out",
+  "proFeatureAvailability": "Set availability",
+  "proFeatureCaricatures": "Generate profile caricatures",
+  "proPrice": "$7.99/month"
 }

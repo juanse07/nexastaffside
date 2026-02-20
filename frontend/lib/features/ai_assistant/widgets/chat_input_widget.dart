@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../providers/terminology_provider.dart';
 import '../../../shared/presentation/theme/theme.dart';
 import '../services/audio_transcription_service.dart';
@@ -110,7 +111,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Microphone permission required for voice input'),
+            content: Text(AppLocalizations.of(context)!.microphonePermissionRequired),
             duration: const Duration(seconds: 3),
             backgroundColor: AppColors.warning,
           ),
@@ -191,13 +192,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    String hintText = 'Ask about your schedule...';
+    final l10n = AppLocalizations.of(context)!;
+    String hintText = l10n.askAboutSchedule;
     if (widget.isLoading) {
-      hintText = 'AI is thinking...';
+      hintText = l10n.aiIsThinking;
     } else if (_isRecording) {
-      hintText = 'Recording... Tap mic to stop';
+      hintText = l10n.recordingTapToStop;
     } else if (_isTranscribing) {
-      hintText = 'Transcribing voice...';
+      hintText = l10n.transcribingVoice;
     }
 
     return Padding(

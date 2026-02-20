@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 
 /// Bottom sheet for selecting export options
@@ -19,29 +20,31 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
   String _selectedFormat = 'csv';
   DateTimeRange? _customRange;
 
-  static const _formats = [
+  List<_FormatOption> _getFormats(AppLocalizations l10n) => [
     _FormatOption(
       key: 'csv',
-      label: 'CSV',
+      label: l10n.csvFormat,
       icon: Icons.table_chart_outlined,
-      description: 'Spreadsheet-compatible',
+      description: '',
     ),
     _FormatOption(
       key: 'pdf',
-      label: 'PDF',
+      label: l10n.pdfFormat,
       icon: Icons.picture_as_pdf_outlined,
-      description: 'Formatted report',
+      description: '',
     ),
     _FormatOption(
       key: 'xlsx',
       label: 'Excel',
       icon: Icons.grid_on_outlined,
-      description: 'With charts & styling',
+      description: '',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final formats = _getFormats(l10n);
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -79,20 +82,20 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Export Shifts',
-                          style: TextStyle(
+                          l10n.exportShifts,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          'Download your shift history',
-                          style: TextStyle(
+                          l10n.downloadShiftHistory,
+                          style: const TextStyle(
                             fontSize: 13,
                             color: Colors.grey,
                           ),
@@ -116,9 +119,9 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Format',
-                    style: TextStyle(
+                  Text(
+                    l10n.format,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
@@ -126,7 +129,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    children: _formats.map((fmt) {
+                    children: formats.map((fmt) {
                       final isSelected = _selectedFormat == fmt.key;
                       return Expanded(
                         child: GestureDetector(
@@ -167,16 +170,18 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                                         : AppColors.navySpaceCadet,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  fmt.description,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: isSelected
-                                        ? Colors.white70
-                                        : Colors.grey.shade500,
+                                if (fmt.description.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    fmt.description,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isSelected
+                                          ? Colors.white70
+                                          : Colors.grey.shade500,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
@@ -194,9 +199,9 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Time Period',
-                    style: TextStyle(
+                  Text(
+                    l10n.timePeriod,
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
@@ -208,7 +213,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                     runSpacing: 8,
                     children: [
                       _PeriodChip(
-                        label: 'This Week',
+                        label: l10n.thisWeek,
                         isSelected: _selectedPeriod == 'week',
                         onTap: () => setState(() {
                           _selectedPeriod = 'week';
@@ -216,7 +221,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                         }),
                       ),
                       _PeriodChip(
-                        label: 'This Month',
+                        label: l10n.thisMonth,
                         isSelected: _selectedPeriod == 'month',
                         onTap: () => setState(() {
                           _selectedPeriod = 'month';
@@ -224,7 +229,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                         }),
                       ),
                       _PeriodChip(
-                        label: 'This Year',
+                        label: l10n.thisYear,
                         isSelected: _selectedPeriod == 'year',
                         onTap: () => setState(() {
                           _selectedPeriod = 'year';
@@ -232,7 +237,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                         }),
                       ),
                       _PeriodChip(
-                        label: 'All Time',
+                        label: l10n.allTime,
                         isSelected: _selectedPeriod == 'all',
                         onTap: () => setState(() {
                           _selectedPeriod = 'all';
@@ -242,7 +247,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                       _PeriodChip(
                         label: _customRange != null
                             ? '${_customRange!.start.month}/${_customRange!.start.day} - ${_customRange!.end.month}/${_customRange!.end.day}'
-                            : 'Custom',
+                            : l10n.custom,
                         icon: Icons.date_range,
                         isSelected: _selectedPeriod == 'custom',
                         onTap: () => _showDatePicker(context),
@@ -269,7 +274,7 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Export includes: date, event, venue, role, hours, and earnings',
+                        l10n.exportInfo,
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade700,
@@ -310,12 +315,12 @@ class _StaffExportOptionsSheetState extends State<StaffExportOptionsSheet> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _formats.firstWhere((f) => f.key == _selectedFormat).icon,
+                        formats.firstWhere((f) => f.key == _selectedFormat).icon,
                         size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Export ${_formats.firstWhere((f) => f.key == _selectedFormat).label}',
+                        '${l10n.export} ${formats.firstWhere((f) => f.key == _selectedFormat).label}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,

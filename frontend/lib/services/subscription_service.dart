@@ -15,6 +15,18 @@ class SubscriptionService {
   bool _initialized = false;
   String? _qonversionUserId;
 
+  // Cached subscription state from backend
+  bool _isReadOnly = false;
+  bool _isInFreeMonth = false;
+  int _freeMonthDaysRemaining = 0;
+  bool _statusLoaded = false;
+
+  bool get isReadOnly => _isReadOnly;
+  bool get isInFreeMonth => _isInFreeMonth;
+  int get freeMonthDaysRemaining => _freeMonthDaysRemaining;
+  bool get statusLoaded => _statusLoaded;
+  bool canPerformAction() => !_isReadOnly;
+
   /// Initialize Qonversion SDK
   Future<void> initialize() async {
     if (_initialized) return;
@@ -69,8 +81,8 @@ class SubscriptionService {
       // Check Qonversion entitlements
       final entitlements = await Qonversion.getSharedInstance().checkEntitlements();
 
-      // Look for 'pro' entitlement
-      final proEntitlement = entitlements['pro'];
+      // Look for 'pro_access' entitlement (matches Qonversion dashboard ID)
+      final proEntitlement = entitlements['pro_access'];
       final isActive = proEntitlement != null && proEntitlement.isActive;
 
       print('[SubscriptionService] Status check: ${isActive ? 'Pro' : 'Free'}');
@@ -115,7 +127,7 @@ class SubscriptionService {
       // Products are accessed from the products list
       QProduct? proProduct;
       for (final product in mainOffering.products) {
-        if (product.qonversionId == 'staff_pro_monthly') {
+        if (product.qonversionId == 'flowshift_staff_pro_monthly') {
           proProduct = product;
           break;
         }
@@ -132,7 +144,7 @@ class SubscriptionService {
       final result = await Qonversion.getSharedInstance().purchaseProduct(proProduct);
 
       // Check if purchase was successful
-      final isActive = result['pro']?.isActive ?? false;
+      final isActive = result['pro_access']?.isActive ?? false;
 
       if (isActive) {
         print('[SubscriptionService] Purchase successful!');
@@ -166,7 +178,7 @@ class SubscriptionService {
       final entitlements = await Qonversion.getSharedInstance().restore();
 
       // Check if Pro entitlement is active
-      final isActive = entitlements['pro']?.isActive ?? false;
+      final isActive = entitlements['pro_access']?.isActive ?? false;
 
       if (isActive) {
         print('[SubscriptionService] Subscription restored!');
@@ -215,7 +227,7 @@ class SubscriptionService {
     }
   }
 
-  /// Get subscription details from backend
+  /// Get subscription details from backend and cache read-only state
   Future<Map<String, dynamic>> getBackendStatus() async {
     try {
       final token = await AuthService.getJwt();
@@ -236,6 +248,17 @@ class SubscriptionService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         print('[SubscriptionService] Backend status: ${data['tier']}');
+
+        // Cache subscription state
+        _isReadOnly = data['isReadOnly'] == true;
+        final freeMonth = data['freeMonth'] as Map<String, dynamic>?;
+        if (freeMonth != null) {
+          _isInFreeMonth = freeMonth['active'] == true;
+          _freeMonthDaysRemaining = (freeMonth['daysRemaining'] as num?)?.toInt() ?? 0;
+        }
+        _statusLoaded = true;
+
+        print('[SubscriptionService] readOnly=$_isReadOnly, freeMonth=$_isInFreeMonth, daysRemaining=$_freeMonthDaysRemaining');
         return data;
       }
 
@@ -245,6 +268,11 @@ class SubscriptionService {
       print('[SubscriptionService] Backend status error: $e');
       return {};
     }
+  }
+
+  /// Refresh subscription state after a purchase or restore
+  Future<void> refreshStatus() async {
+    await getBackendStatus();
   }
 
   /// Link Qonversion user ID to backend

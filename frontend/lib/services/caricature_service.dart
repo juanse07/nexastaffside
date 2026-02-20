@@ -161,7 +161,7 @@ class CaricatureService {
 
   /// Generate a caricature with the given role and art style.
   /// Extended timeout since image generation takes 10-20 seconds.
-  static Future<CaricatureResult> generate(String roleId, String artStyleId, {String model = 'dev', String? name, String? tagline, bool forceNew = false}) async {
+  static Future<CaricatureResult> generate(String roleId, String artStyleId, {String model = 'pro', String? name, String? tagline, bool forceNew = false}) async {
     final token = await _getJwt();
     if (token == null) throw Exception('Not authenticated');
 

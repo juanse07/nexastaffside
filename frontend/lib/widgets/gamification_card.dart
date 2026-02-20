@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// A card widget that displays the user's gamification stats:
 /// - Total points
 /// - Current streak
@@ -31,6 +33,7 @@ class GamificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoading) {
       return _buildLoadingState();
     }
@@ -82,7 +85,7 @@ class GamificationCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'Level $level',
+                            l10n.levelLabel(level),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -95,7 +98,7 @@ class GamificationCard extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  '$totalPoints pts',
+                  l10n.ptsLabel(totalPoints),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 16,
@@ -114,21 +117,21 @@ class GamificationCard extends StatelessWidget {
                   icon: Icons.star,
                   iconColor: Colors.amber,
                   value: totalPoints.toString(),
-                  label: 'Points',
+                  label: l10n.points,
                 ),
                 _buildVerticalDivider(),
                 _buildStat(
                   icon: Icons.local_fire_department,
                   iconColor: Colors.orange,
                   value: currentStreak.toString(),
-                  label: 'Streak',
+                  label: l10n.streak,
                 ),
                 _buildVerticalDivider(),
                 _buildStat(
                   icon: Icons.emoji_events,
                   iconColor: Colors.yellow,
                   value: longestStreak.toString(),
-                  label: 'Best',
+                  label: l10n.best,
                 ),
               ],
             ),
@@ -142,14 +145,14 @@ class GamificationCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Next level',
+                      l10n.nextLevel,
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 12,
                       ),
                     ),
                     Text(
-                      '$pointsToNextLevel pts to go',
+                      l10n.ptsToGo(pointsToNextLevel),
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 12,

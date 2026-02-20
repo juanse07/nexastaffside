@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 import '../services/message_composition_service.dart';
 
 /// Beautiful bottom sheet for AI-powered message composition
@@ -125,13 +126,14 @@ class _AiMessageComposerState extends State<AiMessageComposer>
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'An unexpected error occurred. Please try again.';
+        _errorMessage = AppLocalizations.of(context)!.failedToComposeMessage(e.toString());
         _isLoading = false;
       });
     }
   }
 
   void _useMessage(String message) {
+    final l10n = AppLocalizations.of(context)!;
     widget.onMessageComposed(message);
     Navigator.of(context).pop();
 
@@ -139,10 +141,10 @@ class _AiMessageComposerState extends State<AiMessageComposer>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
-          children: const [
-            Icon(Icons.check_circle, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Text('Message inserted!'),
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(l10n.messageInserted),
           ],
         ),
         backgroundColor: Colors.green,
@@ -154,14 +156,15 @@ class _AiMessageComposerState extends State<AiMessageComposer>
   }
 
   void _copyToClipboard(String text) {
+    final l10n = AppLocalizations.of(context)!;
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
-          children: const [
-            Icon(Icons.content_copy, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Text('Copied to clipboard!'),
+          children: [
+            const Icon(Icons.content_copy, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(l10n.copiedToClipboard),
           ],
         ),
         backgroundColor: Colors.blue,
@@ -203,7 +206,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to adjust tone. Please try again.';
+        _errorMessage = AppLocalizations.of(context)!.failedToComposeMessage(e.toString());
         _isLoading = false;
       });
     }
@@ -250,6 +253,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
   }
 
   Widget _buildHeader() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -270,19 +274,19 @@ class _AiMessageComposerState extends State<AiMessageComposer>
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
-                  'AI Message Assistant',
-                  style: TextStyle(
+                  l10n.aiMessageAssistant,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2D3748),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Compose professional messages',
-                  style: TextStyle(
+                  l10n.composeProfessionalMessages,
+                  style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF718096),
                   ),
@@ -440,9 +444,9 @@ class _AiMessageComposerState extends State<AiMessageComposer>
             },
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Composing your message...',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.composingYourMessage,
+            style: const TextStyle(
               fontSize: 16,
               color: Color(0xFF4A5568),
               fontWeight: FontWeight.w500,
@@ -549,6 +553,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
   }
 
   Widget _buildActionButtons() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -564,7 +569,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Adjust tone:',
+                '${l10n.tone}:',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -578,7 +583,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                     child: OutlinedButton.icon(
                       onPressed: () => _adjustTone('professional'),
                       icon: const Icon(Icons.business_center, size: 16),
-                      label: const Text('Professional & Friendly'),
+                      label: Text(l10n.professionalFriendly),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFFFC107),
                         side: BorderSide(color: Colors.grey[300]!),
@@ -594,7 +599,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                     child: OutlinedButton.icon(
                       onPressed: () => _adjustTone('casual'),
                       icon: const Icon(Icons.emoji_emotions, size: 16),
-                      label: const Text('Casual & Friendly'),
+                      label: Text(l10n.casualFriendly),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFFFC107),
                         side: BorderSide(color: Colors.grey[300]!),
@@ -614,7 +619,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
         ElevatedButton.icon(
           onPressed: () => _useMessage(_composedMessage!.original),
           icon: const Icon(Icons.check_circle),
-          label: const Text('Use Message'),
+          label: Text(l10n.useMessage),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFFFC107),
             foregroundColor: Colors.white,
@@ -630,7 +635,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
           OutlinedButton.icon(
             onPressed: () => _useMessage(_composedMessage!.formattedMessages),
             icon: const Icon(Icons.translate),
-            label: const Text('Use Both (Original + Translation)'),
+            label: Text('${l10n.useBoth} (${l10n.originalMessage} + ${l10n.generatedMessage})'),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFFFFC107),
               side: const BorderSide(color: Color(0xFFFFC107)),
@@ -650,7 +655,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
             });
           },
           icon: const Icon(Icons.refresh),
-          label: const Text('Try Different Scenario'),
+          label: Text(l10n.tryDifferentScenario),
           style: TextButton.styleFrom(
             foregroundColor: Colors.grey[600],
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -661,6 +666,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
   }
 
   Widget _buildErrorState() {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Container(
@@ -696,7 +702,7 @@ class _AiMessageComposerState extends State<AiMessageComposer>
                 });
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Try Again'),
+              label: Text(l10n.tryAgain),
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red[700],
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/data_service.dart';
 
 /// Enhanced refresh indicator with smart refresh logic and better UX
@@ -117,6 +118,7 @@ class EnhancedRefreshIndicator extends StatelessWidget {
   }
 
   void _showRefreshFeedback(BuildContext context, DataService dataService) {
+    final l10n = AppLocalizations.of(context)!;
     if (dataService.lastError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -126,7 +128,7 @@ class EnhancedRefreshIndicator extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Refresh failed: ${dataService.lastError}',
+                  l10n.refreshFailed(dataService.lastError!),
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -134,7 +136,7 @@ class EnhancedRefreshIndicator extends StatelessWidget {
           ),
           backgroundColor: Theme.of(context).colorScheme.error,
           action: SnackBarAction(
-            label: 'Retry',
+            label: l10n.retry,
             textColor: Colors.white,
             onPressed: () => dataService.forceRefresh(),
           ),
@@ -153,7 +155,7 @@ class EnhancedRefreshIndicator extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Updated successfully',
+                l10n.updatedSuccessfully,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onInverseSurface,
                 ),
@@ -185,6 +187,7 @@ class QuickRefreshButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<DataService>(
       builder: (context, dataService, _) {
         if (compact) {
@@ -198,7 +201,7 @@ class QuickRefreshButton extends StatelessWidget {
                       await dataService.forceRefresh();
                     }
                   },
-            tooltip: 'Refresh data',
+            tooltip: l10n.refreshData,
             icon: dataService.isRefreshing
                 ? SizedBox(
                     width: 18,
@@ -221,7 +224,7 @@ class QuickRefreshButton extends StatelessWidget {
                         await dataService.forceRefresh();
                       }
                     },
-              tooltip: 'Refresh data',
+              tooltip: l10n.refreshData,
               child: dataService.isRefreshing
                   ? SizedBox(
                       width: 16,
@@ -263,6 +266,7 @@ class StaleDataBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<DataService>(
       builder: (context, dataService, _) {
         final lastFetch = dataService.lastFetch;
@@ -288,7 +292,7 @@ class StaleDataBanner extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Data may be outdated (${dataService.getLastRefreshTime()})',
+                    '${l10n.dataMayBeOutdated} (${dataService.getLastRefreshTime()})',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
@@ -298,7 +302,7 @@ class StaleDataBanner extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () => dataService.forceRefresh(),
-                  child: const Text('Refresh'),
+                  child: Text(l10n.refresh),
                 ),
               ],
             ),

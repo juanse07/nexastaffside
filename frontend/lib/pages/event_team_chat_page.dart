@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../models/event_chat_message.dart';
 import '../services/event_team_chat_service.dart';
 import '../services/data_service.dart';
+import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 
 class EventTeamChatPage extends StatefulWidget {
@@ -149,8 +150,9 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send message: $e')),
+          SnackBar(content: Text(l10n.failedToSendMessage(e.toString()))),
         );
       }
     } finally {
@@ -179,13 +181,14 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Team Chat', style: TextStyle(fontSize: 18)),
+            Text(l10n.teamChat, style: const TextStyle(fontSize: 18)),
             Text(
               widget.eventName,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
@@ -208,7 +211,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Team chat will be enabled 1 hour before the event starts',
+                      l10n.teamChatEnabledBefore,
                       style: TextStyle(color: AppColors.warningDark, fontSize: 13),
                     ),
                   ),
@@ -225,6 +228,8 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
   }
 
   Widget _buildMessageList() {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -238,7 +243,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadMessages,
-              child: const Text('Retry'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -257,7 +262,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                 Icon(Icons.schedule, size: 64, color: AppColors.warningLight),
                 const SizedBox(height: 24),
                 Text(
-                  'Chat Opens Soon',
+                  l10n.chatOpensSoon,
                   style: TextStyle(
                     color: AppColors.textDark,
                     fontSize: 20,
@@ -266,13 +271,13 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Team chat will automatically open 1 hour before your shift starts',
+                  l10n.teamChatWillOpen,
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Come back closer to your shift time to coordinate with your team!',
+                  l10n.comeBackCloserToShift,
                   style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
@@ -289,12 +294,12 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
             Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.borderLight),
             const SizedBox(height: 16),
             Text(
-              'No messages yet',
+              l10n.noMessagesYet,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              'Start the conversation!',
+              l10n.startTheConversation,
               style: TextStyle(color: AppColors.textMuted, fontSize: 14),
             ),
           ],
@@ -351,6 +356,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
   }
 
   Widget _buildChatMessage(EventChatMessage message) {
+    final l10n = AppLocalizations.of(context)!;
     final isFromManager = message.isFromManager;
     final timeFormat = DateFormat('h:mm a');
 
@@ -401,9 +407,9 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                           color: AppColors.warningLight,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
-                          'Manager',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.managerBadge,
+                          style: const TextStyle(
                             color: AppColors.primaryPurple,
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
@@ -435,6 +441,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
   }
 
   Widget _buildMessageInput(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -450,7 +457,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
               child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: 'Type a message...',
+                  hintText: l10n.typeAMessage,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide(color: AppColors.borderMedium),

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../services/subscription_service.dart';
 import '../../../shared/presentation/theme/theme.dart';
 
 /// Subscription Paywall Screen
-/// Shows pricing, features, and handles purchase flow for Pro subscription
+/// General subscription gate showing ALL Pro features (not just AI).
 class SubscriptionPaywallScreen extends StatefulWidget {
   const SubscriptionPaywallScreen({super.key});
 
@@ -24,19 +25,23 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
 
       if (!mounted) return;
 
+      final l10n = AppLocalizations.of(context)!;
       if (success) {
+        // Refresh cached subscription state
+        await _subscriptionService.refreshStatus();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🎉 Welcome to Nexa Pro! Unlimited AI messages unlocked.'),
+          SnackBar(
+            content: Text(l10n.purchaseSuccessful),
             backgroundColor: AppColors.success,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate upgrade
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Purchase cancelled or failed. Please try again.'),
+          SnackBar(
+            content: Text(l10n.failedToPurchase),
             backgroundColor: AppColors.warning,
           ),
         );
@@ -45,7 +50,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(AppLocalizations.of(context)!.failedToPurchase),
           backgroundColor: AppColors.error,
         ),
       );
@@ -64,19 +69,22 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
 
       if (!mounted) return;
 
+      final l10n = AppLocalizations.of(context)!;
       if (success) {
+        await _subscriptionService.refreshStatus();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Subscription restored successfully!'),
+          SnackBar(
+            content: Text(l10n.purchaseSuccessful),
             backgroundColor: AppColors.success,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No active subscription found to restore.'),
+          SnackBar(
+            content: Text(l10n.noPreviousPurchase),
             backgroundColor: AppColors.warning,
           ),
         );
@@ -85,7 +93,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Restore error: $e'),
+          content: Text(AppLocalizations.of(context)!.failedToRestore),
           backgroundColor: AppColors.error,
         ),
       );
@@ -98,13 +106,14 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundWhite,
       appBar: AppBar(
-        title: const Text('Upgrade to Pro'),
+        title: Text(l10n.upgradeToPro),
         backgroundColor: AppColors.navySpaceCadet,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -115,10 +124,10 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Pro Badge with Navy Theme
+              // Pro Badge
               Container(
-                width: 120,
-                height: 120,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   color: AppColors.navySpaceCadet,
                   shape: BoxShape.circle,
@@ -132,17 +141,17 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 ),
                 child: const Icon(
                   Icons.star,
-                  size: 64,
+                  size: 52,
                   color: AppColors.yellow,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Title
-              const Text(
-                'Nexa Pro',
-                style: TextStyle(
-                  fontSize: 36,
+              Text(
+                l10n.flowShiftPro,
+                style: const TextStyle(
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: AppColors.navySpaceCadet,
                 ),
@@ -150,40 +159,31 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
               ),
               const SizedBox(height: 8),
 
-              // Subtitle
+              // Subtitle — Unlock everything
               Text(
-                'Unlimited AI Chat Messages',
+                l10n.subscribeToUnlock,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
-              // Features List
-              _buildFeature(
-                'Unlimited AI chat messages',
-                Icons.chat_bubble,
-              ),
-              _buildFeature(
-                'No monthly limits',
-                Icons.all_inclusive,
-              ),
-              _buildFeature(
-                'Priority support',
-                Icons.support_agent,
-              ),
-              _buildFeature(
-                'All future Pro features',
-                Icons.auto_awesome,
-              ),
+              // ALL Pro Features List
+              _buildFeature(l10n.proFeatureAcceptDecline, Icons.check_circle_outline),
+              _buildFeature(l10n.proFeatureChat, Icons.chat_bubble_outline),
+              _buildFeature(l10n.proFeatureAI, Icons.auto_awesome),
+              _buildFeature(l10n.proFeatureClockInOut, Icons.access_time),
+              _buildFeature(l10n.proFeatureAvailability, Icons.calendar_today),
+              _buildFeature(l10n.proFeatureCaricatures, Icons.face_retouching_natural),
+              _buildFeature(l10n.cancelAnytime, Icons.all_inclusive),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
-              // Pricing Card with Navy Theme
+              // Pricing Card
               Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   color: AppColors.navySpaceCadet,
                   borderRadius: BorderRadius.circular(20),
@@ -204,15 +204,15 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                         Text(
                           '\$',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: AppColors.yellow,
                           ),
                         ),
                         Text(
-                          '7.80',
+                          '7.99',
                           style: TextStyle(
-                            fontSize: 56,
+                            fontSize: 52,
                             fontWeight: FontWeight.bold,
                             height: 1,
                             color: AppColors.yellow,
@@ -224,15 +224,15 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                     const Text(
                       'per month',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
-                      'Cancel anytime • No commitments',
+                      l10n.cancelAnytime,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: Colors.white.withValues(alpha: 0.7),
                       ),
                       textAlign: TextAlign.center,
@@ -241,7 +241,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
               // Subscribe Button
               Container(
@@ -277,9 +277,9 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                             color: AppColors.navySpaceCadet,
                           ),
                         )
-                      : const Text(
-                          'Subscribe Now',
-                          style: TextStyle(
+                      : Text(
+                          l10n.subscribeNow,
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: AppColors.navySpaceCadet,
@@ -305,20 +305,20 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                           color: AppColors.navySpaceCadet,
                         ),
                       )
-                    : const Text(
-                        'Restore Purchase',
-                        style: TextStyle(
+                    : Text(
+                        l10n.restorePurchase,
+                        style: const TextStyle(
                           fontSize: 16,
                           color: AppColors.navySpaceCadet,
                         ),
                       ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // Terms & Privacy
               Text(
-                'By subscribing, you agree to our Terms of Service and Privacy Policy. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.',
+                l10n.subscriptionDisclaimer,
                 style: TextStyle(
                   fontSize: 12,
                   color: AppColors.navySpaceCadet.withValues(alpha: 0.6),
@@ -335,12 +335,12 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
 
   Widget _buildFeature(String text, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: AppColors.navySpaceCadet.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
@@ -348,15 +348,15 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
             child: Icon(
               icon,
               color: AppColors.navySpaceCadet,
-              size: 24,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: AppColors.navySpaceCadet,
               ),
@@ -365,7 +365,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           const Icon(
             Icons.check_circle,
             color: AppColors.yellow,
-            size: 24,
+            size: 22,
           ),
         ],
       ),

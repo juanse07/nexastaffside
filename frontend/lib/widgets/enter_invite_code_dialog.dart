@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/data_service.dart';
 
 class EnterInviteCodeDialog extends StatefulWidget {
@@ -27,7 +28,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
     final code = _codeController.text.trim().toUpperCase();
     if (code.isEmpty) {
       setState(() {
-        _error = 'Please enter an invite code';
+        _error = AppLocalizations.of(context)!.pleaseEnterInviteCode;
       });
       return;
     }
@@ -71,7 +72,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Successfully joined ${_teamInfo!['teamName']}!'),
+          content: Text(AppLocalizations.of(context)!.successfullyJoinedTeam),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
@@ -88,12 +89,13 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
-          Icon(Icons.group_add, color: Color(0xFFFFC107)),
-          SizedBox(width: 8),
-          Text('Join a Team'),
+          const Icon(Icons.group_add, color: Color(0xFFFFC107)),
+          const SizedBox(width: 8),
+          Text(l10n.joinATeam),
         ],
       ),
       content: SingleChildScrollView(
@@ -101,9 +103,9 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Enter the invite code your manager shared with you',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+            Text(
+              l10n.enterInviteCodePrompt,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 16),
 
@@ -112,11 +114,11 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
               controller: _codeController,
               enabled: !_validating && !_joining,
               textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(
-                labelText: 'Invite Code',
+              decoration: InputDecoration(
+                labelText: l10n.inviteCode,
                 hintText: 'ABC123',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.vpn_key),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.vpn_key),
               ),
               onSubmitted: (_) => _validateCode(),
               onChanged: (value) {
@@ -154,7 +156,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text('Validate Code'),
+                      : Text(l10n.validateCode),
                 ),
               ),
 
@@ -174,9 +176,9 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
                       children: [
                         const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 24),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Valid Invite!',
-                          style: TextStyle(
+                        Text(
+                          l10n.validInvite,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF10B981),
@@ -185,18 +187,18 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
                       ],
                     ),
                     const Divider(height: 24),
-                    _buildInfoRow(Icons.business, 'Team', _teamInfo!['teamName']?.toString() ?? 'Unknown'),
+                    _buildInfoRow(Icons.business, l10n.team, _teamInfo!['teamName']?.toString() ?? 'Unknown'),
                     if (_teamInfo!['teamDescription'] != null && _teamInfo!['teamDescription'].toString().isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _buildInfoRow(Icons.description, 'Description', _teamInfo!['teamDescription']?.toString() ?? ''),
+                      _buildInfoRow(Icons.description, l10n.description, _teamInfo!['teamDescription']?.toString() ?? ''),
                     ],
                     if (_teamInfo!['managerName'] != null) ...[
                       const SizedBox(height: 8),
-                      _buildInfoRow(Icons.person, 'Manager', _teamInfo!['managerName']?.toString() ?? ''),
+                      _buildInfoRow(Icons.person, l10n.manager, _teamInfo!['managerName']?.toString() ?? ''),
                     ],
                     if (_teamInfo!['expiresAt'] != null) ...[
                       const SizedBox(height: 8),
-                      _buildInfoRow(Icons.schedule, 'Expires', _formatDate(_teamInfo!['expiresAt']?.toString() ?? '')),
+                      _buildInfoRow(Icons.schedule, l10n.expires, _formatDate(_teamInfo!['expiresAt']?.toString() ?? '')),
                     ],
                   ],
                 ),
@@ -221,7 +223,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
                           ),
                         )
                       : const Icon(Icons.login),
-                  label: Text(_joining ? 'Joining...' : 'Join Team'),
+                  label: Text(_joining ? l10n.joining : l10n.joinTeam),
                 ),
               ),
             ],
@@ -256,7 +258,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
       actions: [
         TextButton(
           onPressed: _validating || _joining ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
       ],
     );
