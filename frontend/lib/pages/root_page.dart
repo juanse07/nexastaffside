@@ -3679,8 +3679,8 @@ class _RolesSectionState extends State<_RolesSection> {
     final double safeAreaTop = MediaQuery.of(context).padding.top;
     final double appBarHeight = safeAreaTop + 56.0; // Safe area + content height
     const double chipsHeight = 60.0;
-    const double toggleHeight = 34.0; // Unavailable dates toggle height (only in Available view)
-    final double totalHeaderHeight = appBarHeight + chipsHeight + (_selectedView == _ViewMode.available ? toggleHeight : 0);
+    // toggleHeight removed — the filter icon is inline inside the chips row, not a separate row
+    final double totalHeaderHeight = appBarHeight + chipsHeight;
 
     // Banner height: accounts for free-month/expired banner below chips
     final subscriptionService = SubscriptionService();
