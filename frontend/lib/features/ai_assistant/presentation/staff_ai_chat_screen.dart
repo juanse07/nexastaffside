@@ -455,12 +455,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
               ),
             ),
 
-          // Clear conversation
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _clearConversation,
-            tooltip: 'Clear conversation',
-          ),
         ],
       ),
       body: !_isInitialized

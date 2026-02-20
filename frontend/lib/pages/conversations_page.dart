@@ -85,8 +85,8 @@ class _ConversationsPageState extends State<ConversationsPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    // Header height: title row (~56) + search bar (~52) + divider (1)
-    const double headerHeight = 109.0;
+    // Header height: title row (~62) + search bar (~60) + divider (1) + 2px buffer
+    const double headerHeight = 125.0;
 
     return Scaffold(
       body: SafeArea(

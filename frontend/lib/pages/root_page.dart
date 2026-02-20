@@ -723,6 +723,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
         // Auto-detect system language on every build (like Manager app)
         terminologyProvider.updateSystemLanguage(context);
 
+        final showNoTeamBanner = dataService.teamsLoaded && !dataService.hasTeams && _selectedBottomIndex == 0;
+        final l10n = AppLocalizations.of(context)!;
+
         return Scaffold(
           backgroundColor: AppColors.surfaceLight, // Soft off-white (#F8FAFC)
           extendBody: true,
@@ -821,7 +824,8 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               ], // close Column children
               ), // close Column
               ), // close NotificationListener
-              // AI Assistant floating button — visible across all tabs, animates on scroll
+              // AI Assistant floating button — hidden when "no team" banner is active
+              if (!showNoTeamBanner)
               Positioned(
                 right: 16,
                 bottom: MediaQuery.of(context).padding.bottom + 92,
@@ -950,7 +954,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                                       _buildNavItem(
                                         icon: Icons.account_balance_wallet_outlined,
                                         selectedIcon: Icons.account_balance_wallet,
-                                        label: 'Earnings',
+                                        label: l10n.navEarnings,
                                         index: 2,
                                       ),
                                       _buildNavItem(
@@ -971,6 +975,94 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                   },
               ),
             ),
+            // "No team" banner — rendered last so it's above nav bar in z-order
+            if (showNoTeamBanner)
+              Positioned(
+                bottom: MediaQuery.of(context).padding.bottom + 100,
+                left: 16,
+                right: 16,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.warning.withOpacity(0.4),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.group_off_outlined,
+                              size: 22,
+                              color: AppColors.warningDark,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.noTeamBannerTitle,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                    color: AppColors.warningDark,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  l10n.noTeamBannerMessage,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.warningDark.withOpacity(0.8),
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const TeamCenterPage()),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.warningDark,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                l10n.goToTeams,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -3725,10 +3817,6 @@ class _RolesSectionState extends State<_RolesSection> {
         break;
     }
 
-    // Check if user has no teams (show banner)
-    final dataService = context.watch<DataService>();
-    final showNoTeamBanner = dataService.teamsLoaded && !dataService.hasTeams
-        && (_selectedView == _ViewMode.available || _selectedView == _ViewMode.myEvents);
     final l10n = AppLocalizations.of(context)!;
 
     return Stack(
@@ -3970,94 +4058,6 @@ class _RolesSectionState extends State<_RolesSection> {
           ),
         ),
 
-        // "No team" banner - positioned above the bottom nav bar
-        if (showNoTeamBanner)
-          Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 64,
-            left: 16,
-            right: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.warning.withOpacity(0.4),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.group_off_outlined,
-                        size: 22,
-                        color: AppColors.warningDark,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.noTeamBannerTitle,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                              color: AppColors.warningDark,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            l10n.noTeamBannerMessage,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.warningDark.withOpacity(0.8),
-                              height: 1.3,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const TeamCenterPage()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.warningDark,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          l10n.goToTeams,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ),
-            ),
-          ),
 
       ],
     );
