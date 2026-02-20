@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../services/data_service.dart';
+import '../shared/presentation/theme/theme.dart';
 
 class EnterInviteCodeDialog extends StatefulWidget {
   const EnterInviteCodeDialog({super.key});
@@ -144,8 +145,8 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
                 child: ElevatedButton(
                   onPressed: _validating ? null : _validateCode,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC107),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF2C3E50),
+                    foregroundColor: AppColors.yellow,
                   ),
                   child: _validating
                       ? const SizedBox(
@@ -258,6 +259,7 @@ class _EnterInviteCodeDialogState extends State<EnterInviteCodeDialog> {
       actions: [
         TextButton(
           onPressed: _validating || _joining ? null : () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(foregroundColor: const Color(0xFF2C3E50)),
           child: Text(l10n.cancel),
         ),
       ],
