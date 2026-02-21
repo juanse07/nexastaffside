@@ -15,6 +15,7 @@ import '../shared/widgets/initials_avatar.dart';
 import '../shared/widgets/caricature_generator_sheet.dart';
 import '../services/subscription_service.dart';
 import '../shared/widgets/subscription_gate.dart';
+import '../utils/error_helpers.dart';
 import 'chat_page.dart';
 
 class UserProfilePage extends StatefulWidget {
@@ -25,6 +26,7 @@ class UserProfilePage extends StatefulWidget {
 }
 
 class _UserProfilePageState extends State<UserProfilePage> {
+  final _formKey = GlobalKey<FormState>();
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -219,13 +221,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
         const SnackBar(content: Text('Reverted to original photo')),
       );
     } catch (e) {
-      setState(() => _error = 'Failed to revert: $e');
+      if (!mounted) return;
+      setState(() => _error = localizedErrorMessage(context, e));
     } finally {
       if (mounted) setState(() => _reverting = false);
     }
   }
 
   Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? true)) return;
+
     setState(() {
       _saving = true;
       _error = null;
@@ -244,7 +249,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      setState(() => _error = localizedErrorMessage(context, e));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -512,92 +517,125 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
+  // ─── Validators ────────────────────────────────────────────────────────────
+
+  String? _validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) return null; // optional on edit
+    final phoneRegex = RegExp(r'^(\d{3}-\d{3}-\d{4}|\d{10})$');
+    if (!phoneRegex.hasMatch(value.trim())) {
+      return AppLocalizations.of(context)!.errorPhoneFormat;
+    }
+    return null;
+  }
+
+  String? _validateAppId(String? value) {
+    if (value == null || value.trim().isEmpty) return null; // optional field
+    final appIdRegex = RegExp(r'^\d{9}$');
+    if (!appIdRegex.hasMatch(value.trim())) {
+      return AppLocalizations.of(context)!.errorAppIdFormat;
+    }
+    return null;
+  }
+
   // ─── Form Card ─────────────────────────────────────────────────────────────
 
   Widget _buildFormCard(AppLocalizations l10n) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.backgroundWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          _formRow(
-            icon: Icons.person_outline,
-            child: TextField(
-              controller: _firstNameCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.firstName,
-                labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
+    return Form(
+      key: _formKey,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.backgroundWhite,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            _formRow(
+              icon: Icons.person_outline,
+              child: TextFormField(
+                controller: _firstNameCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.firstName,
+                  labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
+              ),
+              isFirst: true,
+            ),
+            _divider(),
+            _formRow(
+              icon: Icons.person_outline,
+              child: TextFormField(
+                controller: _lastNameCtrl,
+                decoration: InputDecoration(
+                  labelText: l10n.lastName,
+                  labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
               ),
             ),
-            isFirst: true,
-          ),
-          _divider(),
-          _formRow(
-            icon: Icons.person_outline,
-            child: TextField(
-              controller: _lastNameCtrl,
-              decoration: InputDecoration(
-                labelText: l10n.lastName,
-                labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
+            _divider(),
+            _formRow(
+              icon: Icons.phone_outlined,
+              child: TextFormField(
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                validator: _validatePhone,
+                decoration: InputDecoration(
+                  labelText: l10n.phoneNumber,
+                  labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
+                  hintText: l10n.phoneHint,
+                  helperText: l10n.phoneHelper,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
               ),
             ),
-          ),
-          _divider(),
-          _formRow(
-            icon: Icons.phone_outlined,
-            child: TextField(
-              controller: _phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: l10n.phoneNumber,
-                labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
-                hintText: l10n.phoneHint,
-                helperText: l10n.phoneHelper,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
+            _divider(),
+            _formRow(
+              icon: Icons.tag_outlined,
+              child: TextFormField(
+                controller: _appIdCtrl,
+                keyboardType: TextInputType.number,
+                maxLength: 9,
+                validator: _validateAppId,
+                decoration: InputDecoration(
+                  labelText: l10n.appId,
+                  labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  isDense: true,
+                ),
               ),
+              isLast: true,
             ),
-          ),
-          _divider(),
-          _formRow(
-            icon: Icons.tag_outlined,
-            child: TextField(
-              controller: _appIdCtrl,
-              keyboardType: TextInputType.number,
-              maxLength: 9,
-              decoration: InputDecoration(
-                labelText: l10n.appId,
-                labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                floatingLabelStyle: const TextStyle(color: AppColors.navySpaceCadet, fontSize: 12, fontWeight: FontWeight.w600),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-                isDense: true,
-              ),
-            ),
-            isLast: true,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

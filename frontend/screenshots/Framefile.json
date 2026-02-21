@@ -1,0 +1,59 @@
+{
+  "device_frame_version": "latest",
+  "default": {
+    "title": {
+      "font_size": 48,
+      "font": "SF Pro Display",
+      "color": "#FFFFFF"
+    },
+    "background": "#2C3E50",
+    "padding": 50,
+    "show_complete_frame": true,
+    "stack_title": false,
+    "title_below_image": false
+  },
+  "data": [
+    {
+      "filter": "01_shifts",
+      "title": {
+        "text": "Browse Available Shifts"
+      }
+    },
+    {
+      "filter": "02_chats",
+      "title": {
+        "text": "Stay Connected"
+      }
+    },
+    {
+      "filter": "03_earnings",
+      "title": {
+        "text": "Track Your Earnings"
+      }
+    },
+    {
+      "filter": "04_clockin",
+      "title": {
+        "text": "Easy Clock In & Out"
+      }
+    },
+    {
+      "filter": "05_event_detail",
+      "title": {
+        "text": "Shift Details at a Glance"
+      }
+    },
+    {
+      "filter": "06_ai_chat",
+      "title": {
+        "text": "AI-Powered Assistant"
+      }
+    },
+    {
+      "filter": "07_calendar",
+      "title": {
+        "text": "Manage Your Schedule"
+      }
+    }
+  ]
+}

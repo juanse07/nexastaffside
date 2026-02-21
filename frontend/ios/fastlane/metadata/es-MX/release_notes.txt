@@ -1,0 +1,9 @@
+¡Bienvenido a FlowShift Staff 1.0!
+
+- Explora y acepta turnos disponibles
+- Asistente de IA para encontrar trabajos ideales
+- Monitorea tus ganancias e historial
+- Mensajería directa con gerentes
+- Check-in digital para eventos
+- Notificaciones en tiempo real
+- Inicio de sesión con Google y Apple

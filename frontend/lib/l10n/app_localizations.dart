@@ -3013,6 +3013,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\$8.99 — less than a casual café stop.'**
   String get priceAnchor;
+
+  /// No description provided for @errorValidationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check the highlighted fields and try again.'**
+  String get errorValidationFailed;
+
+  /// No description provided for @errorAppIdInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'This App ID is already in use.'**
+  String get errorAppIdInUse;
+
+  /// No description provided for @errorAppIdFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'App ID must be exactly 9 digits.'**
+  String get errorAppIdFormat;
+
+  /// No description provided for @errorNetworkUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Please check your network and try again.'**
+  String get errorNetworkUnavailable;
+
+  /// No description provided for @errorServerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Server is temporarily unavailable. Please try again later.'**
+  String get errorServerUnavailable;
+
+  /// No description provided for @errorSomethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get errorSomethingWentWrong;
+
+  /// No description provided for @errorNotAuthenticated.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Please sign in again.'**
+  String get errorNotAuthenticated;
+
+  /// No description provided for @errorPhoneFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid US phone number (e.g. 555-123-4567).'**
+  String get errorPhoneFormat;
 }
 
 class _AppLocalizationsDelegate

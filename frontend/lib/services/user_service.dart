@@ -7,6 +7,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import 'api_exception.dart';
+
 class CaricatureHistoryItem {
   final String url;
   final String role;
@@ -141,9 +143,11 @@ class UserService {
       final response = await request().timeout(_requestTimeout);
       _log('$operation: Response status ${response.statusCode}');
       return response;
+    } on ApiException {
+      rethrow;
     } catch (e) {
       _log('$operation: Request failed: $e', isError: true);
-      rethrow;
+      throw ApiException.network(e);
     }
   }
 
@@ -151,7 +155,7 @@ class UserService {
   static Future<UserProfile> getMe() async {
     final token = await _getJwt();
     if (token == null) {
-      throw Exception('Not authenticated');
+      throw const ApiException(statusCode: 401, message: 'Not authenticated');
     }
 
     final resp = await _makeRequest(
@@ -166,7 +170,7 @@ class UserService {
       final data = json.decode(resp.body) as Map<String, dynamic>;
       return UserProfile.fromMap(data);
     } else {
-      throw Exception('Failed to load profile: ${resp.statusCode}');
+      throw ApiException.fromResponse(resp);
     }
   }
 
@@ -182,7 +186,7 @@ class UserService {
   }) async {
     final token = await _getJwt();
     if (token == null) {
-      throw Exception('Not authenticated');
+      throw const ApiException(statusCode: 401, message: 'Not authenticated');
     }
 
     final payload = <String, dynamic>{};
@@ -212,20 +216,14 @@ class UserService {
       final data = json.decode(resp.body) as Map<String, dynamic>;
       return UserProfile.fromMap(data);
     } else {
-      final errorBody = resp.body;
-      try {
-        final errorData = json.decode(errorBody) as Map<String, dynamic>;
-        throw Exception(errorData['message'] ?? 'Failed to update profile');
-      } catch (_) {
-        throw Exception('Failed to update profile: ${resp.statusCode}');
-      }
+      throw ApiException.fromResponse(resp);
     }
   }
 
   /// Revert to the original (pre-caricature) picture.
   static Future<UserProfile> revertPicture() async {
     final token = await _getJwt();
-    if (token == null) throw Exception('Not authenticated');
+    if (token == null) throw const ApiException(statusCode: 401, message: 'Not authenticated');
 
     final resp = await _makeRequest(
       request: () => http.post(
@@ -242,14 +240,14 @@ class UserService {
         originalPicture: data['originalPicture']?.toString(),
       );
     } else {
-      throw Exception('Failed to revert picture: ${resp.statusCode}');
+      throw ApiException.fromResponse(resp);
     }
   }
 
   /// Delete a caricature from history by index.
   static Future<List<CaricatureHistoryItem>> deleteCaricature(int index) async {
     final token = await _getJwt();
-    if (token == null) throw Exception('Not authenticated');
+    if (token == null) throw const ApiException(statusCode: 401, message: 'Not authenticated');
 
     final resp = await _makeRequest(
       request: () => http.delete(
@@ -266,7 +264,7 @@ class UserService {
           .map((e) => CaricatureHistoryItem.fromMap(e as Map<String, dynamic>))
           .toList();
     } else {
-      throw Exception('Failed to delete caricature: ${resp.statusCode}');
+      throw ApiException.fromResponse(resp);
     }
   }
 }

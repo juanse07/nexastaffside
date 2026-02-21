@@ -1,0 +1,9 @@
+Welcome to FlowShift Staff 1.0!
+
+- Browse and accept available event shifts
+- AI assistant to help find the right gigs
+- Track your earnings and work history
+- Direct messaging with managers
+- Digital check-in for events
+- Real-time notifications
+- Google and Apple Sign-In

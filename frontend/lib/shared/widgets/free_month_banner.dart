@@ -18,8 +18,8 @@ class FreeMonthBanner extends StatelessWidget {
     // Don't show if status hasn't loaded yet
     if (!service.statusLoaded) return const SizedBox.shrink();
 
-    // Don't show for active Pro subscribers
-    if (!service.isReadOnly && !service.isInFreeMonth) return const SizedBox.shrink();
+    // Don't show for active Pro subscribers (App Store trial is separate)
+    if (!service.isReadOnly) return const SizedBox.shrink();
 
     final isExpired = service.isReadOnly && !service.isInFreeMonth;
     final daysRemaining = service.freeMonthDaysRemaining;

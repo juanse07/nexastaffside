@@ -502,6 +502,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
     // Clear cached data when signing out
     context.read<DataService>().clearCache();
+    SubscriptionService().reset();
 
     _userKey = null;
     _checkingAuth = true;
@@ -1270,7 +1271,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
       },
       itemBuilder: (context) => [
         // ── Upgrade to Pro (hidden when already subscribed) ──────────────
-        if (SubscriptionService().isReadOnly || SubscriptionService().isInFreeMonth)
+        if (SubscriptionService().isReadOnly)
           PopupMenuItem<_AccountMenuAction>(
             value: _AccountMenuAction.upgradePro,
             padding: EdgeInsets.zero,
@@ -3867,7 +3868,7 @@ class _RolesSectionState extends State<_RolesSection> {
     final subscriptionService = SubscriptionService();
     const double bannerHeight40 = 40.0;
     final bool showFreeBanner = subscriptionService.statusLoaded &&
-        (subscriptionService.isReadOnly || subscriptionService.isInFreeMonth);
+        subscriptionService.isReadOnly;
     final double bannerHeight = showFreeBanner ? bannerHeight40 : 0.0;
     final double totalSpacerHeight = totalHeaderHeight + bannerHeight;
 

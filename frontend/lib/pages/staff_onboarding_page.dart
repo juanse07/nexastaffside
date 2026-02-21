@@ -3,11 +3,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/navigation/route_error_manager.dart';
+import '../services/api_exception.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
 import '../services/subscription_service.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
+import '../utils/error_helpers.dart';
 import 'root_page.dart';
 
 class StaffOnboardingGate extends StatefulWidget {
@@ -73,9 +75,7 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
       print('[ONBOARDING GATE ERROR] Failed to load profile: $e');
 
       // If user doesn't exist or auth failed, sign out and go to login
-      if (e.toString().contains('404') ||
-          e.toString().contains('401') ||
-          e.toString().contains('Unauthorized')) {
+      if (e is ApiException && (e.statusCode == 404 || e.statusCode == 401)) {
         print('[ONBOARDING GATE] Auth error - signing out');
         await _signOut();
         return;
@@ -84,7 +84,7 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
       if (!mounted) return;
 
       setState(() {
-        _error = e.toString();
+        _error = localizedErrorMessage(context, e);
         _loading = false;
       });
     }
@@ -292,6 +292,15 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
     return null;
   }
 
+  String? _validateAppId(String? value) {
+    if (value == null || value.trim().isEmpty) return null; // optional field
+    final appIdRegex = RegExp(r'^\d{9}$');
+    if (!appIdRegex.hasMatch(value.trim())) {
+      return AppLocalizations.of(context)!.errorAppIdFormat;
+    }
+    return null;
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -325,7 +334,7 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = localizedErrorMessage(context, e);
         _saving = false;
       });
     }
@@ -581,6 +590,8 @@ class _OnboardingScreenState extends State<_OnboardingScreen>
                   label: l10n.appIdOptional,
                   icon: Icons.badge_outlined,
                   action: TextInputAction.done,
+                  keyboardType: TextInputType.number,
+                  validator: _validateAppId,
                 ),
                 const SizedBox(height: 12),
                 Text(

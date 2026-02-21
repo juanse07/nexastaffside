@@ -27,6 +27,17 @@ class SubscriptionService {
   bool get statusLoaded => _statusLoaded;
   bool canPerformAction() => !_isReadOnly;
 
+  /// Reset singleton state on logout so re-login re-initializes properly
+  void reset() {
+    _initialized = false;
+    _qonversionUserId = null;
+    _isReadOnly = false;
+    _isInFreeMonth = false;
+    _freeMonthDaysRemaining = 0;
+    _statusLoaded = false;
+    print('[SubscriptionService] State reset for logout');
+  }
+
   /// Initialize Qonversion SDK
   Future<void> initialize() async {
     if (_initialized) return;
@@ -172,8 +183,8 @@ class SubscriptionService {
 
       if (isActive) {
         print('[SubscriptionService] Purchase successful!');
-        // Sync with backend
-        await _syncWithBackend();
+        // Sync with backend — tell it we're now pro/active
+        await _syncWithBackend(tier: 'pro', status: 'active');
         return (success: true, error: null);
       } else {
         final msg = 'Purchase completed but pro_access not active. Keys: $entKeys';
@@ -181,7 +192,18 @@ class SubscriptionService {
         return (success: false, error: msg);
       }
     } catch (e) {
-      print('[SubscriptionService] Purchase failed: $e');
+      print('[SubscriptionService] Purchase failed: $e — attempting restore...');
+      // When Apple says "already subscribed", the purchase throws.
+      // Auto-restore to sync the existing subscription with this account.
+      try {
+        final restored = await restorePurchases();
+        if (restored) {
+          print('[SubscriptionService] Auto-restore succeeded after failed purchase');
+          return (success: true, error: null);
+        }
+      } catch (restoreErr) {
+        print('[SubscriptionService] Auto-restore also failed: $restoreErr');
+      }
       return (success: false, error: e.toString());
     }
   }
@@ -207,8 +229,8 @@ class SubscriptionService {
 
       if (isActive) {
         print('[SubscriptionService] Subscription restored!');
-        // Sync with backend
-        await _syncWithBackend();
+        // Sync with backend — tell it we're now pro/active
+        await _syncWithBackend(tier: 'pro', status: 'active');
       } else {
         print('[SubscriptionService] No active subscription found');
       }
@@ -300,6 +322,30 @@ class SubscriptionService {
     await getBackendStatus();
   }
 
+  /// Check Qonversion entitlements and sync with backend if active.
+  /// Call this on app launch to catch subscriptions the backend doesn't know about
+  /// (e.g. user logged into a different FlowShift account on a device with an active Apple subscription).
+  Future<void> syncEntitlementsOnLaunch() async {
+    try {
+      if (_qonversionUserId == null) return;
+
+      final entitlements = await Qonversion.getSharedInstance().checkEntitlements();
+      final proEntitlement = entitlements['pro_access'];
+      final isActive = proEntitlement != null && proEntitlement.isActive;
+
+      print('[SubscriptionService] Launch entitlement check: ${isActive ? 'Pro' : 'Free'}');
+
+      // If Apple says active but backend says read-only, sync to fix the mismatch
+      if (isActive && _isReadOnly) {
+        print('[SubscriptionService] Mismatch detected — Apple active but backend read-only, syncing...');
+        await _syncWithBackend(tier: 'pro', status: 'active');
+        await getBackendStatus(); // Reload cached state
+      }
+    } catch (e) {
+      print('[SubscriptionService] Launch entitlement sync error: $e');
+    }
+  }
+
   /// Link Qonversion user ID to backend
   Future<void> _linkUserToBackend(String qonversionUserId) async {
     try {
@@ -330,8 +376,10 @@ class SubscriptionService {
     }
   }
 
-  /// Sync subscription state with backend
-  Future<void> _syncWithBackend() async {
+  /// Sync subscription state with backend.
+  /// When [tier] and [status] are provided (after a purchase/restore), the
+  /// backend updates the user's subscription record in MongoDB.
+  Future<void> _syncWithBackend({String? tier, String? status}) async {
     try {
       final token = await AuthService.getJwt();
       if (token == null) {
@@ -340,6 +388,9 @@ class SubscriptionService {
       }
 
       final baseUrl = AIAssistantConfig.baseUrl;
+      final body = <String, dynamic>{};
+      if (tier != null) body['tier'] = tier;
+      if (status != null) body['status'] = status;
 
       final response = await http.post(
         Uri.parse('$baseUrl/api/subscription/sync'),
@@ -347,10 +398,11 @@ class SubscriptionService {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {
-        print('[SubscriptionService] Sync successful');
+        print('[SubscriptionService] Sync successful: ${response.body}');
       } else {
         print('[SubscriptionService] Sync failed: ${response.statusCode}');
       }

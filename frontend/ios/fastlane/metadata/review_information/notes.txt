@@ -1,0 +1,8 @@
+Demo account for App Store review:
+
+Email: staff@flowshift.work
+Password: FlowShift2024!
+
+Sign in using the email and password fields at the bottom of the login screen.
+The demo account includes sample data: team membership, completed past events
+with approved hours, upcoming events to accept, and chat conversations.

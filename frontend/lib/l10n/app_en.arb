@@ -881,5 +881,15 @@
   "unlockFeature": "Unlock",
   "tryProFree": "Try FlowShift Pro free for 30 days",
   "noChargeUntilTrialEnds": "No charge until trial ends",
-  "priceAnchor": "$8.99 — less than a casual café stop."
+  "priceAnchor": "$8.99 — less than a casual café stop.",
+
+  "@@ Error Messages": {},
+  "errorValidationFailed": "Please check the highlighted fields and try again.",
+  "errorAppIdInUse": "This App ID is already in use.",
+  "errorAppIdFormat": "App ID must be exactly 9 digits.",
+  "errorNetworkUnavailable": "No internet connection. Please check your network and try again.",
+  "errorServerUnavailable": "Server is temporarily unavailable. Please try again later.",
+  "errorSomethingWentWrong": "Something went wrong. Please try again.",
+  "errorNotAuthenticated": "Your session has expired. Please sign in again.",
+  "errorPhoneFormat": "Enter a valid US phone number (e.g. 555-123-4567)."
 }

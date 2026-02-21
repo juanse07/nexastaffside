@@ -1591,4 +1591,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get priceAnchor => '\$8.99 — less than a casual café stop.';
+
+  @override
+  String get errorValidationFailed =>
+      'Please check the highlighted fields and try again.';
+
+  @override
+  String get errorAppIdInUse => 'This App ID is already in use.';
+
+  @override
+  String get errorAppIdFormat => 'App ID must be exactly 9 digits.';
+
+  @override
+  String get errorNetworkUnavailable =>
+      'No internet connection. Please check your network and try again.';
+
+  @override
+  String get errorServerUnavailable =>
+      'Server is temporarily unavailable. Please try again later.';
+
+  @override
+  String get errorSomethingWentWrong =>
+      'Something went wrong. Please try again.';
+
+  @override
+  String get errorNotAuthenticated =>
+      'Your session has expired. Please sign in again.';
+
+  @override
+  String get errorPhoneFormat =>
+      'Enter a valid US phone number (e.g. 555-123-4567).';
 }
