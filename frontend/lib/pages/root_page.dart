@@ -718,7 +718,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     return Consumer<DataService>(
       builder: (context, dataService, _) {
         // Compute upcoming event for countdown
-        _computeUpcoming(dataService.events);
+        _computeUpcoming(dataService.myShifts);
         final pendingInvites = dataService.pendingInvites.length;
         final terminologyProvider = context.watch<TerminologyProvider>();
 
@@ -789,6 +789,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               children: [
               _RolesSection(
                 events: dataService.events,
+                myShifts: dataService.myShifts,
                 userKey: _userKey,
                 loading: dataService.isLoading,
                 availability: dataService.availability,
@@ -803,7 +804,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 onTitleTap: _goToMyShifts,
               ), // Chats tab (index 1) - Navy blue border for profile picture
               EarningsPage(
-                events: dataService.events,
+                events: dataService.myShifts,
                 userKey: _userKey,
                 loading: dataService.isLoading,
                 profileMenu: _buildProfileMenu(context, pendingInvites),
@@ -811,7 +812,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                 onTitleTap: _goToMyShifts,
               ),
               _HomeTab(
-                events: dataService.events,
+                events: dataService.myShifts,
                 userKey: _userKey,
                 loading: dataService.isLoading,
                 profileMenu: _buildProfileMenu(context, pendingInvites),
@@ -3424,6 +3425,7 @@ class _WeekBannerDelegate extends SliverPersistentHeaderDelegate {
 // Roles section with segmented control navigation
 class _RolesSection extends StatefulWidget {
   final List<Map<String, dynamic>> events;
+  final List<Map<String, dynamic>> myShifts;
   final String? userKey;
   final bool loading;
   final List<Map<String, dynamic>> availability;
@@ -3435,6 +3437,7 @@ class _RolesSection extends StatefulWidget {
 
   const _RolesSection({
     required this.events,
+    required this.myShifts,
     required this.userKey,
     required this.loading,
     required this.availability,
@@ -3744,31 +3747,17 @@ class _RolesSectionState extends State<_RolesSection> {
   }
 
   List<Map<String, dynamic>> _getMyAcceptedEvents() {
-    if (widget.userKey == null) return const [];
+    // myShifts from server already contains only events where user is accepted
     final List<Map<String, dynamic>> mine = [];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    debugPrint('[MY_EVENTS] Filtering ${widget.events.length} events for user ${widget.userKey}');
-    debugPrint('[MY_EVENTS] Today date: $today');
+    debugPrint('[MY_EVENTS] Filtering ${widget.myShifts.length} my-shifts for future events');
 
-    for (final e in widget.events) {
-      final eventId = e['_id'] ?? e['id'];
-      final eventName = e['event_name'] ?? e['title'] ?? 'Unknown';
-
-      final isAccepted = isAcceptedByUser(e, widget.userKey);
-      debugPrint('[MY_EVENTS] Processing event: $eventId - $eventName (accepted: $isAccepted)');
-
-      // Only include if accepted AND event is today or in the future
-      if (isAccepted) {
-        final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
-        debugPrint('[MY_EVENTS] Event ${e['_id']} (${e['event_name']}): date=$eventDate, today=$today, isBefore=${eventDate?.isBefore(today)}');
-        if (eventDate != null && !eventDate.isBefore(today)) {
-          mine.add(e);
-          debugPrint('[MY_EVENTS] ✓ Added event ${e['_id']} to My Events');
-        } else {
-          debugPrint('[MY_EVENTS] ✗ Skipped event ${e['_id']} - date in past or null');
-        }
+    for (final e in widget.myShifts) {
+      final eventDate = _parseDateSafe(e['date']?.toString() ?? '');
+      if (eventDate != null && !eventDate.isBefore(today)) {
+        mine.add(e);
       }
     }
 
@@ -3887,7 +3876,7 @@ class _RolesSectionState extends State<_RolesSection> {
         break;
       case _ViewMode.myEvents:
         content = _MyEventsList(
-          events: widget.events,
+          events: widget.myShifts,
           userKey: widget.userKey,
           loading: widget.loading,
           onHideBottomBar: widget.onHideBottomBar,
@@ -3898,7 +3887,7 @@ class _RolesSectionState extends State<_RolesSection> {
         break;
       case _ViewMode.calendar:
         content = _CalendarTab(
-          events: widget.events,
+          events: widget.myShifts,
           userKey: widget.userKey,
           loading: widget.loading,
           availability: widget.availability,
@@ -4441,12 +4430,12 @@ class _MyEventsListState extends State<_MyEventsList> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () {
-                    final events = context.read<DataService>().events;
-                    debugPrint('🚀 [NAVIGATION] Opening PastEventsPage with ${events.length} events');
+                    final myShifts = context.read<DataService>().myShifts;
+                    debugPrint('🚀 [NAVIGATION] Opening PastEventsPage with ${myShifts.length} my-shifts');
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) =>
-                            PastEventsPage(events: events, userKey: widget.userKey),
+                            PastEventsPage(events: myShifts, userKey: widget.userKey),
                       ),
                     );
                   },

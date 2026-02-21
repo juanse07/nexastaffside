@@ -19,6 +19,8 @@ class DataService extends ChangeNotifier {
   static const String _lastAvailabilityFetchKey = 'last_availability_fetch';
   static const String _shiftsStorageKey = 'cached_shifts';
   static const String _lastShiftsFetchKey = 'last_shifts_fetch_timestamp';
+  static const String _myShiftsStorageKey = 'cached_my_shifts';
+  static const String _lastMyShiftsFetchKey = 'last_my_shifts_fetch_timestamp';
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   // Cache duration in minutes - adjust based on your needs
@@ -29,6 +31,9 @@ class DataService extends ChangeNotifier {
   List<Map<String, dynamic>> _availability = [];
   List<Map<String, dynamic>> _eventsRaw = [];
   List<Map<String, dynamic>> _shifts = [];
+  List<Map<String, dynamic>> _myShifts = [];
+  List<Map<String, dynamic>> _myShiftsRaw = [];
+  DateTime? _lastMyShiftsFetch;
   List<Map<String, dynamic>> _myTeams = [];
   List<Map<String, dynamic>> _pendingInvites = [];
   final Set<String> _teamIds = <String>{};
@@ -50,6 +55,7 @@ class DataService extends ChangeNotifier {
   List<Map<String, dynamic>> get availability =>
       List.unmodifiable(_availability);
   List<Map<String, dynamic>> get shifts => List.unmodifiable(_shifts);
+  List<Map<String, dynamic>> get myShifts => List.unmodifiable(_myShifts);
   List<Map<String, dynamic>> get teams => List.unmodifiable(_myTeams);
   List<Map<String, dynamic>> get pendingInvites =>
       List.unmodifiable(_pendingInvites);
@@ -62,6 +68,8 @@ class DataService extends ChangeNotifier {
   DateTime? get lastShiftsFetch => _lastShiftsFetch;
   bool get hasData => _events.isNotEmpty;
   bool get hasShiftsData => _shifts.isNotEmpty;
+  bool get hasMyShiftsData => _myShifts.isNotEmpty;
+  DateTime? get lastMyShiftsFetch => _lastMyShiftsFetch;
 
   // Check if data is fresh enough to avoid unnecessary requests
   bool get isDataFresh {
@@ -111,6 +119,7 @@ class DataService extends ChangeNotifier {
     debugPrint('🌐 Fetching fresh data from server...');
     await Future.wait([
       _fetchEvents(silent: true, forceFullSync: true),
+      _fetchMyShifts(silent: true, forceFullSync: true),
       _fetchAvailability(silent: true),
       _fetchMyTeams(silent: true),
       _fetchMyInvites(silent: true),
@@ -199,6 +208,20 @@ class DataService extends ChangeNotifier {
         _lastShiftsFetch = DateTime.tryParse(lastShiftsStr);
       }
 
+      // Load cached my-shifts
+      final cachedMyShifts = await _safeStorageRead(_myShiftsStorageKey);
+      if (cachedMyShifts != null) {
+        final data = json.decode(cachedMyShifts) as List<dynamic>;
+        _myShifts = data.cast<Map<String, dynamic>>();
+        _myShiftsRaw = List<Map<String, dynamic>>.from(_myShifts);
+      }
+
+      // Load last my-shifts fetch timestamp
+      final lastMyShiftsStr = await _safeStorageRead(_lastMyShiftsFetchKey);
+      if (lastMyShiftsStr != null) {
+        _lastMyShiftsFetch = DateTime.tryParse(lastMyShiftsStr);
+      }
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading cached data: $e');
@@ -222,6 +245,91 @@ class DataService extends ChangeNotifier {
       await _safeStorageWrite(_lastShiftsFetchKey, DateTime.now().toIso8601String());
     } catch (e) {
       debugPrint('Error caching shifts: $e');
+    }
+  }
+
+  /// Cache my-shifts data to secure storage
+  Future<void> _cacheMyShifts(List<Map<String, dynamic>> myShifts) async {
+    try {
+      await _safeStorageWrite(_myShiftsStorageKey, json.encode(myShifts));
+      await _safeStorageWrite(_lastMyShiftsFetchKey, DateTime.now().toIso8601String());
+    } catch (e) {
+      debugPrint('Error caching my-shifts: $e');
+    }
+  }
+
+  /// Fetch events the user has accepted from /events/my-shifts
+  Future<void> _fetchMyShifts({
+    bool silent = false,
+    bool forceFullSync = false,
+  }) async {
+    try {
+      // Build URL with delta sync support
+      String? lastSyncTimestamp;
+      if (forceFullSync) {
+        await _storage.delete(key: 'last_sync_my_shifts');
+        lastSyncTimestamp = null;
+      } else {
+        lastSyncTimestamp = await _safeStorageRead('last_sync_my_shifts');
+      }
+      final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/my-shifts');
+      final uriWithParams = lastSyncTimestamp != null
+          ? uri.replace(queryParameters: {'lastSync': lastSyncTimestamp})
+          : uri;
+
+      final token = await _safeStorageRead('auth_jwt');
+      if (token == null) return;
+      final headers = <String, String>{'Authorization': 'Bearer $token'};
+
+      debugPrint('🌍 Fetching my-shifts from ${uriWithParams.toString()} (forceFullSync=$forceFullSync)');
+      final response = await http.get(uriWithParams, headers: headers);
+      debugPrint('📥 My-shifts response status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        List<dynamic> eventsData;
+        String? serverTimestamp;
+        bool isDeltaSync = false;
+
+        if (responseData is Map<String, dynamic>) {
+          eventsData = (responseData['events'] ?? []) as List<dynamic>;
+          serverTimestamp = responseData['serverTimestamp'] as String?;
+          isDeltaSync = responseData['deltaSync'] == true;
+        } else if (responseData is List) {
+          eventsData = responseData;
+          serverTimestamp = DateTime.now().toIso8601String();
+        } else {
+          throw Exception('Unexpected response format');
+        }
+
+        final updatedEvents = eventsData.cast<Map<String, dynamic>>();
+
+        if (isDeltaSync && lastSyncTimestamp != null) {
+          debugPrint('🔄 My-shifts delta sync: ${updatedEvents.length} changes');
+          _myShiftsRaw = _mergeEvents(_myShiftsRaw, updatedEvents);
+        } else {
+          debugPrint('🔄 My-shifts full sync: ${updatedEvents.length} events');
+          _myShiftsRaw = updatedEvents;
+        }
+
+        // No audience filtering needed — server already filtered by accepted_staff
+        _myShifts = List<Map<String, dynamic>>.from(_myShiftsRaw);
+        _lastMyShiftsFetch = DateTime.now();
+        await _cacheMyShifts(_myShifts);
+
+        if (serverTimestamp != null) {
+          await _safeStorageWrite('last_sync_my_shifts', serverTimestamp);
+        }
+
+        if (!silent) {
+          notifyListeners();
+        }
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch my-shifts: $e');
     }
   }
 
@@ -484,6 +592,7 @@ class DataService extends ChangeNotifier {
         // force=true: Manual pull-to-refresh (full sync)
         // force=false: Socket event (use delta sync if available)
         unawaited(_fetchEvents(silent: true, forceFullSync: force));
+        unawaited(_fetchMyShifts(silent: true, forceFullSync: force));
       }
 
       // Real-time event removal handlers
@@ -567,6 +676,7 @@ class DataService extends ChangeNotifier {
             // Use brief delay for smoother UX (avoids rapid API calls)
             Future.delayed(const Duration(milliseconds: 500), () {
               _fetchEvents(silent: true, forceFullSync: true);
+              _fetchMyShifts(silent: true, forceFullSync: true);
             });
           }
         }
@@ -968,6 +1078,7 @@ class DataService extends ChangeNotifier {
     if (!isAvailabilityFresh) {
       await _fetchAvailability();
     }
+    await _fetchMyShifts(silent: true);
     await _fetchMyTeams(silent: true);
     await _fetchMyInvites(silent: true);
   }
@@ -980,6 +1091,7 @@ class DataService extends ChangeNotifier {
     try {
       await Future.wait([
         _fetchEvents(forceFullSync: true),
+        _fetchMyShifts(forceFullSync: true),
         _fetchAvailability(),
         _fetchMyTeams(silent: true),
         _fetchMyInvites(silent: true),
@@ -1011,6 +1123,7 @@ class DataService extends ChangeNotifier {
       await _fetchMyInvites(silent: true);
       await _fetchMyTeams(silent: true);
       await _fetchEvents(silent: true, forceFullSync: true);
+      await _fetchMyShifts(silent: true, forceFullSync: true);
       notifyListeners();
     } else {
       throw Exception('Failed to accept invite (${response.statusCode})');
@@ -1148,12 +1261,18 @@ class DataService extends ChangeNotifier {
       _storage.delete(key: _availabilityStorageKey),
       _storage.delete(key: _lastAvailabilityFetchKey),
       _storage.delete(key: 'last_sync_events'),
+      _storage.delete(key: _myShiftsStorageKey),
+      _storage.delete(key: _lastMyShiftsFetchKey),
+      _storage.delete(key: 'last_sync_my_shifts'),
     ]);
 
     _events.clear();
     _availability.clear();
+    _myShifts.clear();
+    _myShiftsRaw.clear();
     _lastFetch = null;
     _lastAvailabilityFetch = null;
+    _lastMyShiftsFetch = null;
     notifyListeners();
   }
 
