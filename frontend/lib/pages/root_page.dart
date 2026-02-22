@@ -368,24 +368,10 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
   void _updateGeofences() {
     final dataService = context.read<DataService>();
-    final events = dataService.events;
-
-    // Filter for accepted events only
-    if (_userKey != null && events.isNotEmpty) {
-      final acceptedEvents = events.where((e) {
-        final accepted = e['accepted_staff'];
-        if (accepted is List) {
-          return accepted.any((a) {
-            if (a is String) return a == _userKey;
-            if (a is Map) return a['userKey'] == _userKey;
-            return false;
-          });
-        }
-        return false;
-      }).toList();
-
-      // Register geofences for accepted events
-      _geofenceService.registerEventGeofences(acceptedEvents);
+    // myShifts already contains only accepted events — no client-side filtering needed
+    final accepted = dataService.myShifts;
+    if (_userKey != null && accepted.isNotEmpty) {
+      _geofenceService.registerEventGeofences(accepted);
     }
   }
 
@@ -827,155 +813,158 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
               ], // close Column children
               ), // close Column
               ), // close NotificationListener
-              // AI Assistant floating button — hidden when "no team" banner is active
-              if (!showNoTeamBanner)
-              Positioned(
-                right: 16,
-                bottom: MediaQuery.of(context).padding.bottom + 92,
-                child: GestureDetector(
-                  onTap: () {
-                    if (SubscriptionService().isReadOnly) {
-                      showSubscriptionRequiredSheet(context, featureName: AppLocalizations.of(context)!.aiAssistant);
-                      return;
-                    }
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
-                    );
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
-                    height: _showAskLabel ? 44 : 38,
-                    padding: EdgeInsets.only(
-                      left: 4,
-                      right: _showAskLabel ? 14 : 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.navySpaceCadet.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(_showAskLabel ? 22 : 19),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.navySpaceCadet.withValues(alpha: 0.5),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipOval(
-                          child: Image.asset(
-                            'assets/ai_assistant_logo.png',
-                            width: _showAskLabel ? 36 : 30,
-                            height: _showAskLabel ? 36 : 30,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        AnimatedSize(
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeInOut,
-                          child: _showAskLabel
-                              ? const Padding(
-                                  padding: EdgeInsets.only(left: 8),
-                                  child: Text(
-                                    'Ask',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            // Nav bar in Stack so BackdropFilter can sample the scroll content behind it
+            // Floating pill nav bar + AI island
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: AnimatedBuilder(
-                  animation: _bottomBarAnimation,
-                  builder: (context, _) {
-                    // Measure the bar height after first layout
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      final box = _bottomBarKey.currentContext?.findRenderObject() as RenderBox?;
-                      if (box != null && box.hasSize && _bottomBarHeight != box.size.height) {
-                        _bottomBarHeight = box.size.height;
-                      }
-                    });
-                    final progress = _bottomBarAnimation.value.dy;
-                    final slideDistance = _bottomBarHeight > 0 ? _bottomBarHeight * 0.72 : 0.0;
-                    final translateY = progress * slideDistance;
-                    final contentOpacity = (1.0 - progress * 2.5).clamp(0.0, 1.0);
-                    return Transform.translate(
-                      offset: Offset(0, translateY),
-                      child: ClipRect(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                          child: Container(
-                            key: _bottomBarKey,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              border: const Border(
-                                top: BorderSide(
-                                  color: Color(0x1A000000),
-                                  width: 0.5,
-                                ),
-                              ),
-                            ),
-                            child: SafeArea(
-                              top: false,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 8,
-                                ),
-                                child: Opacity(
-                                  opacity: contentOpacity,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                    children: [
-                                      _buildNavItem(
-                                        icon: Icons.work_outline_rounded,
-                                        selectedIcon: Icons.work_rounded,
-                                        label: terminologyProvider.plural,
-                                        index: 0,
+                animation: _bottomBarAnimation,
+                builder: (context, child) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final box = _bottomBarKey.currentContext?.findRenderObject() as RenderBox?;
+                    if (box != null && box.hasSize && _bottomBarHeight != box.size.height) {
+                      _bottomBarHeight = box.size.height;
+                    }
+                  });
+                  final progress = _bottomBarAnimation.value.dy;
+                  final slideDistance = _bottomBarHeight > 0 ? _bottomBarHeight * 0.72 : 0.0;
+                  final translateY = progress * slideDistance;
+                  final contentOpacity = (1.0 - progress * 2.5).clamp(0.0, 1.0);
+                  return Transform.translate(
+                    offset: Offset(0, translateY),
+                    child: Opacity(opacity: contentOpacity, child: child),
+                  );
+                },
+                child: Container(
+                  key: _bottomBarKey,
+                  child: SafeArea(
+                    top: false,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 2, 8, 0),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // ── Main pill ──────────────────────────
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(26),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                        colors: [Color(0xCCFFFFFF), Color(0xBBEAEEFF)],
                                       ),
-                                      _buildNavItem(
-                                        icon: Icons.chat_bubble_outline,
-                                        selectedIcon: Icons.chat_bubble,
-                                        label: 'Chats',
-                                        index: 1,
-                                      ),
-                                      _buildNavItem(
-                                        icon: Icons.account_balance_wallet_outlined,
-                                        selectedIcon: Icons.account_balance_wallet,
-                                        label: l10n.navEarnings,
-                                        index: 2,
-                                      ),
-                                      _buildNavItem(
-                                        icon: Icons.access_time_outlined,
-                                        selectedIcon: Icons.access_time,
-                                        label: 'Clock In',
-                                        index: 3,
-                                      ),
-                                    ],
+                                      borderRadius: BorderRadius.circular(26),
+                                      border: Border.all(color: const Color(0x88FFFFFF), width: 0.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.10),
+                                          blurRadius: 24,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.05),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                      children: [
+                                        _buildNavItem(
+                                          icon: Icons.work_outline_rounded,
+                                          selectedIcon: Icons.work_rounded,
+                                          label: terminologyProvider.plural,
+                                          index: 0,
+                                        ),
+                                        _buildNavItem(
+                                          icon: Icons.chat_bubble_outline,
+                                          selectedIcon: Icons.chat_bubble,
+                                          label: 'Chats',
+                                          index: 1,
+                                        ),
+                                        _buildNavItem(
+                                          icon: Icons.account_balance_wallet_outlined,
+                                          selectedIcon: Icons.account_balance_wallet,
+                                          label: l10n.navEarnings,
+                                          index: 2,
+                                        ),
+                                        _buildNavItem(
+                                          icon: Icons.access_time_outlined,
+                                          selectedIcon: Icons.access_time,
+                                          label: 'Clock In',
+                                          index: 3,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+
+                            const SizedBox(width: 8),
+
+                            // ── AI island ──────────────────────────
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                                child: GestureDetector(
+                                  onTap: () {
+                                    if (SubscriptionService().isReadOnly) {
+                                      showSubscriptionRequiredSheet(context, featureName: AppLocalizations.of(context)!.aiAssistant);
+                                      return;
+                                    }
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                        colors: [Color(0xCCFFFFFF), Color(0xBBEAEEFF)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(color: const Color(0x88FFFFFF), width: 0.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.10),
+                                          blurRadius: 24,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: ClipOval(
+                                        child: Image.asset(
+                                          'assets/ai_assistant_logo.png',
+                                          width: 28,
+                                          height: 28,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ),
+                ),
               ),
             ),
             // "No team" banner — rendered last so it's above nav bar in z-order
@@ -1082,72 +1071,70 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
   }) {
     final isSelected = _selectedBottomIndex == index;
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: () {
-
           setState(() {
             _selectedBottomIndex = index;
-            // Reset scroll position and velocity when switching tabs
             _lastScrollPosition = 0;
             _lastVelocity = 0;
             _scrollEndTimer?.cancel();
-            // Always show bottom bar when switching tabs with no animation delay
-            if (!_isBottomBarVisible) {
-              _showBottomBar();
-            }
+            if (!_isBottomBarVisible) _showBottomBar();
           });
         },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    isSelected ? selectedIcon : icon,
-                    size: 28,
-                    color: isSelected ? AppColors.oceanBlue : AppColors.textMuted,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.navySpaceCadet : Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  if (badgeCount > 0)
-                    Positioned(
-                      right: -8,
-                      top: -4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.redAccent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          badgeCount > 9 ? '9+' : badgeCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  child: Icon(
+                    isSelected ? selectedIcon : icon,
+                    size: 20,
+                    color: isSelected ? Colors.white : Colors.grey[600],
+                  ),
+                ),
+                if (badgeCount > 0)
+                  Positioned(
+                    right: -4,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        badgeCount > 9 ? '9+' : badgeCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.navySpaceCadet : Colors.grey[600],
+                fontSize: 9,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: 0.1,
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? AppColors.oceanBlue : AppColors.textMuted,
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
@@ -3678,27 +3665,16 @@ class _RolesSectionState extends State<_RolesSection> {
     final Map<String, List<Map<String, dynamic>>> roleToEvents = {};
     final Map<String, int> roleToNeeded = {};
     final Map<String, int?> roleToRemaining = {};
-    // Exclude events the current user already accepted and past events
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    // Server already excludes accepted and past events via /events/available
+    // Only client-side filter remaining: availability conflict toggle (UX preference)
     final sourceEvents = widget.events.where((e) {
-      if (isAcceptedByUser(e, widget.userKey)) return false;
-      // Filter out past events
-      final dateStr = e['date']?.toString();
-      if (dateStr != null && dateStr.isNotEmpty) {
-        final eventDate = _parseDateSafe(dateStr);
-        if (eventDate != null && eventDate.isBefore(today)) {
-          return false; // Exclude past events
-        }
-      }
-      // Filter out events on unavailable dates (if toggle is ON)
       if (_hideUnavailableDates && _hasAvailabilityConflict(e, widget.userKey)) {
         return false; // Exclude events that conflict with unavailability
       }
       return true;
     });
     debugPrint(
-      '📋 Computing role summaries: ${widget.events.length} total events, ${sourceEvents.length} available (filtered out accepted, past${_hideUnavailableDates ? ', and unavailable dates' : ''})',
+      '📋 Computing role summaries: ${widget.events.length} total events, ${sourceEvents.length} available${_hideUnavailableDates ? ' (hiding unavailable dates)' : ''}',
     );
     for (final e in sourceEvents) {
       final stats = e['role_stats'];
