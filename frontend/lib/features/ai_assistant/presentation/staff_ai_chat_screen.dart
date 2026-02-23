@@ -87,23 +87,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       _isInitialized = true;
     });
 
-    // Get user's terminology preference for welcome message
-    final terminology = context.read<TerminologyProvider>().lowercasePlural;
-    final singularTerm = context.read<TerminologyProvider>().singular.toLowerCase();
-
-    // Send welcome message with user's terminology
-    _chatService.addSystemMessage(
-      'Hi! 👋 I\'m your AI assistant. I can help you with:\n\n'
-      '• Viewing your schedule and $terminology\n'
-      '• Marking your availability\n'
-      '• Accepting or declining $singularTerm offers\n'
-      '• Tracking your earnings\n'
-      '• Answering questions about $terminology\n\n'
-      'What would you like help with?'
-    );
-    setState(() {});
-
-    // With reverse: true, welcome message appears at bottom automatically
   }
 
   Future<void> _sendMessage(String message) async {
@@ -279,9 +262,8 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
           ),
           TextButton(
             onPressed: () {
-              // Save summary before clearing if there was meaningful conversation
-              // (more than just the welcome message)
-              if (_chatService.conversationHistory.length > 1) {
+              // Save summary before clearing if there was any conversation
+              if (_chatService.conversationHistory.isNotEmpty) {
                 _saveChatSummary(
                   outcome: 'question_answered',
                   outcomeReason: 'User cleared conversation',
@@ -291,12 +273,6 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
               _chatService.clearConversation();
               AnimatedAiMessageWidget.clearAnimationTracking(); // Clear animation tracking
               Navigator.pop(context);
-              setState(() {});
-
-              // Re-add welcome message
-              _chatService.addSystemMessage(
-                'Conversation cleared. How can I help you?'
-              );
               setState(() {});
             },
             child: Text(l10n.clear, style: const TextStyle(color: AppColors.error)),
@@ -606,23 +582,13 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   _buildSuggestionChip(
-                                    '🔜 Next Shift',
-                                    'What is my next shift?',
-                                  ),
-                                  const SizedBox(width: 6),
-                                  _buildSuggestionChip(
-                                    '📅 This Week',
-                                    'Show my shifts this week',
-                                  ),
-                                  const SizedBox(width: 6),
-                                  _buildSuggestionChip(
                                     '💰 Earnings',
                                     'How much did I earn this month?',
                                   ),
                                   const SizedBox(width: 6),
                                   _buildSuggestionChip(
-                                    '📍 Where',
-                                    'Where is my next shift?',
+                                    '📅 Availability',
+                                    'Help me mark my availability',
                                   ),
                                 ],
                               ),
