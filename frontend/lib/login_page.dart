@@ -199,7 +199,7 @@ class _LoginPageState extends State<LoginPage> {
 
                       // Brand Name
                       Text(
-                        l10n.flowShiftStaff,
+                        'FlowShift',
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,

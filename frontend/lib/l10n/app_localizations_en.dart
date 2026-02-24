@@ -188,7 +188,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signOut => 'Sign out';
 
   @override
-  String get welcomeToNexaStaff => 'Welcome to FlowShift Staff!';
+  String get welcomeToNexaStaff => 'Welcome to FlowShift!';
 
   @override
   String get pleaseCompleteProfileToGetStarted =>
@@ -1192,8 +1192,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get askAboutSchedule =>
-      'Ask about your schedule, earnings, or shifts...';
+  String get askAboutSchedule => 'e.g. my income Oct 2025';
 
   @override
   String get aiIsThinking => 'AI is thinking...';
@@ -1621,4 +1620,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get errorPhoneFormat =>
       'Enter a valid US phone number (e.g. 555-123-4567).';
+
+  @override
+  String get monthlyInsights => 'Monthly Insights';
+
+  @override
+  String get valerioAnalyzing => 'Valerio is analyzing your month...';
+
+  @override
+  String monthlyAnalysisPrompt(String month, String today) {
+    return 'I\'m viewing $month in my calendar (today is $today). Analyze that month using my availability history and assigned shifts. Split shifts into COMPLETED (before today) and UPCOMING (today or later). For each section: count of shifts, total hours, venues. Then: days I marked as unavailable, unscheduled days (note how many fall on weekends), busiest days, earnings summary. Finally, count only FUTURE days that have NO shift AND are NOT marked unavailable — those are my truly open days. Based on my average pay rate and those open days only, suggest how much extra I could realistically earn. Never suggest past days or unavailable days. Be concise with bullet points and emojis.';
+  }
+
+  @override
+  String get askFollowUp => 'Ask a follow-up...';
+
+  @override
+  String get failedToAnalyze => 'Failed to generate analysis. Tap to retry.';
+
+  @override
+  String get noShiftsThisMonth => 'No shifts this month yet.';
 }

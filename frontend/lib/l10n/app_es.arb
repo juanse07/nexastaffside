@@ -74,7 +74,7 @@
   "retry": "Reintentar",
   "completeYourProfile": "Completa Tu Perfil",
   "signOut": "Cerrar sesión",
-  "welcomeToNexaStaff": "¡Bienvenido a FlowShift Staff!",
+  "welcomeToNexaStaff": "¡Bienvenido a FlowShift!",
   "pleaseCompleteProfileToGetStarted": "Por favor completa tu perfil para comenzar",
   "firstNameLabel": "Nombre *",
   "enterYourFirstName": "Ingresa tu nombre",
@@ -644,7 +644,7 @@
   },
 
   "@@ Chat Input": {},
-  "askAboutSchedule": "Pregunta sobre tu horario, ganancias o turnos...",
+  "askAboutSchedule": "ej. mis ingresos Oct 2025",
   "aiIsThinking": "La IA está pensando...",
   "recordingTapToStop": "Grabando... Toca el micrófono para detener",
   "transcribingVoice": "Transcribiendo voz...",
@@ -891,5 +891,25 @@
   "errorServerUnavailable": "El servidor no está disponible temporalmente. Intenta más tarde.",
   "errorSomethingWentWrong": "Algo salió mal. Intenta de nuevo.",
   "errorNotAuthenticated": "Tu sesión ha expirado. Inicia sesión de nuevo.",
-  "errorPhoneFormat": "Ingresa un número de teléfono válido de EE.UU. (ej. 555-123-4567)."
+  "errorPhoneFormat": "Ingresa un número de teléfono válido de EE.UU. (ej. 555-123-4567).",
+
+  "@@ Monthly Insights": {},
+  "monthlyInsights": "Resumen del Mes",
+  "valerioAnalyzing": "Valerio está analizando tu mes...",
+  "monthlyAnalysisPrompt": "Estoy viendo {month} en mi calendario (hoy es {today}). Analiza ese mes usando mi historial de disponibilidad y turnos asignados. Divide los turnos en COMPLETADOS (antes de hoy) y PRÓXIMOS (hoy o después). Para cada sección: cantidad de turnos, total de horas, venues. Luego: días que marqué como no disponible, días sin turno (indica cuántos caen en fin de semana), días más ocupados, resumen de ganancias. Por último, cuenta solo los días FUTUROS que NO tienen turno Y NO están marcados como no disponible — esos son mis días realmente libres. Según mi tarifa promedio y solo esos días libres, sugiere cuánto más podría ganar de forma realista. Nunca sugieras días pasados ni días no disponibles. Sé conciso con viñetas y emojis.",
+  "@monthlyAnalysisPrompt": {
+    "placeholders": {
+      "month": {
+        "type": "String",
+        "example": "febrero 2026"
+      },
+      "today": {
+        "type": "String",
+        "example": "24 de febrero de 2026"
+      }
+    }
+  },
+  "askFollowUp": "Haz una pregunta...",
+  "failedToAnalyze": "No se pudo generar el análisis. Toca para reintentar.",
+  "noShiftsThisMonth": "Aún no tienes turnos este mes."
 }

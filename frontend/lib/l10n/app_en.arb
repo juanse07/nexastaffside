@@ -74,7 +74,7 @@
   "retry": "Retry",
   "completeYourProfile": "Complete Your Profile",
   "signOut": "Sign out",
-  "welcomeToNexaStaff": "Welcome to FlowShift Staff!",
+  "welcomeToNexaStaff": "Welcome to FlowShift!",
   "pleaseCompleteProfileToGetStarted": "Please complete your profile to get started",
   "firstNameLabel": "First Name *",
   "enterYourFirstName": "Enter your first name",
@@ -644,7 +644,7 @@
   },
 
   "@@ Chat Input": {},
-  "askAboutSchedule": "Ask about your schedule, earnings, or shifts...",
+  "askAboutSchedule": "e.g. my income Oct 2025",
   "aiIsThinking": "AI is thinking...",
   "recordingTapToStop": "Recording... Tap mic to stop",
   "transcribingVoice": "Transcribing voice...",
@@ -891,5 +891,25 @@
   "errorServerUnavailable": "Server is temporarily unavailable. Please try again later.",
   "errorSomethingWentWrong": "Something went wrong. Please try again.",
   "errorNotAuthenticated": "Your session has expired. Please sign in again.",
-  "errorPhoneFormat": "Enter a valid US phone number (e.g. 555-123-4567)."
+  "errorPhoneFormat": "Enter a valid US phone number (e.g. 555-123-4567).",
+
+  "@@ Monthly Insights": {},
+  "monthlyInsights": "Monthly Insights",
+  "valerioAnalyzing": "Valerio is analyzing your month...",
+  "monthlyAnalysisPrompt": "I'm viewing {month} in my calendar (today is {today}). Analyze that month using my availability history and assigned shifts. Split shifts into COMPLETED (before today) and UPCOMING (today or later). For each section: count of shifts, total hours, venues. Then: days I marked as unavailable, unscheduled days (note how many fall on weekends), busiest days, earnings summary. Finally, count only FUTURE days that have NO shift AND are NOT marked unavailable — those are my truly open days. Based on my average pay rate and those open days only, suggest how much extra I could realistically earn. Never suggest past days or unavailable days. Be concise with bullet points and emojis.",
+  "@monthlyAnalysisPrompt": {
+    "placeholders": {
+      "month": {
+        "type": "String",
+        "example": "February 2026"
+      },
+      "today": {
+        "type": "String",
+        "example": "February 24, 2026"
+      }
+    }
+  },
+  "askFollowUp": "Ask a follow-up...",
+  "failedToAnalyze": "Failed to generate analysis. Tap to retry.",
+  "noShiftsThisMonth": "No shifts this month yet."
 }

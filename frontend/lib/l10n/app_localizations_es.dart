@@ -189,7 +189,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get signOut => 'Cerrar sesión';
 
   @override
-  String get welcomeToNexaStaff => '¡Bienvenido a FlowShift Staff!';
+  String get welcomeToNexaStaff => '¡Bienvenido a FlowShift!';
 
   @override
   String get pleaseCompleteProfileToGetStarted =>
@@ -1203,8 +1203,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get askAboutSchedule =>
-      'Pregunta sobre tu horario, ganancias o turnos...';
+  String get askAboutSchedule => 'ej. mis ingresos Oct 2025';
 
   @override
   String get aiIsThinking => 'La IA está pensando...';
@@ -1634,4 +1633,25 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get errorPhoneFormat =>
       'Ingresa un número de teléfono válido de EE.UU. (ej. 555-123-4567).';
+
+  @override
+  String get monthlyInsights => 'Resumen del Mes';
+
+  @override
+  String get valerioAnalyzing => 'Valerio está analizando tu mes...';
+
+  @override
+  String monthlyAnalysisPrompt(String month, String today) {
+    return 'Estoy viendo $month en mi calendario (hoy es $today). Analiza ese mes usando mi historial de disponibilidad y turnos asignados. Divide los turnos en COMPLETADOS (antes de hoy) y PRÓXIMOS (hoy o después). Para cada sección: cantidad de turnos, total de horas, venues. Luego: días que marqué como no disponible, días sin turno (indica cuántos caen en fin de semana), días más ocupados, resumen de ganancias. Por último, cuenta solo los días FUTUROS que NO tienen turno Y NO están marcados como no disponible — esos son mis días realmente libres. Según mi tarifa promedio y solo esos días libres, sugiere cuánto más podría ganar de forma realista. Nunca sugieras días pasados ni días no disponibles. Sé conciso con viñetas y emojis.';
+  }
+
+  @override
+  String get askFollowUp => 'Haz una pregunta...';
+
+  @override
+  String get failedToAnalyze =>
+      'No se pudo generar el análisis. Toca para reintentar.';
+
+  @override
+  String get noShiftsThisMonth => 'Aún no tienes turnos este mes.';
 }
