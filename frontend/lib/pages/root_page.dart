@@ -34,6 +34,7 @@ import 'conversations_page.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
+import '../features/ai_assistant/widgets/monthly_insights_sheet.dart';
 import '../core/navigation/route_error_manager.dart';
 import '../services/subscription_service.dart';
 import '../shared/widgets/free_month_banner.dart';
@@ -912,45 +913,47 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                             const SizedBox(width: 8),
 
                             // ── AI island ──────────────────────────
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(22),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                                child: GestureDetector(
-                                  onTap: () {
-                                    if (SubscriptionService().isReadOnly) {
-                                      showSubscriptionRequiredSheet(context, featureName: AppLocalizations.of(context)!.aiAssistant);
-                                      return;
-                                    }
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                        colors: [Color(0xCCFFFFFF), Color(0xBBEAEEFF)],
-                                      ),
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(color: const Color(0x88FFFFFF), width: 0.5),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.10),
-                                          blurRadius: 24,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ],
+                            AspectRatio(
+                              aspectRatio: 1.0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.10),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 6),
                                     ),
-                                    child: Center(
-                                      child: ClipOval(
-                                        child: Image.asset(
-                                          'assets/ai_assistant_logo.png',
-                                          width: 28,
-                                          height: 28,
-                                          fit: BoxFit.cover,
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: BackdropFilter(
+                                    filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (SubscriptionService().isReadOnly) {
+                                          showSubscriptionRequiredSheet(context, featureName: AppLocalizations.of(context)!.aiAssistant);
+                                          return;
+                                        }
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(builder: (_) => const StaffAIChatScreen()),
+                                        );
+                                      },
+                                      child: Container(
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors: [Color(0xCCFFFFFF), Color(0xBBEAEEFF)],
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.add_rounded,
+                                            color: AppColors.navySpaceCadet,
+                                            size: 29,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1096,7 +1099,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                   ),
                   child: Icon(
                     isSelected ? selectedIcon : icon,
-                    size: 20,
+                    size: 29,
                     color: isSelected ? Colors.white : Colors.grey[600],
                   ),
                 ),
@@ -5913,6 +5916,28 @@ class _CalendarTabState extends State<_CalendarTab> {
                                   ),
                                 ),
                                 const Spacer(),
+                                // Valerio AI Insights button
+                                GestureDetector(
+                                  onTap: () => _showMonthlyInsights(context),
+                                  child: Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.08),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipOval(
+                                      child: Image.asset('assets/ai_assistant_logo.png', fit: BoxFit.cover),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
                                 // Set Availability button (right-aligned)
                                 GestureDetector(
                                   onTap: () => _showAvailabilityDialog(context),
@@ -6535,6 +6560,15 @@ class _CalendarTabState extends State<_CalendarTab> {
       'Dec',
     ];
     return '${months[_selectedDay!.month - 1]} ${_selectedDay!.day}';
+  }
+
+  void _showMonthlyInsights(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => MonthlyInsightsSheet(focusedMonth: _focusedDay),
+    );
   }
 
   Future<void> _showAvailabilityDialog(BuildContext context) async {

@@ -299,6 +299,20 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     _summaryService.saveSummary(summaryData);
   }
 
+  /// Get a time-of-day greeting like "How can I help you this afternoon?"
+  String _getTimeOfDayGreeting() {
+    final hour = DateTime.now().hour;
+    String timeOfDay;
+    if (hour < 12) {
+      timeOfDay = 'this morning';
+    } else if (hour < 17) {
+      timeOfDay = 'this afternoon';
+    } else {
+      timeOfDay = 'this evening';
+    }
+    return 'How can I help you\n$timeOfDay?';
+  }
+
   /// Build a suggestion chip for quick actions
   Widget _buildSuggestionChip(String label, String query) {
     return Container(
@@ -333,25 +347,10 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Detect keyboard and auto-scroll when it opens
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    if (keyboardHeight > 0) {
-      // Keyboard is open, scroll to bottom (position 0 with reverse: true)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            0, // With reverse: true, 0 is the bottom
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    }
-
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.surfaceLight,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -442,12 +441,56 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                   children: [
                     // Messages list
                     Expanded(
-                      child: ListView.builder(
+                      child: _chatService.conversationHistory.isEmpty
+                          && _chatService.pendingAvailability == null
+                          && _chatService.pendingShiftAction == null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 160),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 64,
+                                    height: 64,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.08),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipOval(
+                                      child: Image.asset(
+                                        'assets/ai_assistant_logo.png',
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    _getTimeOfDayGreeting(),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.charcoal.withOpacity(0.75),
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
                         controller: _scrollController,
                         reverse: true, // EXPERT: Makes new messages appear at bottom naturally
-                        padding: EdgeInsets.only(
+                        padding: const EdgeInsets.only(
                           top: 16,
-                          bottom: 140 + keyboardHeight, // Extra padding for chips + input area + keyboard
+                          bottom: 140, // Extra padding for chips + input area
                         ),
                         itemCount: _chatService.conversationHistory.length +
                             (_chatService.pendingAvailability != null ? 1 : 0) +
@@ -554,7 +597,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: keyboardHeight,
+                  bottom: 0,
                   child: ClipRect(
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
@@ -574,23 +617,30 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                             padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  _buildSuggestionChip(
-                                    '📋 My Schedule',
-                                    'Show my upcoming shifts',
-                                  ),
-                                  const SizedBox(width: 6),
-                                  _buildSuggestionChip(
-                                    '💰 Earnings',
-                                    'How much did I earn this month?',
-                                  ),
-                                  const SizedBox(width: 6),
-                                  _buildSuggestionChip(
-                                    '📅 Availability',
-                                    'Help me mark my availability',
-                                  ),
-                                ],
+                              child: Builder(
+                                builder: (context) {
+                                  final term = context.read<TerminologyProvider>();
+                                  final p = term.lowercasePlural;
+                                  final isEs = Localizations.localeOf(context).languageCode == 'es';
+                                  return Row(
+                                    children: [
+                                      _buildSuggestionChip(
+                                        isEs ? '📋 Mi horario' : '📋 My schedule',
+                                        isEs ? 'Muestra mis próximos $p' : 'Show my upcoming $p',
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSuggestionChip(
+                                        isEs ? '💰 Ingresos' : '💰 Earnings',
+                                        isEs ? '¿Cuánto gané este mes?' : 'How much did I earn this month?',
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _buildSuggestionChip(
+                                        isEs ? '📅 Disponibilidad' : '📅 Availability',
+                                        isEs ? 'Ayúdame a marcar mi disponibilidad' : 'Help me mark my availability',
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                           ),

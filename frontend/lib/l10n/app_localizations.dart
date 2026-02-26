@@ -449,7 +449,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcomeToNexaStaff.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to FlowShift Staff!'**
+  /// **'Welcome to FlowShift!'**
   String get welcomeToNexaStaff;
 
   /// No description provided for @pleaseCompleteProfileToGetStarted.
@@ -2285,7 +2285,7 @@ abstract class AppLocalizations {
   /// No description provided for @askAboutSchedule.
   ///
   /// In en, this message translates to:
-  /// **'Ask about your schedule, earnings, or shifts...'**
+  /// **'e.g. my income Oct 2025'**
   String get askAboutSchedule;
 
   /// No description provided for @aiIsThinking.
@@ -3061,6 +3061,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid US phone number (e.g. 555-123-4567).'**
   String get errorPhoneFormat;
+
+  /// No description provided for @monthlyInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Insights'**
+  String get monthlyInsights;
+
+  /// No description provided for @valerioAnalyzing.
+  ///
+  /// In en, this message translates to:
+  /// **'Valerio is analyzing your month...'**
+  String get valerioAnalyzing;
+
+  /// No description provided for @monthlyAnalysisPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m viewing {month} in my calendar (today is {today}). Analyze that month using my availability history and assigned shifts. Split shifts into COMPLETED (before today) and UPCOMING (today or later). For each section: count of shifts, total hours, venues. Then: days I marked as unavailable, unscheduled days (note how many fall on weekends), busiest days, earnings summary. Finally, count only FUTURE days that have NO shift AND are NOT marked unavailable — those are my truly open days. Based on my average pay rate and those open days only, suggest how much extra I could realistically earn. Never suggest past days or unavailable days. Be concise with bullet points and emojis.'**
+  String monthlyAnalysisPrompt(String month, String today);
+
+  /// No description provided for @askFollowUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a follow-up...'**
+  String get askFollowUp;
+
+  /// No description provided for @failedToAnalyze.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to generate analysis. Tap to retry.'**
+  String get failedToAnalyze;
+
+  /// No description provided for @noShiftsThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'No shifts this month yet.'**
+  String get noShiftsThisMonth;
 }
 
 class _AppLocalizationsDelegate

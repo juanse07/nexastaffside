@@ -45,7 +45,7 @@
 	<key>GIDServerClientID</key>
 	<string>832253199298-cj28t4ill6gltnea1epaslvb2o1mar5k.apps.googleusercontent.com</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>17</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>

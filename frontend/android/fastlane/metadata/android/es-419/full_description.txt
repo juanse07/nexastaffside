@@ -1,8 +1,12 @@
-FlowShift - Shifts & Pay es tu app todo-en-uno para gestionar tu trabajo como personal de eventos, hospitalidad o trabajador gig. Mantente organizado, responde a nuevas oportunidades, controla tus ingresos y comunícate fácilmente con tu equipo y tus managers.
+FlowShift - Shifts & Pay es tu app todo-en-uno para gestionar tu trabajo como personal de eventos, hospitalidad o trabajador gig.
+
+Mantente organizado, responde a nuevas oportunidades, controla tus ingresos y comunícate fácilmente con tu equipo y tus managers.
 
 Ya sea que trabajes en bodas, eventos corporativos, conciertos, eventos deportivos o fiestas privadas, FlowShift - Shifts & Pay te mantiene conectado y en control.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📅 GESTIÓN INTELIGENTE DE TURNOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Consulta todos tus turnos, eventos o trabajos en un hermoso calendario
 • Recibe notificaciones instantáneas cuando haya oportunidades según tu disponibilidad
 • Acepta o rechaza turnos con un solo toque
@@ -11,39 +15,55 @@ Ya sea que trabajes en bodas, eventos corporativos, conciertos, eventos deportiv
 • Obtén direcciones al lugar con mapas integrados
 • Registro de entrada y salida para un control preciso de horas
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💰 CONTROL DE INGRESOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Lleva el control de tus ingresos por mes y por año
 • Consulta el desglose detallado de cada turno completado
 • Visualiza el crecimiento de tus ingresos a lo largo del tiempo
 • Revisa tarifas por hora y total de horas trabajadas
 • Ideal para gestionar ingresos de múltiples equipos
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💬 COMUNICACIÓN EN EQUIPO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Chatea directamente con tus managers en tiempo real
 • Coordina con tu equipo en chats grupales por evento
 • Recibe anuncios y actualizaciones importantes al instante
 • Llama a tus managers directamente desde la app
 • No te pierdas ningún mensaje gracias a las notificaciones push
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 ASISTENTE CON IA (Función Premium)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Obtén ayuda inmediata para organizar tu agenda con nuestro asistente inteligente
 • Haz preguntas sobre tus turnos, disponibilidad e ingresos
 • Acepta o rechaza turnos usando lenguaje natural
 • Soporte de voz para uso manos libres
-• "¿Qué turnos tengo esta semana?" — ¡solo pregunta!
+• “¿Qué turnos tengo esta semana?” — ¡solo pregunta!
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 👥 CENTRO DE EQUIPOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • Únete a múltiples equipos y agencias de staffing
 • Acepta invitaciones con un código sencillo
 • Ve qué compañeros trabajan contigo en cada evento
 • Administra todas tus membresías desde un solo lugar
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✨ FUNCIONES ADICIONALES
+
+
 • Terminología personalizable (turnos, trabajos o eventos — tú eliges)
 • Disponible en inglés y español
 • Inicio de sesión seguro con Google o Apple
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ¿PARA QUIÉN ES ESTA APP?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 FlowShift - Shifts & Pay es ideal para profesionales en:
 
 🎪 INDUSTRIA DE EVENTOS
@@ -77,6 +97,11 @@ FlowShift - Shifts & Pay es ideal para profesionales en:
 • Empleados de medio tiempo con múltiples trabajos
 • Cualquier persona que trabaje con agencias de staffing
 
-Descarga FlowShift - Shifts & Pay hoy y toma el control de tu vida laboral. Despídete de turnos perdidos, horarios confusos y llamadas interminables. Todo lo que necesitas está aquí en tu bolsillo.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Descarga FlowShift - Shifts & Pay hoy y toma el control de tu vida laboral.
+
+Despídete de turnos perdidos, horarios confusos y llamadas interminables.
+
 
 Nota: Esta app requiere una invitación de un manager o empresa de staffing registrada para acceder a todas las funciones.

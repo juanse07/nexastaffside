@@ -112,7 +112,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
                       children: [
                         // Title row
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                          padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
                           child: Row(
                             children: [
                               GestureDetector(
@@ -129,6 +129,13 @@ class _ConversationsPageState extends State<ConversationsPage> {
                               ),
                               const Spacer(),
                               widget.profileMenu,
+                              IconButton(
+                                onPressed: _showManagerPicker,
+                                icon: const Icon(Icons.add_comment_rounded, size: 22),
+                                color: AppColors.navySpaceCadet,
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              ),
                             ],
                           ),
                         ),
@@ -182,11 +189,6 @@ class _ConversationsPageState extends State<ConversationsPage> {
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showManagerPicker,
-        backgroundColor: AppColors.primaryPurple,
-        child: const Icon(Icons.add_comment, color: Colors.white),
       ),
     );
   }

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'auth_service.dart';
 import 'pages/staff_onboarding_page.dart';
 import 'login_page.dart';
 import 'l10n/app_localizations.dart';
@@ -20,6 +23,25 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _splashComplete = false;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  StreamSubscription<void>? _logoutSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _logoutSubscription = AuthService.onForcedLogout.listen((_) {
+      _navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (_) => false,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _logoutSubscription?.cancel();
+    super.dispose();
+  }
 
   static Future<String?> _getToken() async {
     const storage = FlutterSecureStorage();
@@ -35,6 +57,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'FlowShift Staff',
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [

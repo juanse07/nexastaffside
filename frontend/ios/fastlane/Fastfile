@@ -59,8 +59,16 @@ platform :ios do
     # Build the app using Flutter
     # Prepend Homebrew Ruby to PATH so CocoaPods finds the correct Ruby (4.x, not system 2.6)
     flutter_dir = File.expand_path("../..", __dir__)
-    ENV['PATH'] = "/opt/homebrew/opt/ruby/bin:#{ENV['PATH']}"
-    sh('/bin/zsh -l -c "export PATH=/opt/homebrew/opt/ruby/bin:$PATH && cd ' + flutter_dir + ' && flutter build ios --release --no-codesign"')
+    ruby_path = "/opt/homebrew/opt/ruby/bin"
+    ENV['PATH'] = "#{ruby_path}:#{ENV['PATH']}"
+
+    # Run pod install explicitly with Homebrew Ruby before Flutter build
+    # Must unset GEM_PATH/GEM_HOME to prevent Fastlane's gem env from leaking in
+    # (Flutter detects system Ruby 2.6 vs Homebrew Ruby 4.x mismatch and skips pod install)
+    sh("/bin/zsh -l -c \"unset GEM_PATH GEM_HOME RUBYOPT BUNDLE_GEMFILE BUNDLE_BIN BUNDLE_PATH && export PATH=#{ruby_path}:$PATH && cd #{flutter_dir}/ios && pod install\"")
+
+    # Flutter build (pods already installed, so Flutter won't re-run pod install)
+    sh("/bin/zsh -l -c \"unset GEM_PATH GEM_HOME RUBYOPT BUNDLE_GEMFILE BUNDLE_BIN BUNDLE_PATH && export PATH=#{ruby_path}:$PATH && cd #{flutter_dir} && flutter build ios --release --no-codesign\"")
 
     # Build and sign the IPA
     build_app(

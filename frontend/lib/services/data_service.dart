@@ -8,12 +8,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
+import '../auth_service.dart';
 import 'chat_service.dart';
-import '../utils/accepted_staff.dart';
 
 /// Enhanced data service with smart caching and efficient refresh mechanisms
 class DataService extends ChangeNotifier {
-  static const String _eventsStorageKey = 'cached_events';
+  static const String _eventsStorageKey = 'cached_available';
   static const String _lastFetchKey = 'last_fetch_timestamp';
   static const String _availabilityStorageKey = 'cached_availability';
   static const String _lastAvailabilityFetchKey = 'last_availability_fetch';
@@ -108,6 +108,16 @@ class DataService extends ChangeNotifier {
         : withLead;
   }
 
+  /// Returns true if response is 401, triggering forced logout.
+  bool _checkUnauthorized(http.Response response) {
+    if (response.statusCode == 401) {
+      debugPrint('🔒 401 Unauthorized detected - triggering forced logout');
+      AuthService.forceLogout();
+      return true;
+    }
+    return false;
+  }
+
   /// Initialize the service and load cached data
   Future<void> initialize() async {
     debugPrint('📱 DataService initializing...');
@@ -118,7 +128,7 @@ class DataService extends ChangeNotifier {
     // This prevents showing stale cached data when events were deleted
     debugPrint('🌐 Fetching fresh data from server...');
     await Future.wait([
-      _fetchEvents(silent: true, forceFullSync: true),
+      _fetchAvailable(silent: true, forceFullSync: true),
       _fetchMyShifts(silent: true, forceFullSync: true),
       _fetchAvailability(silent: true),
       _fetchMyTeams(silent: true),
@@ -285,6 +295,8 @@ class DataService extends ChangeNotifier {
       final response = await http.get(uriWithParams, headers: headers);
       debugPrint('📥 My-shifts response status: ${response.statusCode}');
 
+      if (_checkUnauthorized(response)) return;
+
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
 
@@ -351,8 +363,9 @@ class DataService extends ChangeNotifier {
     }
   }
 
-  /// Fetch events from server with delta sync support
-  Future<void> _fetchEvents({
+  /// Fetch available events from server (future, non-accepted, non-draft)
+  /// Server handles all visibility/acceptance/date filtering via /events/available
+  Future<void> _fetchAvailable({
     bool silent = false,
     bool forceFullSync = false,
   }) async {
@@ -366,12 +379,12 @@ class DataService extends ChangeNotifier {
       // Build URL with delta sync support
       String? lastSyncTimestamp;
       if (forceFullSync) {
-        await _storage.delete(key: 'last_sync_events');
+        await _storage.delete(key: 'last_sync_available');
         lastSyncTimestamp = null;
       } else {
-        lastSyncTimestamp = await _safeStorageRead('last_sync_events');
+        lastSyncTimestamp = await _safeStorageRead('last_sync_available');
       }
-      final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/events');
+      final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/events/available');
       final uriWithParams = lastSyncTimestamp != null
           ? uri.replace(queryParameters: {'lastSync': lastSyncTimestamp})
           : uri;
@@ -379,26 +392,17 @@ class DataService extends ChangeNotifier {
       final token = await _safeStorageRead('auth_jwt');
       final headers = <String, String>{};
       if (token != null) headers['Authorization'] = 'Bearer $token';
-      final decodedUser = _decodeUserKeyFromToken(token);
-      if (decodedUser != null) headers['x-user-key'] = decodedUser;
-      debugPrint(
-        '🔑 Using auth token: ${token ?? 'none'} (userKey=$decodedUser)',
-      );
 
       debugPrint(
-        '🌍 Fetching events from ${uriWithParams.toString()} (forceFullSync=$forceFullSync, tokenPresent=${token != null})',
+        '🌍 Fetching available events from ${uriWithParams.toString()} (forceFullSync=$forceFullSync)',
       );
       final response = await http.get(uriWithParams, headers: headers);
-      debugPrint('📥 Events response status: ${response.statusCode}');
+      debugPrint('📥 Available events response status: ${response.statusCode}');
+
+      if (_checkUnauthorized(response)) return;
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
-        final preview = response.body.length > 500
-            ? '${response.body.substring(0, 500)}…'
-            : response.body;
-        debugPrint(
-          '🛰️ Events payload (${response.body.length} bytes): $preview',
-        );
 
         // Handle both legacy (List) and new delta sync (Map) response formats
         List<dynamic> eventsData;
@@ -407,11 +411,9 @@ class DataService extends ChangeNotifier {
         Set<String> removedEventIds = {};
 
         if (responseData is List) {
-          // Legacy format: direct array
           eventsData = responseData;
           serverTimestamp = DateTime.now().toIso8601String();
         } else if (responseData is Map<String, dynamic>) {
-          // New delta sync format
           eventsData = (responseData['events'] ?? []) as List<dynamic>;
           serverTimestamp = responseData['serverTimestamp'] as String?;
           isDeltaSync = responseData['deltaSync'] == true;
@@ -420,58 +422,27 @@ class DataService extends ChangeNotifier {
           throw Exception('Unexpected response format');
         }
 
-        final userKey = _decodeUserKeyFromToken(token);
         final updatedEvents = eventsData.cast<Map<String, dynamic>>();
 
         // Delta sync: merge changes with existing events
         if (isDeltaSync && lastSyncTimestamp != null) {
-          debugPrint('🔄 Delta sync: ${updatedEvents.length} changes received');
+          debugPrint('🔄 Available delta sync: ${updatedEvents.length} changes received');
           _eventsRaw = _mergeEvents(
             _eventsRaw,
             updatedEvents,
             removedEventIds: removedEventIds,
           );
         } else {
-          // Full sync: replace all events
           final fullNote = forceFullSync ? ' (forced)' : '';
           debugPrint(
-            '🔄 Full sync$fullNote: ${updatedEvents.length} events received (replacing ${_eventsRaw.length} cached)',
+            '🔄 Available full sync$fullNote: ${updatedEvents.length} events received (replacing ${_eventsRaw.length} cached)',
           );
           _eventsRaw = updatedEvents;
         }
 
-        debugPrint('[DATA_SERVICE] Before filter: ${_eventsRaw.length} events (userKey=$userKey)');
-
-        // Enhanced debug: Check accepted_staff BEFORE filtering
-        if (userKey != null) {
-          int acceptedCount = 0;
-          for (final evt in _eventsRaw) {
-            if (isAcceptedByUser(evt, userKey)) {
-              acceptedCount++;
-              debugPrint(
-                '✅ [MY_EVENTS_DEBUG] Found accepted event BEFORE filter: ${evt['_id']} - ${evt['event_name']}',
-              );
-            }
-          }
-          debugPrint('✅ [MY_EVENTS_DEBUG] Total events with user in accepted_staff BEFORE filter: $acceptedCount');
-        }
-
-        _events = _filterEventsForAudience(_eventsRaw, userKey);
-        debugPrint('[DATA_SERVICE] After filter: ${_events.length} events');
-
-        // Enhanced debug: Check accepted_staff AFTER filtering
-        if (userKey != null) {
-          int acceptedCount = 0;
-          for (final evt in _events) {
-            if (isAcceptedByUser(evt, userKey)) {
-              acceptedCount++;
-              debugPrint(
-                '[DATA_SERVICE] User IS accepted in event: ${evt['_id']} (${evt['event_name']})',
-              );
-            }
-          }
-          debugPrint('[DATA_SERVICE] Total events where user is accepted: $acceptedCount');
-        }
+        // No client-side filtering needed — server already filtered
+        _events = List<Map<String, dynamic>>.from(_eventsRaw);
+        debugPrint('[DATA_SERVICE] Available events: ${_events.length}');
 
         unawaited(_ensureSocketConnected());
 
@@ -480,22 +451,16 @@ class DataService extends ChangeNotifier {
 
         // Save server timestamp for next delta sync
         if (serverTimestamp != null) {
-          await _safeStorageWrite('last_sync_events', serverTimestamp);
+          await _safeStorageWrite('last_sync_available', serverTimestamp);
         }
 
-        if (!silent) {
-          notifyListeners();
-        } else {
-          // Even in silent mode, notify if data changed
-          notifyListeners();
-        }
-
+        notifyListeners();
         _lastError = null;
       } else {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      _lastError = 'Failed to fetch events: $e';
+      _lastError = 'Failed to fetch available events: $e';
       debugPrint(_lastError);
     } finally {
       if (!silent) {
@@ -591,7 +556,7 @@ class DataService extends ChangeNotifier {
       void refreshEvents({bool force = false}) {
         // force=true: Manual pull-to-refresh (full sync)
         // force=false: Socket event (use delta sync if available)
-        unawaited(_fetchEvents(silent: true, forceFullSync: force));
+        unawaited(_fetchAvailable(silent: true, forceFullSync: force));
         unawaited(_fetchMyShifts(silent: true, forceFullSync: force));
       }
 
@@ -675,7 +640,7 @@ class DataService extends ChangeNotifier {
             debugPrint('[SOCKET] Event invitation received - refreshing events list');
             // Use brief delay for smoother UX (avoids rapid API calls)
             Future.delayed(const Duration(milliseconds: 500), () {
-              _fetchEvents(silent: true, forceFullSync: true);
+              _fetchAvailable(silent: true, forceFullSync: true);
               _fetchMyShifts(silent: true, forceFullSync: true);
             });
           }
@@ -832,6 +797,8 @@ class DataService extends ChangeNotifier {
 
       debugPrint('📥 Events response status: ${response.statusCode}');
 
+      if (_checkUnauthorized(response)) return;
+
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final eventsData = responseData is List
@@ -882,6 +849,8 @@ class DataService extends ChangeNotifier {
         headers: {'Authorization': 'Bearer $token'},
       );
 
+      if (_checkUnauthorized(response)) return;
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as List<dynamic>;
         final newAvailability = data.cast<Map<String, dynamic>>();
@@ -923,6 +892,7 @@ class DataService extends ChangeNotifier {
 
     try {
       final response = await http.get(uri, headers: headers);
+      if (_checkUnauthorized(response)) return;
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = json.decode(response.body) as Map<String, dynamic>;
         final teamsRaw = decoded['teams'] as List? ?? const [];
@@ -932,11 +902,8 @@ class DataService extends ChangeNotifier {
             .toList(growable: false);
         _teamsLoaded = true;
         _updateTeamIds();
-        final token = await _safeStorageRead('auth_jwt');
-        _events = _filterEventsForAudience(
-          _eventsRaw,
-          _decodeUserKeyFromToken(token),
-        );
+        // Re-fetch available events since team membership affects visibility
+        unawaited(_fetchAvailable(silent: true, forceFullSync: true));
         notifyListeners();
       } else {
         debugPrint(
@@ -958,6 +925,7 @@ class DataService extends ChangeNotifier {
 
     try {
       final response = await http.get(uri, headers: headers);
+      if (_checkUnauthorized(response)) return;
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final decoded = json.decode(response.body) as Map<String, dynamic>;
         final invitesRaw = decoded['invites'] as List? ?? const [];
@@ -1010,70 +978,13 @@ class DataService extends ChangeNotifier {
     return input;
   }
 
-  /// Apply audience visibility rules client-side
-  /// - If event.audience_user_keys is empty or missing: everyone sees all roles
-  /// - If non-empty: show roles only if current userKey is listed, or role.visible_for_all is true
-  /// - If server set 'assigned_role', trust the server's filtered roles (for private invitations)
-  List<Map<String, dynamic>> _filterEventsForAudience(
-    List<Map<String, dynamic>> events,
-    String? userKey,
-  ) {
-    final List<Map<String, dynamic>> filtered = [];
-
-    for (final evt in events) {
-      final roles = (evt['roles'] as List<dynamic>? ?? [])
-          .cast<Map<String, dynamic>>();
-      final audienceUsers = (evt['audience_user_keys'] as List<dynamic>? ?? [])
-          .map((e) => e.toString())
-          .where((value) => value.isNotEmpty)
-          .toList();
-      final audienceTeams = (evt['audience_team_ids'] as List<dynamic>? ?? [])
-          .map((e) => e.toString())
-          .where((value) => value.isNotEmpty)
-          .toList();
-
-      final isAccepted = isAcceptedByUser(evt, userKey);
-
-      // If server already filtered roles for this user (via assigned_role),
-      // trust the server's filtering - this happens for private direct invitations
-      final assignedRole = evt['assigned_role']?.toString();
-      if (assignedRole != null && assignedRole.isNotEmpty) {
-        // Server has already filtered roles for this private invitation
-        filtered.add(evt);
-        continue;
-      }
-
-      final isGlobalAudience = audienceUsers.isEmpty && audienceTeams.isEmpty;
-      final bool inAudienceUsers =
-          userKey != null && audienceUsers.contains(userKey);
-      final bool inAudienceTeams = audienceTeams.any(_teamIds.contains);
-
-      final filteredRoles = roles.where((role) {
-        if (isGlobalAudience) return true;
-        final visibleAll =
-            (role['visible_for_all'] == true) ||
-            (role['visibleForAll'] == true);
-        if (visibleAll) return true;
-        if (isAccepted) return true;
-        if (inAudienceUsers) return true;
-        if (inAudienceTeams) return true;
-        return false;
-      }).toList();
-
-      if (filteredRoles.isEmpty && !isGlobalAudience && !isAccepted) {
-        continue;
-      }
-
-      filtered.add({...evt, 'roles': filteredRoles});
-    }
-
-    return filtered;
-  }
+  // Client-side audience filtering removed — server handles all visibility
+  // filtering via GET /events/available endpoint
 
   /// Smart refresh - only fetches if data is stale
   Future<void> refreshIfNeeded() async {
     if (!isDataFresh) {
-      await _fetchEvents();
+      await _fetchAvailable();
     }
     if (!isAvailabilityFresh) {
       await _fetchAvailability();
@@ -1090,7 +1001,7 @@ class DataService extends ChangeNotifier {
 
     try {
       await Future.wait([
-        _fetchEvents(forceFullSync: true),
+        _fetchAvailable(forceFullSync: true),
         _fetchMyShifts(forceFullSync: true),
         _fetchAvailability(),
         _fetchMyTeams(silent: true),
@@ -1122,7 +1033,7 @@ class DataService extends ChangeNotifier {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       await _fetchMyInvites(silent: true);
       await _fetchMyTeams(silent: true);
-      await _fetchEvents(silent: true, forceFullSync: true);
+      await _fetchAvailable(silent: true, forceFullSync: true);
       await _fetchMyShifts(silent: true, forceFullSync: true);
       notifyListeners();
     } else {
@@ -1206,7 +1117,7 @@ class DataService extends ChangeNotifier {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       // Refresh teams and events after successful redemption
       await _fetchMyTeams(silent: true);
-      await _fetchEvents(silent: true, forceFullSync: true);
+      await _fetchAvailable(silent: true, forceFullSync: true);
       notifyListeners();
     } else if (response.statusCode == 404) {
       throw Exception('Invalid or expired invite code');
@@ -1231,7 +1142,7 @@ class DataService extends ChangeNotifier {
       Duration(minutes: _backgroundRefreshMinutes),
       (_) async {
         if (!isDataFresh) {
-          await _fetchEvents(silent: true);
+          await _fetchAvailable(silent: true);
         }
         if (!isAvailabilityFresh) {
           await _fetchAvailability(silent: true);
@@ -1260,7 +1171,7 @@ class DataService extends ChangeNotifier {
       _storage.delete(key: _lastFetchKey),
       _storage.delete(key: _availabilityStorageKey),
       _storage.delete(key: _lastAvailabilityFetchKey),
-      _storage.delete(key: 'last_sync_events'),
+      _storage.delete(key: 'last_sync_available'),
       _storage.delete(key: _myShiftsStorageKey),
       _storage.delete(key: _lastMyShiftsFetchKey),
       _storage.delete(key: 'last_sync_my_shifts'),
@@ -1279,7 +1190,7 @@ class DataService extends ChangeNotifier {
   /// Force full sync on next fetch (clears delta sync timestamp)
   /// Call this after creating, updating, or deleting events
   Future<void> invalidateEventsCache() async {
-    await _storage.delete(key: 'last_sync_events');
+    await _storage.delete(key: 'last_sync_available');
     debugPrint('🗑️  Events cache invalidated - next fetch will be full sync');
   }
 
