@@ -911,5 +911,11 @@
   },
   "askFollowUp": "Haz una pregunta...",
   "failedToAnalyze": "No se pudo generar el análisis. Toca para reintentar.",
-  "noShiftsThisMonth": "Aún no tienes turnos este mes."
+  "noShiftsThisMonth": "Aún no tienes turnos este mes.",
+  "youAreUnavailableToday": "Estás marcado/a como no disponible hoy",
+  "broadcastSentToAllEvent": "Enviado a todos · {eventName}",
+  "@broadcastSentToAllEvent": {
+    "placeholders": { "eventName": { "type": "String" } }
+  },
+  "broadcastTeamMessage": "Mensaje grupal al equipo"
 }

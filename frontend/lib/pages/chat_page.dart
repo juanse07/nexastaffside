@@ -3,24 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../auth_service.dart';
 import '../models/chat_message.dart';
 import '../services/chat_service.dart';
-import '../services/data_service.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../shared/widgets/initials_avatar.dart';
 import '../services/subscription_service.dart';
 import '../shared/widgets/subscription_gate.dart';
 import '../widgets/ai_message_composer.dart';
-import '../widgets/event_invitation_card.dart';
-
-// Global cache to persist event data across widget rebuilds
-final Map<String, Map<String, dynamic>> _globalEventCache = {};
-
 class ChatPage extends StatefulWidget {
   const ChatPage({
     required this.managerId,
@@ -79,7 +70,7 @@ class _ChatPageState extends State<ChatPage> {
 
     if (targetIndex < _messages.length) {
       final message = _messages[_messages.length - 1 - targetIndex]; // Reverse the index
-      final newDate = DateFormat('MMM d, yyyy').format(message.createdAt);
+      final newDate = DateFormat('MMM d, yyyy').format(message.createdAt.toLocal());
 
       if (_visibleDate != newDate) {
         setState(() {
@@ -132,7 +123,7 @@ class _ChatPageState extends State<ChatPage> {
         _loading = false;
         // Set initial visible date to most recent message
         if (_messages.isNotEmpty) {
-          _visibleDate = DateFormat('MMM d, yyyy').format(_messages.first.createdAt);
+          _visibleDate = DateFormat('MMM d, yyyy').format(_messages.first.createdAt.toLocal());
         }
       });
 
@@ -515,10 +506,12 @@ class _ChatPageState extends State<ChatPage> {
           return Column(
             key: ValueKey(message.id), // Prevent unnecessary rebuilds
             children: <Widget>[
-              // Check if it's an invitation card or regular message
+              // Check if it's an invitation stamp or regular message
               message.messageType == 'eventInvitation'
-                  ? _buildInvitationCard(message)
-                  : _MessageBubble(
+                  ? _buildInvitationStamp(message)
+                  : message.messageType == 'broadcast'
+                      ? _buildBroadcastStamp(message)
+                      : _MessageBubble(
                       key: ValueKey('bubble_${message.id}'),
                       message: message,
                       isMe: isMe,
@@ -535,10 +528,11 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildDateDivider(DateTime date) {
     final l10n = AppLocalizations.of(context)!;
+    final localDate = date.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final messageDate = DateTime(date.year, date.month, date.day);
+    final messageDate = DateTime(localDate.year, localDate.month, localDate.day);
 
     String label;
     if (messageDate == today) {
@@ -546,7 +540,7 @@ class _ChatPageState extends State<ChatPage> {
     } else if (messageDate == yesterday) {
       label = l10n.yesterday;
     } else {
-      label = DateFormat('MMM d, yyyy').format(date);
+      label = DateFormat('MMM d, yyyy').format(localDate);
     }
 
     return Padding(
@@ -575,282 +569,126 @@ class _ChatPageState extends State<ChatPage> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Widget _buildInvitationCard(ChatMessage message) {
+  Widget _buildInvitationStamp(ChatMessage message) {
     final metadata = message.metadata ?? {};
-    final eventId = metadata['eventId'] as String?;
-    final roleId = metadata['roleId'] as String?;
     final status = metadata['status'] as String?;
     final respondedAt = metadata['respondedAt'] != null
-        ? DateTime.parse(metadata['respondedAt'] as String)
+        ? DateTime.tryParse(metadata['respondedAt'] as String)
         : null;
+    final invitationText = message.message;
+    final sentDate = DateFormat('MMM d').format(message.createdAt.toLocal());
 
-    debugPrint('[INVITATION_ANALYTICS] invitation_card_displayed');
-    debugPrint('[INVITATION_ANALYTICS] messageId: ${message.id}');
-    debugPrint('[INVITATION_ANALYTICS] eventId: $eventId');
-    debugPrint('[INVITATION_ANALYTICS] roleId: $roleId');
-    debugPrint('[INVITATION_ANALYTICS] status: $status');
-    debugPrint('[INVITATION_ANALYTICS] userRole: staff');
-
-    if (eventId == null || roleId == null) {
-      debugPrint('[INVITATION_ANALYTICS] invitation_card_error: missing eventId or roleId');
-      return const SizedBox.shrink();
-    }
-
-    // Check cache first
-    if (_globalEventCache.containsKey(message.id)) {
-      return _buildInvitationCardWidget(
-        _globalEventCache[message.id]!,
-        roleId,
-        status,
-        respondedAt,
-        message,
-        eventId,
-      );
-    }
-
-    // Fetch event data using the new invitation endpoint only if not cached
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _chatService.fetchInvitationEvent(message.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          debugPrint('[INVITATION_ANALYTICS] invitation_card_error: event not found');
-          final l10n = AppLocalizations.of(context)!;
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(l10n.eventNotFound),
-          );
-        }
-
-        final eventData = snapshot.data!;
-
-        // Cache the result
-        _globalEventCache[message.id] = eventData;
-
-        return _buildInvitationCardWidget(
-          eventData,
-          roleId,
-          status,
-          respondedAt,
-          message,
-          eventId,
-        );
-      },
-    );
-  }
-
-  Widget _buildInvitationCardWidget(
-    Map<String, dynamic> eventData,
-    String roleId,
-    String? status,
-    DateTime? respondedAt,
-    ChatMessage message,
-    String eventId,
-  ) {
-    final roles = eventData['roles'] as List<dynamic>? ?? [];
-    final role = roles.cast<Map<String, dynamic>>().firstWhere(
-      (r) => (r['_id'] ?? r['role_id'] ?? r['role']) == roleId,
-      orElse: () => <String, dynamic>{},
-    );
-
-    final eventName = eventData['title'] as String? ?? eventData['shift_name'] as String? ?? 'Event';
-    final roleName = role['role_name'] as String? ?? role['role'] as String? ?? 'Role';
-    final clientName = eventData['client_name'] as String? ?? 'Client';
-    final venueName = eventData['venue_name'] as String? ?? eventData['venue_address'] as String?;
-    final rate = role['rate'] as num? ?? (role['tariff'] as Map<String, dynamic>?)?['rate'] as num?;
-
-    // Parse date and times properly
-    final dateStr = eventData['date'] as String?;
-    final startTimeStr = eventData['start_time'] as String?;
-    final endTimeStr = eventData['end_time'] as String?;
-
-    DateTime startDate;
-    DateTime endDate;
-
-    if (dateStr != null && startTimeStr != null) {
-      // Parse the date (e.g., "2025-10-27")
-      final baseDate = DateTime.parse(dateStr);
-      // Parse the time (e.g., "13:00")
-      final startTimeParts = startTimeStr.split(':');
-      final startHour = int.tryParse(startTimeParts[0]) ?? 0;
-      final startMinute = startTimeParts.length > 1 ? (int.tryParse(startTimeParts[1]) ?? 0) : 0;
-      // Combine date + time
-      startDate = DateTime(baseDate.year, baseDate.month, baseDate.day, startHour, startMinute);
-
-      // Same for end time
-      if (endTimeStr != null) {
-        final endTimeParts = endTimeStr.split(':');
-        final endHour = int.tryParse(endTimeParts[0]) ?? 0;
-        final endMinute = endTimeParts.length > 1 ? (int.tryParse(endTimeParts[1]) ?? 0) : 0;
-        endDate = DateTime(baseDate.year, baseDate.month, baseDate.day, endHour, endMinute);
-      } else {
-        endDate = startDate.add(const Duration(hours: 4));
-      }
-    } else {
-      // Fallback if data is missing
-      startDate = DateTime.now();
-      endDate = startDate.add(const Duration(hours: 4));
-    }
-
-    debugPrint('[INVITATION_ANALYTICS] invitation_card_loaded successfully');
-    debugPrint('[INVITATION_ANALYTICS] eventName: $eventName');
-    debugPrint('[INVITATION_ANALYTICS] roleName: $roleName');
-    debugPrint('[INVITATION_ANALYTICS] venueName: $venueName');
-
-    return EventInvitationCard(
-      key: ValueKey('invitation_${message.id}'),
-      eventName: eventName,
-      roleName: roleName,
-      clientName: clientName,
-      startDate: startDate,
-      endDate: endDate,
-      venueName: venueName,
-      rate: rate?.toDouble(),
-      status: status,
-      respondedAt: respondedAt,
-      onAccept: status == null || status == 'pending'
-          ? () => _handleInvitationResponse(message, eventId, roleId, true)
-          : null,
-      onDecline: status == null || status == 'pending'
-          ? () => _showDeclineConfirmation(message, eventId, roleId)
-          : null,
-    );
-  }
-
-  Future<void> _showDeclineConfirmation(
-    ChatMessage message,
-    String eventId,
-    String roleId,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.declineInvitationQuestion),
-        content: Text(l10n.declineInvitationConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.cancel),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: <Widget>[
+          // Invitation stamp
+          Row(
+            children: <Widget>[
+              Expanded(child: Divider(color: Colors.grey[300])),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  '\u{1F4E9} $invitationText \u00B7 $sentDate',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Expanded(child: Divider(color: Colors.grey[300])),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.textSecondary,
+          // Response stamp
+          if (status == 'accepted' || status == 'declined')
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                status == 'accepted'
+                    ? '\u2705 Accepted \u00B7 ${_formatStampTime(respondedAt)}'
+                    : '\u274C Declined \u00B7 ${_formatStampTime(respondedAt)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: status == 'accepted' ? Colors.green[600] : Colors.grey[500],
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '\u23F3 Waiting for response...',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w400,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
             ),
-            child: Text(l10n.declineInvitation),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBroadcastStamp(ChatMessage message) {
+    final l10n = AppLocalizations.of(context)!;
+    final metadata = message.metadata ?? {};
+    final broadcastType = metadata['broadcastType'] as String?;
+    final eventName = metadata['eventName'] as String?;
+    final sentDate = DateFormat('MMM d').format(message.createdAt.toLocal());
+
+    final tagLine = broadcastType == 'event' && eventName != null
+        ? '\u{1F4E2} ${l10n.broadcastSentToAllEvent(eventName)} \u00B7 $sentDate'
+        : '\u{1F4E2} ${l10n.broadcastTeamMessage} \u00B7 $sentDate';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(child: Divider(color: AppColors.techBlue.withOpacity(0.3))),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  tagLine,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.techBlue,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Expanded(child: Divider(color: AppColors.techBlue.withOpacity(0.3))),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.techBlue.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.techBlue.withOpacity(0.15)),
+            ),
+            child: Text(
+              message.message,
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
           ),
         ],
       ),
     );
-
-    if (confirmed == true) {
-      await _handleInvitationResponse(message, eventId, roleId, false);
-    }
   }
 
-  Future<void> _handleInvitationResponse(
-    ChatMessage message,
-    String eventId,
-    String roleId,
-    bool accept,
-  ) async {
-    final startTime = DateTime.now();
-    final sentAt = message.createdAt;
-    final responseTimeMinutes = startTime.difference(sentAt).inMinutes;
-
-    debugPrint('[INVITATION_ANALYTICS] invitation_responded event started');
-    debugPrint('[INVITATION_ANALYTICS] messageId: ${message.id}');
-    debugPrint('[INVITATION_ANALYTICS] eventId: $eventId');
-    debugPrint('[INVITATION_ANALYTICS] roleId: $roleId');
-    debugPrint('[INVITATION_ANALYTICS] accept: $accept');
-    debugPrint('[INVITATION_ANALYTICS] responseTimeMinutes: $responseTimeMinutes');
-    debugPrint('[INVITATION_ANALYTICS] managerId: ${widget.managerId}');
-
-    try {
-      await _chatService.respondToInvitation(
-        messageId: message.id,
-        eventId: eventId,
-        roleId: roleId,
-        accept: accept,
-      );
-
-      final duration = DateTime.now().difference(startTime);
-      debugPrint('[INVITATION_ANALYTICS] invitation_responded success');
-      debugPrint('[INVITATION_ANALYTICS] apiCallDuration: ${duration.inMilliseconds}ms');
-      debugPrint('[INVITATION_ANALYTICS] accepted: $accept');
-
-      // Update the message locally to reflect the response
-      final index = _messages.indexWhere((m) => m.id == message.id);
-      if (index != -1 && mounted) {
-        setState(() {
-          // The backend will update the message and send it via socket
-          // For now, we'll wait for the socket update
-        });
-      }
-
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(accept ? l10n.invitationAccepted : l10n.invitationDeclined),
-            backgroundColor: accept ? Colors.green : Colors.grey.shade600,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-
-      // Reload messages to get updated status
-      await _loadMessages();
-
-      // Refresh events and availability to update Available Roles and My Events
-      if (accept) {
-        debugPrint('[INVITATION_ANALYTICS] refreshing events after accept');
-        try {
-          final dataService = context.read<DataService>();
-          debugPrint('🎯 Event accepted, waiting for DB commit...');
-
-          // Wait 1.5 seconds for MongoDB to commit the write transaction
-          // This prevents race condition where we fetch before the update is visible
-          await Future.delayed(const Duration(milliseconds: 1500));
-
-          debugPrint('🎯 Invalidating cache and refreshing...');
-          await dataService.invalidateEventsCache();
-          await dataService.forceRefresh();
-          debugPrint('🎯 Refresh complete after event accept');
-          debugPrint('[INVITATION_ANALYTICS] events refreshed successfully');
-        } catch (refreshError) {
-          debugPrint('[INVITATION_ANALYTICS] error refreshing events: $refreshError');
-          // Don't fail the whole operation if refresh fails
-        }
-      }
-    } catch (e) {
-      final duration = DateTime.now().difference(startTime);
-      debugPrint('[INVITATION_ANALYTICS] invitation_error');
-      debugPrint('[INVITATION_ANALYTICS] error: $e');
-      debugPrint('[INVITATION_ANALYTICS] messageId: ${message.id}');
-      debugPrint('[INVITATION_ANALYTICS] eventId: $eventId');
-      debugPrint('[INVITATION_ANALYTICS] step: respond');
-      debugPrint('[INVITATION_ANALYTICS] duration: ${duration.inMilliseconds}ms');
-
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.failedToRespond(e.toString())),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
+  String _formatStampTime(DateTime? dateTime) {
+    if (dateTime == null) return '';
+    final date = DateFormat('MMM d').format(dateTime);
+    final time = DateFormat('h:mm a').format(dateTime);
+    return '$date at $time';
   }
 
   Widget _buildMessageInput() {
@@ -1010,7 +848,7 @@ class _MessageBubble extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          DateFormat('h:mm a').format(message.createdAt),
+                          DateFormat('h:mm a').format(message.createdAt.toLocal()),
                           style: TextStyle(
                             fontSize: 11,
                             color: isMe ? Colors.white70 : Colors.grey[600],

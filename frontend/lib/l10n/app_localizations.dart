@@ -3097,6 +3097,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No shifts this month yet.'**
   String get noShiftsThisMonth;
+
+  /// No description provided for @youAreUnavailableToday.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re marked as unavailable today'**
+  String get youAreUnavailableToday;
+
+  /// No description provided for @broadcastSentToAllEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to all · {eventName}'**
+  String broadcastSentToAllEvent(String eventName);
+
+  /// No description provided for @broadcastTeamMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Team broadcast'**
+  String get broadcastTeamMessage;
 }
 
 class _AppLocalizationsDelegate

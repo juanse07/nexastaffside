@@ -1654,4 +1654,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noShiftsThisMonth => 'Aún no tienes turnos este mes.';
+
+  @override
+  String get youAreUnavailableToday => 'Estás marcado/a como no disponible hoy';
+
+  @override
+  String broadcastSentToAllEvent(String eventName) {
+    return 'Enviado a todos · $eventName';
+  }
+
+  @override
+  String get broadcastTeamMessage => 'Mensaje grupal al equipo';
 }

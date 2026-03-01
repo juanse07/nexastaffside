@@ -911,5 +911,11 @@
   },
   "askFollowUp": "Ask a follow-up...",
   "failedToAnalyze": "Failed to generate analysis. Tap to retry.",
-  "noShiftsThisMonth": "No shifts this month yet."
+  "noShiftsThisMonth": "No shifts this month yet.",
+  "youAreUnavailableToday": "You're marked as unavailable today",
+  "broadcastSentToAllEvent": "Sent to all · {eventName}",
+  "@broadcastSentToAllEvent": {
+    "placeholders": { "eventName": { "type": "String" } }
+  },
+  "broadcastTeamMessage": "Team broadcast"
 }

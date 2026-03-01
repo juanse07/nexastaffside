@@ -1640,4 +1640,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noShiftsThisMonth => 'No shifts this month yet.';
+
+  @override
+  String get youAreUnavailableToday => 'You\'re marked as unavailable today';
+
+  @override
+  String broadcastSentToAllEvent(String eventName) {
+    return 'Sent to all · $eventName';
+  }
+
+  @override
+  String get broadcastTeamMessage => 'Team broadcast';
 }
