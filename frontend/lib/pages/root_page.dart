@@ -19,6 +19,7 @@ import '../services/user_service.dart';
 import '../services/offline_service.dart';
 import '../services/sync_service.dart';
 import '../services/geofence_service.dart';
+import '../services/chat_service.dart';
 import '../providers/terminology_provider.dart';
 import '../models/pending_clock_action.dart';
 import '../utils/id.dart';
@@ -267,7 +268,7 @@ String _formatEventDateTimeLabel({
 
   if (date == null) return '';
   final left =
-      '${date.day} ${monthShort(date.month)}'; // Changed format to "3 Nov"
+      '${weekdayShort(date.weekday)} ${date.day} ${monthShort(date.month)}';
   String right = '';
   if (start != null && end != null) {
     right =
@@ -345,6 +346,13 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
 
     // Initialize geofence service for auto clock-in
     _initializeGeofenceService();
+
+    // Listen to ChatService so the nav badge rebuilds on unread count changes.
+    ChatService().addListener(_onChatServiceUpdate);
+  }
+
+  void _onChatServiceUpdate() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _initializeGeofenceService() async {
@@ -446,6 +454,7 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
     _bottomBarAnimationController.dispose();
     _autoClockInSubscription?.cancel();
     _geofenceService.stopMonitoring();
+    ChatService().removeListener(_onChatServiceUpdate);
     super.dispose();
   }
 
@@ -888,6 +897,9 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                                           selectedIcon: Icons.chat_bubble,
                                           label: 'Chats',
                                           index: 1,
+                                          badgeCount: _selectedBottomIndex == 1
+                                              ? 0
+                                              : ChatService().totalUnread,
                                         ),
                                         _buildNavItem(
                                           icon: Icons.account_balance_wallet_outlined,
@@ -947,10 +959,12 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
                                           ),
                                         ),
                                         child: Center(
-                                          child: Icon(
-                                            Icons.add_rounded,
-                                            color: AppColors.navySpaceCadet,
-                                            size: 29,
+                                          child: Image.asset(
+                                            'assets/ai_assistant_logo.png',
+                                            width: 46,
+                                            height: 46,
+                                            color: Colors.grey.shade500,
+                                            colorBlendMode: BlendMode.srcIn,
                                           ),
                                         ),
                                       ),

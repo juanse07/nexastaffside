@@ -44,6 +44,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
   bool _isVisible = false;
   bool _hasCalculated = false;
   bool _isExporting = false;
+  final GlobalKey _exportButtonKey = GlobalKey();
 
   // Pagination state
   int _displayMonths = 12;
@@ -164,7 +165,14 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
       );
 
       if (exportResult.success) {
-        final shareError = await ExportService.shareExport(exportResult);
+        // Build the anchor rect so iOS share sheet has a valid popover origin.
+        Rect? shareOrigin;
+        final box = _exportButtonKey.currentContext?.findRenderObject() as RenderBox?;
+        if (box != null && box.hasSize) {
+          final pos = box.localToGlobal(Offset.zero);
+          shareOrigin = pos & box.size;
+        }
+        final shareError = await ExportService.shareExport(exportResult, origin: shareOrigin);
 
         if (shareError != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -441,6 +449,7 @@ class _EarningsPageState extends State<EarningsPage> with AutomaticKeepAliveClie
                         ),
                         if (widget.userKey != null)
                           TextButton.icon(
+                            key: _exportButtonKey,
                             onPressed: _isExporting ? null : _showExportOptions,
                             icon: _isExporting
                                 ? const SizedBox(
@@ -1105,21 +1114,41 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        eventName,
+                        clientName,
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
                           color: AppColors.navySpaceCadet,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${eventData.date.month}/${eventData.date.day}/${eventData.date.year}',
-                        style: TextStyle(
-                          color: AppColors.navySpaceCadet.withValues(alpha: 0.45),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            '${eventData.date.month}/${eventData.date.day}/${eventData.date.year}',
+                            style: TextStyle(
+                              color: AppColors.navySpaceCadet.withValues(alpha: 0.45),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.navySpaceCadet.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              eventData.role,
+                              style: TextStyle(
+                                color: AppColors.navySpaceCadet.withValues(alpha: 0.75),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1142,24 +1171,6 @@ class MonthlyEarningsDetailPage extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 10),
-
-            // Detail chips row
-            Row(
-              children: [
-                Expanded(
-                  child: _DetailChip(
-                    icon: Icons.business_rounded,
-                    value: clientName,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _DetailChip(
-                  icon: Icons.badge_rounded,
-                  value: eventData.role,
-                ),
-              ],
-            ),
 
             if (venueAddress != null && venueAddress.isNotEmpty) ...[
               const SizedBox(height: 6),
