@@ -6,21 +6,18 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../auth_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
 
   // OneSignal App ID for Staff app
   static const String _oneSignalAppId = 'b974a231-c50a-4c4b-9cb0-59c6e078643d';
-
-  // API Base URL - Using production backend
-  static const String _baseUrl = 'https://api.nexapymesoft.com';
 
   // Notification counts
   int _unreadChatCount = 0;
@@ -125,7 +122,7 @@ class NotificationService {
     // Handle permission changes
     OneSignal.Notifications.addPermissionObserver((permission) {
       print('Permission changed: $permission');
-      _secureStorage.write(key: 'notificationsEnabled', value: permission.toString());
+      // Notification preference stored in SharedPreferences (non-sensitive)
     });
   }
 
@@ -167,8 +164,8 @@ class NotificationService {
         print('[NOTIF REG] Opt-in completed, new status: ${pushSubscription.optedIn}');
       }
 
-      // Get auth token (using correct key from AuthService)
-      final token = await _secureStorage.read(key: 'auth_jwt');
+      // Get auth token via AuthService
+      final token = await AuthService.getJwt();
       if (token == null) {
         print('[NOTIF REG] No auth token available');
         return;
@@ -177,9 +174,8 @@ class NotificationService {
       // Fetch user ID from /users/me API
       String? userId;
       try {
-        final response = await http.get(
-          Uri.parse('$_baseUrl/api/users/me'),
-          headers: {'Authorization': 'Bearer $token'},
+        final response = await AuthService.httpClient.get(
+          Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/users/me'),
         );
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -201,12 +197,9 @@ class NotificationService {
 
         // Register device with backend
         print('[NOTIF REG] Registering device with backend...');
-        final response = await http.post(
-          Uri.parse('$_baseUrl/api/notifications/register-device'),
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
+        final response = await AuthService.httpClient.post(
+          Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/notifications/register-device'),
+          headers: {'Content-Type': 'application/json'},
           body: json.encode({
             'oneSignalPlayerId': playerId,
             'deviceType': Platform.isIOS ? 'ios' : 'android',
@@ -375,14 +368,11 @@ class NotificationService {
   /// Load notification preferences
   Future<void> _loadNotificationPreferences() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_jwt');
+      final token = await AuthService.getJwt();
       if (token == null) return;
 
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/users/me'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+      final response = await AuthService.httpClient.get(
+        Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/users/me'),
       );
 
       if (response.statusCode == 200) {
@@ -400,15 +390,9 @@ class NotificationService {
   /// Update notification preferences
   Future<bool> updatePreferences(Map<String, bool> preferences) async {
     try {
-      final token = await _secureStorage.read(key: 'auth_jwt');
-      if (token == null) return false;
-
-      final response = await http.patch(
-        Uri.parse('$_baseUrl/api/notifications/preferences'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+      final response = await AuthService.httpClient.patch(
+        Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/notifications/preferences'),
+        headers: {'Content-Type': 'application/json'},
         body: json.encode(preferences),
       );
 
@@ -422,14 +406,8 @@ class NotificationService {
   /// Get notification history
   Future<List<Map<String, dynamic>>> getNotificationHistory() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_jwt');
-      if (token == null) return [];
-
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/notifications/history'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+      final response = await AuthService.httpClient.get(
+        Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/notifications/history'),
       );
 
       if (response.statusCode == 200) {
@@ -446,15 +424,9 @@ class NotificationService {
   /// Mark notification as read
   Future<bool> markAsRead(String notificationId) async {
     try {
-      final token = await _secureStorage.read(key: 'auth_jwt');
-      if (token == null) return false;
-
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/notifications/mark-read'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+      final response = await AuthService.httpClient.post(
+        Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/notifications/mark-read'),
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({'notificationId': notificationId}),
       );
 
@@ -468,14 +440,8 @@ class NotificationService {
   /// Get unread count from server
   Future<int> getUnreadCount() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_jwt');
-      if (token == null) return 0;
-
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/notifications/unread-count'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+      final response = await AuthService.httpClient.get(
+        Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/notifications/unread-count'),
       );
 
       if (response.statusCode == 200) {
@@ -492,18 +458,12 @@ class NotificationService {
   /// Send test notification
   Future<bool> sendTestNotification() async {
     try {
-      final token = await _secureStorage.read(key: 'auth_jwt');
-      if (token == null) return false;
-
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/notifications/test'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+      final response = await AuthService.httpClient.post(
+        Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/notifications/test'),
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'title': '🔔 Test Notification',
-          'body': 'This is a test notification from Nexa Staff!',
+          'body': 'This is a test notification from FlowShift Staff!',
           'type': 'system',
         }),
       );
@@ -519,15 +479,12 @@ class NotificationService {
   Future<void> unregisterDevice() async {
     try {
       final deviceState = await OneSignal.User.getOnesignalId();
-      final token = await _secureStorage.read(key: 'auth_jwt');
+      final token = await AuthService.getJwt();
 
       if (deviceState != null && token != null) {
-        await http.delete(
-          Uri.parse('$_baseUrl/api/notifications/unregister-device'),
-          headers: {
-            'Authorization': 'Bearer $token',
-            'Content-Type': 'application/json',
-          },
+        await AuthService.httpClient.delete(
+          Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/notifications/unregister-device'),
+          headers: {'Content-Type': 'application/json'},
           body: json.encode({'oneSignalPlayerId': deviceState}),
         );
       }

@@ -418,7 +418,7 @@ class _EventTeamChatPageState extends State<EventTeamChatPage> {
                       ),
                     const SizedBox(width: 8),
                     Text(
-                      timeFormat.format(message.createdAt),
+                      timeFormat.format(message.createdAt.toLocal()),
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 11,

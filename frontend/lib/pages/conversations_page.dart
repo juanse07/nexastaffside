@@ -32,6 +32,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
   String _searchQuery = '';
   bool _loading = true;
   String? _error;
+  bool _selfUnavailableToday = false;
 
   @override
   void initState() {
@@ -69,6 +70,7 @@ class _ConversationsPageState extends State<ConversationsPage> {
 
       setState(() {
         _conversations = conversations;
+        _selfUnavailableToday = _chatService.selfUnavailableToday;
         _loading = false;
       });
     } catch (e) {
@@ -324,10 +326,15 @@ class _ConversationsPageState extends State<ConversationsPage> {
       );
     }
 
+    // Extra item count: Valerio Assistant tile + optional unavailability banner
+    final bannerCount = _selfUnavailableToday ? 1 : 0;
+    final assistantCount = showAssistant ? 1 : 0;
+    final extraItems = assistantCount + bannerCount;
+
     return RefreshIndicator(
       onRefresh: _loadConversations,
       child: ListView.separated(
-        itemCount: filteredConversations.length + (showAssistant ? 1 : 0),
+        itemCount: filteredConversations.length + extraItems,
         separatorBuilder: (_, __) => const Divider(height: 1),
         itemBuilder: (context, index) {
           // First item is the pinned Valerio Assistant (if visible)
@@ -337,7 +344,36 @@ class _ConversationsPageState extends State<ConversationsPage> {
             );
           }
 
-          final conversationIndex = showAssistant ? index - 1 : index;
+          // Unavailability banner (right after assistant)
+          if (_selfUnavailableToday && index == assistantCount) {
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.event_busy, color: Colors.orange.shade700, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.youAreUnavailableToday,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final conversationIndex = index - extraItems;
           final conversation = filteredConversations[conversationIndex];
           return _ConversationTile(
             conversation: conversation,

@@ -37,16 +37,6 @@ class ExportService {
     DateTime? endDate,
   }) async {
     try {
-      final token = await AuthService.getJwt();
-      if (token == null) {
-        return ExportResult(success: false, error: 'Not authenticated');
-      }
-
-      final headers = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
-
       final queryParams = <String, String>{
         'format': format,
         'period': period,
@@ -60,7 +50,7 @@ class ExportService {
       final uri = Uri.parse('${AuthService.apiBaseUrl}/api/exports/staff-shifts')
           .replace(queryParameters: queryParams);
 
-      final response = await http.get(uri, headers: headers);
+      final response = await AuthService.httpClient.get(uri, headers: {'Content-Type': 'application/json'});
 
       if (response.statusCode != 200) {
         return ExportResult(

@@ -4,13 +4,12 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../auth_service.dart';
 import '../models/event_chat_message.dart';
 
 class EventTeamChatService extends ChangeNotifier {
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   final StreamController<EventChatMessage> _messageStreamController =
       StreamController<EventChatMessage>.broadcast();
@@ -39,28 +38,17 @@ class EventTeamChatService extends ChangeNotifier {
         : withLead;
   }
 
-  Future<Map<String, String>> _getHeaders() async {
-    final token = await _storage.read(key: 'auth_token');
-    if (token == null || token.isEmpty) {
-      throw Exception('No authentication token found');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   /// Fetch messages for an event
   Future<List<EventChatMessage>> fetchMessages(String eventId, {int limit = 50, String? before}) async {
     try {
-      final headers = await _getHeaders();
-      var url = Uri.parse('$_apiBaseUrl$_apiPathPrefix/api/events/$eventId/chat/messages?limit=$limit');
-
+      final queryParams = <String, String>{'limit': limit.toString()};
       if (before != null && before.isNotEmpty) {
-        url = Uri.parse('$_apiBaseUrl$_apiPathPrefix/api/events/$eventId/chat/messages?limit=$limit&before=$before');
+        queryParams['before'] = before;
       }
+      final url = Uri.parse('$_apiBaseUrl$_apiPathPrefix/api/events/$eventId/chat/messages')
+          .replace(queryParameters: queryParams);
 
-      final response = await http.get(url, headers: headers);
+      final response = await AuthService.httpClient.get(url, headers: {'Content-Type': 'application/json'});
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
@@ -83,12 +71,11 @@ class EventTeamChatService extends ChangeNotifier {
   /// Send a message to the event team chat
   Future<EventChatMessage> sendMessage(String eventId, String message) async {
     try {
-      final headers = await _getHeaders();
       final url = Uri.parse('$_apiBaseUrl$_apiPathPrefix/api/events/$eventId/chat/messages');
 
-      final response = await http.post(
+      final response = await AuthService.httpClient.post(
         url,
-        headers: headers,
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({'message': message}),
       );
 

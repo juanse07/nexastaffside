@@ -82,16 +82,18 @@ class RoleEventsPage extends StatelessWidget {
                 event['shift_name']?.toString() ?? l10n.untitledEvent;
             final clientName = event['client_name']?.toString() ?? '';
             final venueName = event['venue_name']?.toString() ?? '';
-            // Build time label from start/end times if present
-            final startTime = event['start_time']?.toString().trim();
-            final endTime = event['end_time']?.toString().trim();
+            // Look up role-specific times — prefer role-level over event-level
+            final rolesList = event['roles'] as List? ?? [];
+            final matchingRoleMap = rolesList.firstWhere(
+              (r) => r is Map && (r['role']?.toString() ?? '') == roleName,
+              orElse: () => <String, dynamic>{},
+            ) as Map<String, dynamic>;
+            final startTime = ((matchingRoleMap['start_time'] ?? event['start_time'])?.toString() ?? '').trim();
+            final endTime = ((matchingRoleMap['end_time'] ?? event['end_time'])?.toString() ?? '').trim();
             String? timeLabel;
-            if ((startTime != null && startTime.isNotEmpty) ||
-                (endTime != null && endTime.isNotEmpty)) {
-              final start = (startTime == null || startTime.isEmpty)
-                  ? '—'
-                  : startTime;
-              final end = (endTime == null || endTime.isEmpty) ? '—' : endTime;
+            if (startTime.isNotEmpty || endTime.isNotEmpty) {
+              final start = startTime.isEmpty ? '—' : startTime;
+              final end = endTime.isEmpty ? '—' : endTime;
               timeLabel = '$start - $end';
             }
             // Extract third-party company name if available

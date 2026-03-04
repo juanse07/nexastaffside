@@ -4,9 +4,9 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../auth_service.dart';
 import 'api_exception.dart';
 
 class CaricatureHistoryItem {
@@ -85,8 +85,6 @@ class UserProfile {
 }
 
 class UserService {
-  static const _jwtStorageKey = 'auth_jwt';
-  static const _storage = FlutterSecureStorage();
   static const _requestTimeout = Duration(seconds: 30);
 
   static String get _apiBaseUrl {
@@ -123,14 +121,9 @@ class UserService {
     }
   }
 
-  /// Gets the stored JWT token
+  /// Gets the stored JWT token via AuthService (cache-first).
   static Future<String?> _getJwt() async {
-    try {
-      return await _storage.read(key: _jwtStorageKey);
-    } catch (e) {
-      _log('Failed to read JWT: $e', isError: true);
-      return null;
-    }
+    return AuthService.getJwt();
   }
 
   /// Helper to make HTTP requests with timeout and error handling

@@ -5,9 +5,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+
+import '../auth_service.dart';
 
 /// Result of a file upload operation
 class UploadResult {
@@ -35,8 +36,6 @@ class UploadResult {
 
 /// Service for uploading files to Cloudflare R2 via the backend API
 class FileUploadService {
-  static const _jwtStorageKey = 'auth_jwt';
-  static const _storage = FlutterSecureStorage();
   static const _requestTimeout = Duration(seconds: 60); // Longer timeout for uploads
 
   static String get _apiBaseUrl {
@@ -73,14 +72,9 @@ class FileUploadService {
     }
   }
 
-  /// Gets the stored JWT token
+  /// Gets the stored JWT token via AuthService (cache-first).
   static Future<String?> _getJwt() async {
-    try {
-      return await _storage.read(key: _jwtStorageKey);
-    } catch (e) {
-      _log('Failed to read JWT: $e', isError: true);
-      return null;
-    }
+    return AuthService.getJwt();
   }
 
   /// Gets the MIME type from a filename
@@ -213,11 +207,6 @@ class FileUploadService {
     String key, {
     int expiresInSeconds = 3600,
   }) async {
-    final token = await _getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/upload/presigned-url')
         .replace(queryParameters: {
       'key': key,
@@ -225,11 +214,8 @@ class FileUploadService {
     });
 
     try {
-      final response = await http
-          .get(
-            uri,
-            headers: {'Authorization': 'Bearer $token'},
-          )
+      final response = await AuthService.httpClient
+          .get(uri)
           .timeout(_requestTimeout);
 
       if (response.statusCode == 200) {
@@ -246,19 +232,11 @@ class FileUploadService {
 
   /// Deletes a file from storage
   static Future<void> deleteFile(String key) async {
-    final token = await _getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     try {
-      final response = await http
+      final response = await AuthService.httpClient
           .delete(
             Uri.parse('$_apiBaseUrl$_apiPathPrefix/upload/file'),
-            headers: {
-              'Authorization': 'Bearer $token',
-              'Content-Type': 'application/json',
-            },
+            headers: {'Content-Type': 'application/json'},
             body: json.encode({'key': key}),
           )
           .timeout(_requestTimeout);

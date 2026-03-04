@@ -10,6 +10,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import 'services/authenticated_client.dart';
+
 /// Custom exceptions for authentication operations
 class AuthException implements Exception {
   final String message;
@@ -32,8 +34,18 @@ class InvalidTokenException extends AuthException {
 /// Service for handling authentication and API requests
 class AuthService {
   static const _jwtStorageKey = 'auth_jwt';
+  static const _refreshTokenKey = 'auth_refresh_token';
   static const _storage = FlutterSecureStorage();
   static const _requestTimeout = Duration(seconds: 30);
+
+  /// In-memory JWT cache — survives transient Keychain read failures.
+  static String? _cachedJwt;
+
+  /// In-memory refresh token cache.
+  static String? _cachedRefreshToken;
+
+  /// Mutex to prevent concurrent refresh attempts.
+  static Completer<bool>? _refreshCompleter;
 
   /// Stream that emits when a forced logout occurs (e.g., 401 response).
   /// The root widget should listen to this and navigate to login.
@@ -57,6 +69,11 @@ class AuthService {
     _forcedLogoutController.add(null);
   }
 
+  /// Lazy singleton authenticated HTTP client.
+  static AuthenticatedClient? _httpClient;
+  static AuthenticatedClient get httpClient =>
+      _httpClient ??= AuthenticatedClient();
+
   static String get apiBaseUrl => _apiBaseUrl;
   static String get _apiBaseUrl {
     final raw = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
@@ -72,6 +89,7 @@ class AuthService {
     return raw;
   }
 
+  static String get apiPathPrefix => _apiPathPrefix;
   static String get _apiPathPrefix {
     final raw = (dotenv.env['API_PATH_PREFIX'] ?? '').trim();
     if (raw.isEmpty) return '';
@@ -114,7 +132,12 @@ class AuthService {
   /// Signs out the current user
   static Future<void> signOut() async {
     _log('Signing out user');
-    await _storage.delete(key: _jwtStorageKey);
+    _cachedJwt = null;
+    _cachedRefreshToken = null;
+    await Future.wait([
+      _storage.delete(key: _jwtStorageKey),
+      _storage.delete(key: _refreshTokenKey),
+    ]);
     try {
       await _googleSignIn().signOut();
     } catch (e) {
@@ -122,33 +145,116 @@ class AuthService {
     }
   }
 
-  /// Retrieves the stored JWT token
+  /// Retrieves the stored JWT token (cache-first, never deletes on error).
   static Future<String?> getJwt() async {
+    if (_cachedJwt != null) return _cachedJwt;
     try {
-      return await _storage.read(key: _jwtStorageKey);
+      final token = await _storage.read(key: _jwtStorageKey);
+      if (token != null) _cachedJwt = token;
+      return token;
     } catch (e) {
       _log('Error reading JWT from secure storage: $e', isError: true);
-      // Clear corrupted storage and return null
-      await _storage.delete(key: _jwtStorageKey);
+      // Do NOT delete — transient Keychain errors should not destroy the session.
       return null;
     }
   }
 
-  /// Saves JWT token to secure storage
+  /// Saves JWT token to secure storage (cache-first, safe retry).
   static Future<void> _saveJwt(String token) async {
+    // Always cache in memory immediately — survives storage failures.
+    _cachedJwt = token;
     try {
       await _storage.write(key: _jwtStorageKey, value: token);
     } catch (e) {
       _log('Error writing JWT to secure storage: $e', isError: true);
-      // Try to clear and retry once
+      // Retry the single key write — do NOT deleteAll() (that nukes other keys).
       try {
-        await _storage.deleteAll();
+        await _storage.delete(key: _jwtStorageKey);
         await _storage.write(key: _jwtStorageKey, value: token);
-        _log('Successfully saved JWT after clearing storage');
+        _log('Successfully saved JWT after deleting single key');
       } catch (retryError) {
-        _log('Failed to save JWT even after clearing storage: $retryError', isError: true);
-        rethrow;
+        _log('Failed to persist JWT to storage: $retryError', isError: true);
+        // Token survives in _cachedJwt for this app session.
       }
+    }
+  }
+
+  /// Saves both access and refresh tokens (cache + storage).
+  /// Public so phone_auth_service can call it after exchanging Firebase token.
+  static Future<void> saveTokenPair(String token, String? refreshToken) async {
+    await _saveJwt(token);
+    if (refreshToken != null) {
+      _cachedRefreshToken = refreshToken;
+      try {
+        await _storage.write(key: _refreshTokenKey, value: refreshToken);
+      } catch (e) {
+        _log('Error writing refresh token to storage: $e', isError: true);
+        // Survives in _cachedRefreshToken for this session.
+      }
+    }
+  }
+
+  /// Retrieves the stored refresh token (cache-first).
+  static Future<String?> _getRefreshToken() async {
+    if (_cachedRefreshToken != null) return _cachedRefreshToken;
+    try {
+      final token = await _storage.read(key: _refreshTokenKey);
+      if (token != null) _cachedRefreshToken = token;
+      return token;
+    } catch (e) {
+      _log('Error reading refresh token: $e', isError: true);
+      return null;
+    }
+  }
+
+  /// Attempts to refresh the access token using the stored refresh token.
+  /// Returns true if successful, false if refresh failed (caller should forceLogout).
+  /// Uses a Completer mutex to prevent concurrent refresh attempts.
+  static Future<bool> refreshAccessToken() async {
+    // If a refresh is already in progress, wait for it.
+    if (_refreshCompleter != null) {
+      return _refreshCompleter!.future;
+    }
+
+    _refreshCompleter = Completer<bool>();
+
+    try {
+      final refreshToken = await _getRefreshToken();
+      if (refreshToken == null) {
+        _log('No refresh token available');
+        _refreshCompleter!.complete(false);
+        return false;
+      }
+
+      _log('Attempting token refresh');
+      final resp = await http.post(
+        Uri.parse('$_apiBaseUrl$_apiPathPrefix/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refreshToken': refreshToken}),
+      ).timeout(const Duration(seconds: 15));
+
+      if (resp.statusCode == 200) {
+        final body = json.decode(resp.body) as Map<String, dynamic>;
+        final newToken = body['token']?.toString();
+        final newRefreshToken = body['refreshToken']?.toString();
+
+        if (newToken != null && newToken.isNotEmpty) {
+          await saveTokenPair(newToken, newRefreshToken);
+          _log('Token refresh successful');
+          _refreshCompleter!.complete(true);
+          return true;
+        }
+      }
+
+      _log('Token refresh failed: ${resp.statusCode}', isError: true);
+      _refreshCompleter!.complete(false);
+      return false;
+    } catch (e) {
+      _log('Token refresh error: $e', isError: true);
+      _refreshCompleter!.complete(false);
+      return false;
+    } finally {
+      _refreshCompleter = null;
     }
   }
 
@@ -200,8 +306,9 @@ class AuthService {
       if (resp.statusCode == 200) {
         final body = json.decode(resp.body) as Map<String, dynamic>;
         final token = body['token']?.toString();
+        final refreshToken = body['refreshToken']?.toString();
         if (token != null && token.isNotEmpty) {
-          await _saveJwt(token);
+          await saveTokenPair(token, refreshToken);
           _log('Google sign in successful');
           return true;
         }
@@ -276,8 +383,9 @@ class AuthService {
       if (resp.statusCode == 200) {
         final body = json.decode(resp.body) as Map<String, dynamic>;
         final token = body['token']?.toString();
+        final refreshToken = body['refreshToken']?.toString();
         if (token != null && token.isNotEmpty) {
-          await _saveJwt(token);
+          await saveTokenPair(token, refreshToken);
           _log('Email sign in successful');
           return true;
         }
@@ -335,8 +443,9 @@ class AuthService {
       if (resp.statusCode == 200) {
         final body = json.decode(resp.body) as Map<String, dynamic>;
         final token = body['token']?.toString();
+        final refreshToken = body['refreshToken']?.toString();
         if (token != null && token.isNotEmpty) {
-          await _saveJwt(token);
+          await saveTokenPair(token, refreshToken);
           _log('Apple sign in successful');
           return true;
         }

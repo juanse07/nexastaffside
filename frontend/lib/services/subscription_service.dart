@@ -245,19 +245,10 @@ class SubscriptionService {
   /// Get AI message usage statistics
   Future<Map<String, dynamic>> getUsageStats() async {
     try {
-      final token = await AuthService.getJwt();
-      if (token == null) {
-        print('[SubscriptionService] No auth token');
-        return {};
-      }
-
       final baseUrl = AIAssistantConfig.baseUrl;
-      final response = await http.get(
+      final response = await AuthService.httpClient.get(
         Uri.parse('$baseUrl/api/subscription/usage'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
@@ -277,19 +268,10 @@ class SubscriptionService {
   /// Get subscription details from backend and cache read-only state
   Future<Map<String, dynamic>> getBackendStatus() async {
     try {
-      final token = await AuthService.getJwt();
-      if (token == null) {
-        print('[SubscriptionService] No auth token');
-        return {};
-      }
-
       final baseUrl = AIAssistantConfig.baseUrl;
-      final response = await http.get(
+      final response = await AuthService.httpClient.get(
         Uri.parse('$baseUrl/api/subscription/status'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
       );
 
       if (response.statusCode == 200) {
@@ -349,20 +331,11 @@ class SubscriptionService {
   /// Link Qonversion user ID to backend
   Future<void> _linkUserToBackend(String qonversionUserId) async {
     try {
-      final token = await AuthService.getJwt();
-      if (token == null) {
-        print('[SubscriptionService] Cannot link user - no auth token');
-        return;
-      }
-
       final baseUrl = AIAssistantConfig.baseUrl;
 
-      final response = await http.post(
+      final response = await AuthService.httpClient.post(
         Uri.parse('$baseUrl/api/subscription/link-user'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'qonversionUserId': qonversionUserId}),
       );
 
@@ -381,23 +354,14 @@ class SubscriptionService {
   /// backend updates the user's subscription record in MongoDB.
   Future<void> _syncWithBackend({String? tier, String? status}) async {
     try {
-      final token = await AuthService.getJwt();
-      if (token == null) {
-        print('[SubscriptionService] Cannot sync - no auth token');
-        return;
-      }
-
       final baseUrl = AIAssistantConfig.baseUrl;
       final body = <String, dynamic>{};
       if (tier != null) body['tier'] = tier;
       if (status != null) body['status'] = status;
 
-      final response = await http.post(
+      final response = await AuthService.httpClient.post(
         Uri.parse('$baseUrl/api/subscription/sync'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
       );
 

@@ -4,8 +4,9 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+
+import '../auth_service.dart';
 
 /// A role option returned from the backend.
 class CaricatureRole {
@@ -101,9 +102,6 @@ class CaricatureAcceptResult {
 /// Service for AI caricature generation via the backend API.
 /// Uses raw http package (consistent with staff app architecture).
 class CaricatureService {
-  static const _jwtStorageKey = 'auth_jwt';
-  static const _storage = FlutterSecureStorage();
-
   static String get _apiBaseUrl {
     final raw = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
     if (!kIsWeb && Platform.isAndroid) {
@@ -127,12 +125,7 @@ class CaricatureService {
   }
 
   static Future<String?> _getJwt() async {
-    try {
-      return await _storage.read(key: _jwtStorageKey);
-    } catch (e) {
-      _log('Failed to read JWT: $e', isError: true);
-      return null;
-    }
+    return AuthService.getJwt();
   }
 
   /// Fetch available roles and art styles.

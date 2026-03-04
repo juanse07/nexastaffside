@@ -335,15 +335,8 @@ class GeofenceService {
   /// Get attendance status for event
   Future<String?> _getAttendanceStatus(String eventId) async {
     try {
-      final token = await AuthService.getJwt();
-      if (token == null) return null;
-
-      final apiBaseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
-      final url = Uri.parse('$apiBaseUrl/api/events/$eventId/attendance/me');
-      final response = await http.get(
-        url,
-        headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 10));
+      final url = Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/events/$eventId/attendance/me');
+      final response = await AuthService.httpClient.get(url).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

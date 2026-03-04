@@ -5,8 +5,9 @@ import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+
+import '../auth_service.dart';
 
 /// State of phone authentication flow
 enum PhoneAuthState {
@@ -20,8 +21,6 @@ enum PhoneAuthState {
 
 /// Service for handling phone number authentication (Staff app)
 class PhoneAuthService {
-  static const _jwtStorageKey = 'auth_jwt';
-  static const _storage = FlutterSecureStorage();
   static const _requestTimeout = Duration(seconds: 30);
 
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -232,9 +231,10 @@ class PhoneAuthService {
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
         final token = body['token']?.toString();
+        final refreshToken = body['refreshToken']?.toString();
 
         if (token != null && token.isNotEmpty) {
-          await _storage.write(key: _jwtStorageKey, value: token);
+          await AuthService.saveTokenPair(token, refreshToken);
           _log('JWT token saved successfully');
           return true;
         }
@@ -270,7 +270,7 @@ class PhoneAuthService {
     try {
       _log('Linking phone to existing account');
 
-      final existingToken = await _storage.read(key: _jwtStorageKey);
+      final existingToken = await AuthService.getJwt();
       if (existingToken == null) {
         onStateChanged?.call(PhoneAuthState.error, 'Not authenticated');
         return false;

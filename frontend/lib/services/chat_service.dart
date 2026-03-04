@@ -26,6 +26,9 @@ class ChatService extends ChangeNotifier {
   Stream<ChatMessage> get messageStream => _messageController.stream;
   Stream<Map<String, dynamic>> get typingStream => _typingController.stream;
 
+  /// Whether the current staff user is marked unavailable today (set after fetchConversations)
+  bool selfUnavailableToday = false;
+
   void _setupSocketListeners() {
     // Listen to socket events from DataService
     DataService().addListener(_handleDataServiceUpdate);
@@ -60,17 +63,11 @@ class ChatService extends ChangeNotifier {
   }
 
   Future<List<Conversation>> fetchConversations() async {
-    final token = await AuthService.getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final url = Uri.parse('$_apiBaseUrl${_apiPathPrefix}/chat/conversations');
 
-    final response = await http.get(
+    final response = await AuthService.httpClient.get(
       url,
       headers: <String, String>{
-        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );
@@ -78,6 +75,7 @@ class ChatService extends ChangeNotifier {
     if (response.statusCode == 200) {
       final data = json.decode(response.body) as Map<String, dynamic>;
       debugPrint('[CHAT DEBUG] Received conversations: ${data['conversations']}');
+      selfUnavailableToday = data['selfUnavailableToday'] as bool? ?? false;
       final conversations = (data['conversations'] as List<dynamic>)
           .map((e) {
             final conv = Conversation.fromJson(e as Map<String, dynamic>);
@@ -96,11 +94,6 @@ class ChatService extends ChangeNotifier {
     DateTime? before,
     int limit = 50,
   }) async {
-    final token = await AuthService.getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final queryParams = <String, String>{
       'limit': limit.toString(),
       if (before != null) 'before': before.toIso8601String(),
@@ -110,10 +103,9 @@ class ChatService extends ChangeNotifier {
       '$_apiBaseUrl${_apiPathPrefix}/chat/conversations/$conversationId/messages',
     ).replace(queryParameters: queryParams);
 
-    final response = await http.get(
+    final response = await AuthService.httpClient.get(
       url,
       headers: <String, String>{
-        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );
@@ -130,11 +122,6 @@ class ChatService extends ChangeNotifier {
   }
 
   Future<ChatMessage> sendMessage(String managerId, String message) async {
-    final token = await AuthService.getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     debugPrint('[CHAT DEBUG] Sending message to managerId: $managerId');
     debugPrint('[CHAT DEBUG] Manager ID length: ${managerId.length}');
     debugPrint('[CHAT DEBUG] Manager ID type: ${managerId.runtimeType}');
@@ -145,10 +132,9 @@ class ChatService extends ChangeNotifier {
 
     debugPrint('[CHAT DEBUG] Request URL: $url');
 
-    final response = await http.post(
+    final response = await AuthService.httpClient.post(
       url,
       headers: <String, String>{
-        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
       body: json.encode(<String, dynamic>{
@@ -171,19 +157,13 @@ class ChatService extends ChangeNotifier {
   }
 
   Future<void> markAsRead(String conversationId) async {
-    final token = await AuthService.getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final url = Uri.parse(
       '$_apiBaseUrl${_apiPathPrefix}/chat/conversations/$conversationId/read',
     );
 
-    final response = await http.patch(
+    final response = await AuthService.httpClient.patch(
       url,
       headers: <String, String>{
-        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );
@@ -194,17 +174,11 @@ class ChatService extends ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> fetchManagers() async {
-    final token = await AuthService.getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final url = Uri.parse('$_apiBaseUrl${_apiPathPrefix}/chat/managers');
 
-    final response = await http.get(
+    final response = await AuthService.httpClient.get(
       url,
       headers: <String, String>{
-        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );
@@ -227,19 +201,13 @@ class ChatService extends ChangeNotifier {
   }) async {
     debugPrint('[ChatService] respondToInvitation called. messageId: $messageId, accept: $accept');
 
-    final token = await AuthService.getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final url = Uri.parse(
       '$_apiBaseUrl${_apiPathPrefix}/chat/invitations/$messageId/respond',
     );
 
-    final response = await http.post(
+    final response = await AuthService.httpClient.post(
       url,
       headers: <String, String>{
-        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
       body: json.encode(<String, dynamic>{
@@ -261,19 +229,13 @@ class ChatService extends ChangeNotifier {
   Future<Map<String, dynamic>> fetchInvitationEvent(String messageId) async {
     debugPrint('[ChatService] fetchInvitationEvent called for messageId: $messageId');
 
-    final token = await AuthService.getJwt();
-    if (token == null) {
-      throw Exception('Not authenticated');
-    }
-
     final url = Uri.parse('$_apiBaseUrl${_apiPathPrefix}/chat/invitations/$messageId/event');
 
     debugPrint('[ChatService] Fetching invitation event from: $url');
 
-    final response = await http.get(
+    final response = await AuthService.httpClient.get(
       url,
       headers: <String, String>{
-        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );

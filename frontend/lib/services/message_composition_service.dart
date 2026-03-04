@@ -1,32 +1,29 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../auth_service.dart';
+
 /// Service for AI-powered message composition to help staff communicate professionally
 /// with managers. Supports scenarios like running late, time off requests, translations, etc.
 class MessageCompositionService {
-  static const String baseUrl = 'https://api.nexapymesoft.com';
-
   /// Compose a professional message using AI based on the specified scenario
   ///
   /// [scenario] - The type of message to compose (late, timeoff, question, etc.)
   /// [message] - The original message to translate or polish
   /// [details] - Details for scenario-based composition (e.g., "15 minutes late due to traffic")
   /// [language] - Language preference: 'en', 'es', or 'auto' for automatic detection
-  /// [authToken] - JWT token for authentication
+  /// [authToken] - JWT token for authentication (kept for backward compat, ignored if null)
   Future<ComposedMessageResponse> composeMessage({
     required MessageScenario scenario,
     String? message,
     String? details,
     String language = 'auto',
-    required String authToken,
+    String? authToken,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/ai/staff/compose-message'),
-        headers: {
-          'Authorization': 'Bearer $authToken',
-          'Content-Type': 'application/json',
-        },
+      final response = await AuthService.httpClient.post(
+        Uri.parse('${AuthService.apiBaseUrl}${AuthService.apiPathPrefix}/ai/staff/compose-message'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'scenario': scenario.value,
           'context': {

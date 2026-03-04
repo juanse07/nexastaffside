@@ -139,34 +139,32 @@ class DataService extends ChangeNotifier {
     unawaited(_ensureSocketConnected());
   }
 
-  /// Safely read from storage with error handling
+  /// Safely read from storage with error handling.
+  /// Never deletes on read error — transient Keychain failures must not destroy data.
   Future<String?> _safeStorageRead(String key) async {
     try {
       return await _storage.read(key: key);
     } catch (e) {
       debugPrint('Error reading from secure storage (key: $key): $e');
-      // Clear corrupted storage entry
-      await _storage.delete(key: key);
       return null;
     }
   }
 
-  /// Safely write to storage with error handling and retry
+  /// Safely write to storage with error handling and retry.
+  /// Retries by deleting only the single key — never calls deleteAll().
   Future<void> _safeStorageWrite(String key, String value) async {
     try {
       await _storage.write(key: key, value: value);
     } catch (e) {
       debugPrint('Error writing to secure storage (key: $key): $e');
-      // Try to clear all storage and retry once
       try {
-        await _storage.deleteAll();
+        await _storage.delete(key: key);
         await _storage.write(key: key, value: value);
-        debugPrint('Successfully wrote to storage after clearing');
+        debugPrint('Successfully wrote to storage after deleting single key');
       } catch (retryError) {
         debugPrint(
-          'Failed to write to storage even after clearing: $retryError',
+          'Failed to write to storage even after retry: $retryError',
         );
-        // Don't rethrow - continue operation even if storage fails
       }
     }
   }
@@ -287,7 +285,7 @@ class DataService extends ChangeNotifier {
           ? uri.replace(queryParameters: {'lastSync': lastSyncTimestamp})
           : uri;
 
-      final token = await _safeStorageRead('auth_jwt');
+      final token = await AuthService.getJwt();
       if (token == null) return;
       final headers = <String, String>{'Authorization': 'Bearer $token'};
 
@@ -389,7 +387,7 @@ class DataService extends ChangeNotifier {
           ? uri.replace(queryParameters: {'lastSync': lastSyncTimestamp})
           : uri;
 
-      final token = await _safeStorageRead('auth_jwt');
+      final token = await AuthService.getJwt();
       final headers = <String, String>{};
       if (token != null) headers['Authorization'] = 'Bearer $token';
 
@@ -509,7 +507,7 @@ class DataService extends ChangeNotifier {
   }
 
   Future<void> _ensureSocketConnected() async {
-    final token = await _safeStorageRead('auth_jwt');
+    final token = await AuthService.getJwt();
     if (token == null || token.isEmpty) return;
     final userKey = _decodeUserKeyFromToken(token);
     if (userKey == null) return;
@@ -778,7 +776,7 @@ class DataService extends ChangeNotifier {
   /// Fetch past events from server using existing events endpoint
   Future<void> _fetchShifts({bool silent = false}) async {
     try {
-      final token = await _safeStorageRead('auth_jwt');
+      final token = await AuthService.getJwt();
       if (token == null) return;
 
       final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:4000';
@@ -840,7 +838,7 @@ class DataService extends ChangeNotifier {
   /// Fetch availability from server with JWT token
   Future<void> _fetchAvailability({bool silent = false}) async {
     try {
-      final token = await _safeStorageRead('auth_jwt');
+      final token = await AuthService.getJwt();
       if (token == null) return;
 
       final url = '$_apiBaseUrl$_apiPathPrefix/events/availability';
@@ -883,7 +881,7 @@ class DataService extends ChangeNotifier {
   }
 
   Future<void> _fetchMyTeams({bool silent = false}) async {
-    final token = await _safeStorageRead('auth_jwt');
+    final token = await AuthService.getJwt();
     if (token == null || token.isEmpty) return;
     final userKey = _decodeUserKeyFromToken(token);
     final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/teams/my');
@@ -916,7 +914,7 @@ class DataService extends ChangeNotifier {
   }
 
   Future<void> _fetchMyInvites({bool silent = false}) async {
-    final token = await _safeStorageRead('auth_jwt');
+    final token = await AuthService.getJwt();
     if (token == null || token.isEmpty) return;
     final userKey = _decodeUserKeyFromToken(token);
     final uri = Uri.parse('$_apiBaseUrl$_apiPathPrefix/teams/my/invites');
@@ -1018,7 +1016,7 @@ class DataService extends ChangeNotifier {
   }
 
   Future<void> acceptInvite(String inviteToken) async {
-    final token = await _safeStorageRead('auth_jwt');
+    final token = await AuthService.getJwt();
     if (token == null || token.isEmpty) {
       throw Exception('Not authenticated');
     }
@@ -1042,7 +1040,7 @@ class DataService extends ChangeNotifier {
   }
 
   Future<void> declineInvite(String inviteToken) async {
-    final token = await _safeStorageRead('auth_jwt');
+    final token = await AuthService.getJwt();
     if (token == null || token.isEmpty) {
       throw Exception('Not authenticated');
     }
@@ -1064,7 +1062,7 @@ class DataService extends ChangeNotifier {
 
   /// Validate an invite code and return team information
   Future<Map<String, dynamic>> validateInviteCode(String code) async {
-    final token = await _safeStorageRead('auth_jwt');
+    final token = await AuthService.getJwt();
     if (token == null || token.isEmpty) {
       throw Exception('Not authenticated');
     }
@@ -1093,7 +1091,7 @@ class DataService extends ChangeNotifier {
 
   /// Redeem an invite code to join a team
   Future<void> redeemInviteCode(String code) async {
-    final token = await _safeStorageRead('auth_jwt');
+    final token = await AuthService.getJwt();
     if (token == null || token.isEmpty) {
       throw Exception('Not authenticated');
     }

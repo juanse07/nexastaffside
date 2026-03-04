@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth_service.dart';
@@ -21,7 +20,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _splashComplete = false;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   StreamSubscription<void>? _logoutSubscription;
@@ -29,6 +28,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _logoutSubscription = AuthService.onForcedLogout.listen((_) {
       _navigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -39,13 +39,22 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _logoutSubscription?.cancel();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Proactively refresh token when app returns to foreground.
+      unawaited(AuthService.refreshAccessToken());
+    }
+  }
+
   static Future<String?> _getToken() async {
-    const storage = FlutterSecureStorage();
-    return await storage.read(key: 'auth_jwt');
+    // Use AuthService to populate in-memory cache on cold start.
+    return await AuthService.getJwt();
   }
 
   void _onSplashComplete() {

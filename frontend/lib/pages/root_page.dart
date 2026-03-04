@@ -393,17 +393,15 @@ class _RootPageState extends State<RootPage> with TickerProviderStateMixin {
         await RouteErrorManager.instance.pushNamedSafely(context, '/login');
         return;
       }
-      final newToken = await AuthService.getJwt();
-      _userKey = newToken == null ? null : decodeUserKeyFromJwt(newToken);
+      _userKey = token == null ? null : decodeUserKeyFromJwt(token);
       if (mounted) {
         setState(() => _checkingAuth = false);
       }
     } catch (e) {
-      // Handle secure storage corruption by clearing it and redirecting to login
-      print('Secure storage error: $e');
-      await AuthService.signOut(); // This will clear the corrupted storage
+      // Log but do NOT sign out — transient errors should not destroy the session.
+      print('Auth check error (non-fatal): $e');
       if (mounted) {
-        await RouteErrorManager.instance.pushNamedSafely(context, '/login');
+        setState(() => _checkingAuth = false);
       }
     }
 
@@ -4616,10 +4614,17 @@ class _MyEventsListState extends State<_MyEventsList> {
     final visibilityType = e['visibilityType']?.toString() ?? '';
     final isPrivate = visibilityType == 'private';
 
+    // Look up role-specific times — prefer role-level over event-level
+    final rolesList = e['roles'] as List? ?? [];
+    final matchingRoleMap = rolesList.firstWhere(
+      (r) => r is Map && (r['role']?.toString() ?? '') == (role ?? ''),
+      orElse: () => <String, dynamic>{},
+    ) as Map<String, dynamic>;
+    final start = (matchingRoleMap['start_time'] ?? e['start_time'])?.toString() ?? '';
+    final end   = (matchingRoleMap['end_time']   ?? e['end_time'])?.toString()   ?? '';
+
     // Calculate estimated earnings
     String? estimatedPay;
-    final start = e['start_time']?.toString() ?? '';
-    final end = e['end_time']?.toString() ?? '';
     final startMins = _parseTimeMinutes(start);
     final endMins = _parseTimeMinutes(end);
 
@@ -4908,8 +4913,8 @@ class _MyEventsListState extends State<_MyEventsList> {
                               child: Text(
                                 _formatEventDateTimeLabel(
                                   dateStr: date,
-                                  startTimeStr: e['start_time']?.toString(),
-                                  endTimeStr: e['end_time']?.toString(),
+                                  startTimeStr: start.isNotEmpty ? start : null,
+                                  endTimeStr: end.isNotEmpty ? end : null,
                                 ),
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
@@ -5338,8 +5343,14 @@ class _RoleList extends StatelessWidget {
 
     // Calculate estimated earnings
     String? estimatedPay;
-    final start = e['start_time']?.toString() ?? '';
-    final end = e['end_time']?.toString() ?? '';
+    // Look up role-specific times — prefer role-level over event-level
+    final rolesList = e['roles'] as List? ?? [];
+    final matchingRoleMap = rolesList.firstWhere(
+      (r) => r is Map && (r['role']?.toString() ?? '') == (role ?? ''),
+      orElse: () => <String, dynamic>{},
+    ) as Map<String, dynamic>;
+    final start = (matchingRoleMap['start_time'] ?? e['start_time'])?.toString() ?? '';
+    final end   = (matchingRoleMap['end_time']   ?? e['end_time'])?.toString()   ?? '';
     int? startMins;
     int? endMins;
 
@@ -5683,8 +5694,8 @@ class _RoleList extends StatelessWidget {
                               child: Text(
                                 _formatEventDateTimeLabel(
                                   dateStr: date,
-                                  startTimeStr: e['start_time']?.toString(),
-                                  endTimeStr: e['end_time']?.toString(),
+                                  startTimeStr: start.isNotEmpty ? start : e['start_time']?.toString(),
+                                  endTimeStr: end.isNotEmpty ? end : e['end_time']?.toString(),
                                 ),
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
