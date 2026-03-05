@@ -2873,13 +2873,13 @@ abstract class AppLocalizations {
   /// No description provided for @freeMonthBanner.
   ///
   /// In en, this message translates to:
-  /// **'Free month: {days} days remaining'**
+  /// **'Free trial: {days} days remaining'**
   String freeMonthBanner(int days);
 
   /// No description provided for @freeMonthExpired.
   ///
   /// In en, this message translates to:
-  /// **'Your free month has ended — Subscribe to unlock all features'**
+  /// **'Your free trial has ended — Subscribe to unlock all features'**
   String get freeMonthExpired;
 
   /// No description provided for @subscriptionRequired.
@@ -2891,7 +2891,7 @@ abstract class AppLocalizations {
   /// No description provided for @featureLocked.
   ///
   /// In en, this message translates to:
-  /// **'requires FlowShift Pro'**
+  /// **'requires a FlowShift subscription'**
   String get featureLocked;
 
   /// No description provided for @subscribeToUnlock.
@@ -2945,7 +2945,7 @@ abstract class AppLocalizations {
   /// No description provided for @freeMonthExplore.
   ///
   /// In en, this message translates to:
-  /// **'You have a free month to explore everything!'**
+  /// **'You have 7 free days to explore everything!'**
   String get freeMonthExplore;
 
   /// No description provided for @proFeatureAcceptDecline.
@@ -2963,8 +2963,20 @@ abstract class AppLocalizations {
   /// No description provided for @proFeatureAI.
   ///
   /// In en, this message translates to:
-  /// **'AI Assistant (20 messages/month)'**
+  /// **'AI Assistant (25 messages/month)'**
   String get proFeatureAI;
+
+  /// No description provided for @proFeatureAIShort.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Assistant'**
+  String get proFeatureAIShort;
+
+  /// No description provided for @proFeatureCaricaturesShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Caricatures'**
+  String get proFeatureCaricaturesShort;
 
   /// No description provided for @proFeatureClockInOut.
   ///
@@ -2987,8 +2999,44 @@ abstract class AppLocalizations {
   /// No description provided for @proPrice.
   ///
   /// In en, this message translates to:
-  /// **'\$8.99/month'**
+  /// **'\$11.99/month'**
   String get proPrice;
+
+  /// No description provided for @flowShiftStarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Starter'**
+  String get flowShiftStarter;
+
+  /// No description provided for @chooseYourPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Your Plan'**
+  String get chooseYourPlan;
+
+  /// No description provided for @starterAiLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'3/mo'**
+  String get starterAiLimit;
+
+  /// No description provided for @proAiLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'25/mo'**
+  String get proAiLimit;
+
+  /// No description provided for @starterCaricatureLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'1/mo'**
+  String get starterCaricatureLimit;
+
+  /// No description provided for @proCaricatureLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'8/mo'**
+  String get proCaricatureLimit;
 
   /// No description provided for @unlockFeature.
   ///
@@ -3002,6 +3050,12 @@ abstract class AppLocalizations {
   /// **'Try FlowShift Pro free for 30 days'**
   String get tryProFree;
 
+  /// No description provided for @tryFlowShiftFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Try FlowShift free for 7 days'**
+  String get tryFlowShiftFree;
+
   /// No description provided for @noChargeUntilTrialEnds.
   ///
   /// In en, this message translates to:
@@ -3011,7 +3065,7 @@ abstract class AppLocalizations {
   /// No description provided for @priceAnchor.
   ///
   /// In en, this message translates to:
-  /// **'\$8.99 — less than a casual café stop.'**
+  /// **'\$6.99 — less than a casual café stop.'**
   String get priceAnchor;
 
   /// No description provided for @errorValidationFailed.
@@ -3115,6 +3169,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Team broadcast'**
   String get broadcastTeamMessage;
+
+  /// No description provided for @continueWithFreeTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with 7-Day Free Trial'**
+  String get continueWithFreeTrial;
 }
 
 class _AppLocalizationsDelegate

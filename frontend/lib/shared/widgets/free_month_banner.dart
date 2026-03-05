@@ -23,7 +23,7 @@ class FreeMonthBanner extends StatelessWidget {
 
     final isExpired = service.isReadOnly && !service.isInFreeMonth;
     final daysRemaining = service.freeMonthDaysRemaining;
-    final isUrgent = daysRemaining <= 5 && !isExpired;
+    final isUrgent = daysRemaining <= 3 && !isExpired;
 
     final Color bgColor;
     final Color textColor;

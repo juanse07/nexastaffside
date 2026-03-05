@@ -4,5 +4,22 @@ Email: staff@flowshift.work
 Password: FlowShift2024!
 
 Sign in using the email and password fields at the bottom of the login screen.
+After signing in, a subscription screen will appear. You can:
+- Tap "Start Free Trial" to test the in-app purchase flow
+- Tap "Continue with 7-Day Free Trial" to skip and explore the app
+
 The demo account includes sample data: team membership, completed past events
 with approved hours, upcoming events to accept, and chat conversations.
+
+Business model:
+FlowShift Staff is a companion app for event staffing teams. Managers invite
+staff to their team, assign shifts, and track hours. Staff use the app to
+accept shifts, clock in/out, chat with managers, and track earnings.
+
+Subscriptions are available in two ways:
+- Individuals can subscribe via in-app purchase (Starter or Pro tiers)
+- Businesses can purchase Starter access for their staff through our website
+  (flowshift.work/business), which is applied server-side
+
+Both paths grant the same Starter-tier features. Pro tier with additional
+features (more AI messages, caricatures) is available exclusively via IAP.

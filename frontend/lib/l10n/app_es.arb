@@ -850,7 +850,7 @@
   },
   "showLess": "Menos",
 
-  "freeMonthBanner": "Mes gratis: {days} días restantes",
+  "freeMonthBanner": "Prueba gratis: {days} días restantes",
   "@freeMonthBanner": {
     "placeholders": {
       "days": {
@@ -858,9 +858,9 @@
       }
     }
   },
-  "freeMonthExpired": "Tu mes gratis ha terminado — Suscríbete para desbloquear",
+  "freeMonthExpired": "Tu prueba gratis ha terminado — Suscríbete para desbloquear",
   "subscriptionRequired": "Suscripción Requerida",
-  "featureLocked": "requiere FlowShift Pro",
+  "featureLocked": "requiere una suscripción a FlowShift",
   "subscribeToUnlock": "Prueba 30 Días Gratis",
   "notNow": "Ahora no",
   "readOnlyMode": "Modo de solo lectura",
@@ -870,18 +870,27 @@
   "chatWithManagers": "Chatear con managers",
   "generateCaricature": "Generar caricatura",
   "aiAssistant": "Asistente IA",
-  "freeMonthExplore": "¡Tienes un mes gratis para explorar todo!",
+  "freeMonthExplore": "¡Tienes 7 días gratis para explorar todo!",
   "proFeatureAcceptDecline": "Aceptar y rechazar turnos",
   "proFeatureChat": "Chatear con managers y equipo",
-  "proFeatureAI": "Asistente IA (20 mensajes/mes)",
+  "proFeatureAI": "Asistente IA (25 mensajes/mes)",
+  "proFeatureAIShort": "Asistente IA",
+  "proFeatureCaricaturesShort": "Caricaturas",
   "proFeatureClockInOut": "Registrar entrada/salida",
   "proFeatureAvailability": "Establecer disponibilidad",
   "proFeatureCaricatures": "Generar caricaturas de perfil",
-  "proPrice": "$8.99/mes",
+  "proPrice": "$11.99/mes",
+  "flowShiftStarter": "Starter",
+  "chooseYourPlan": "Elige Tu Plan",
+  "starterAiLimit": "3/mes",
+  "proAiLimit": "25/mes",
+  "starterCaricatureLimit": "1/mes",
+  "proCaricatureLimit": "8/mes",
   "unlockFeature": "Desbloquea",
   "tryProFree": "Prueba FlowShift Pro gratis por 30 días",
+  "tryFlowShiftFree": "Prueba FlowShift gratis por 7 días",
   "noChargeUntilTrialEnds": "Sin cargo hasta que termine la prueba",
-  "priceAnchor": "$8.99 — menos que una visita al café.",
+  "priceAnchor": "$6.99 — menos que una visita al café.",
 
   "@@ Error Messages": {},
   "errorValidationFailed": "Por favor revisa los campos marcados e intenta de nuevo.",
@@ -917,5 +926,8 @@
   "@broadcastSentToAllEvent": {
     "placeholders": { "eventName": { "type": "String" } }
   },
-  "broadcastTeamMessage": "Mensaje grupal al equipo"
+  "broadcastTeamMessage": "Mensaje grupal al equipo",
+
+  "@@ Post-Onboarding Paywall": {},
+  "continueWithFreeTrial": "Continuar con prueba gratuita de 7 días"
 }

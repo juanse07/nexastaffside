@@ -850,7 +850,7 @@
   },
   "showLess": "Less",
 
-  "freeMonthBanner": "Free month: {days} days remaining",
+  "freeMonthBanner": "Free trial: {days} days remaining",
   "@freeMonthBanner": {
     "placeholders": {
       "days": {
@@ -858,9 +858,9 @@
       }
     }
   },
-  "freeMonthExpired": "Your free month has ended — Subscribe to unlock all features",
+  "freeMonthExpired": "Your free trial has ended — Subscribe to unlock all features",
   "subscriptionRequired": "Subscription Required",
-  "featureLocked": "requires FlowShift Pro",
+  "featureLocked": "requires a FlowShift subscription",
   "subscribeToUnlock": "Try 30 Days Free",
   "notNow": "Not now",
   "readOnlyMode": "Read-only mode",
@@ -870,18 +870,27 @@
   "chatWithManagers": "Chat with managers",
   "generateCaricature": "Generate caricature",
   "aiAssistant": "AI Assistant",
-  "freeMonthExplore": "You have a free month to explore everything!",
+  "freeMonthExplore": "You have 7 free days to explore everything!",
   "proFeatureAcceptDecline": "Accept & decline shifts",
   "proFeatureChat": "Chat with managers and team",
-  "proFeatureAI": "AI Assistant (20 messages/month)",
+  "proFeatureAI": "AI Assistant (25 messages/month)",
+  "proFeatureAIShort": "AI Assistant",
+  "proFeatureCaricaturesShort": "Caricatures",
   "proFeatureClockInOut": "Clock in/out",
   "proFeatureAvailability": "Set availability",
   "proFeatureCaricatures": "Generate profile caricatures",
-  "proPrice": "$8.99/month",
+  "proPrice": "$11.99/month",
+  "flowShiftStarter": "Starter",
+  "chooseYourPlan": "Choose Your Plan",
+  "starterAiLimit": "3/mo",
+  "proAiLimit": "25/mo",
+  "starterCaricatureLimit": "1/mo",
+  "proCaricatureLimit": "8/mo",
   "unlockFeature": "Unlock",
   "tryProFree": "Try FlowShift Pro free for 30 days",
+  "tryFlowShiftFree": "Try FlowShift free for 7 days",
   "noChargeUntilTrialEnds": "No charge until trial ends",
-  "priceAnchor": "$8.99 — less than a casual café stop.",
+  "priceAnchor": "$6.99 — less than a casual café stop.",
 
   "@@ Error Messages": {},
   "errorValidationFailed": "Please check the highlighted fields and try again.",
@@ -917,5 +926,8 @@
   "@broadcastSentToAllEvent": {
     "placeholders": { "eventName": { "type": "String" } }
   },
-  "broadcastTeamMessage": "Team broadcast"
+  "broadcastTeamMessage": "Team broadcast",
+
+  "@@ Post-Onboarding Paywall": {},
+  "continueWithFreeTrial": "Continue with 7-Day Free Trial"
 }

@@ -4,12 +4,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../../services/subscription_service.dart';
 import '../../../shared/presentation/theme/theme.dart';
 
-/// Modernized subscription paywall screen.
-/// Full-bleed dark gradient with glassmorphism cards and a
-/// Free-vs-Pro comparison table that makes the upgrade value
-/// immediately legible.
+/// Modernized subscription paywall screen with two tiers.
+/// Full-bleed dark gradient with glassmorphism cards, a
+/// Free-vs-Starter-vs-Pro comparison table, and two pricing cards.
 class SubscriptionPaywallScreen extends StatefulWidget {
-  const SubscriptionPaywallScreen({super.key});
+  const SubscriptionPaywallScreen({super.key, this.showSkipButton = false});
+
+  final bool showSkipButton;
 
   @override
   State<SubscriptionPaywallScreen> createState() => _SubscriptionPaywallScreenState();
@@ -19,11 +20,17 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
   final _subscriptionService = SubscriptionService();
   bool _purchasing = false;
   bool _restoring = false;
+  String? _purchasingTier; // 'starter' or 'pro'
 
-  Future<void> _handlePurchase() async {
-    setState(() => _purchasing = true);
+  Future<void> _handlePurchase(String tier) async {
+    setState(() {
+      _purchasing = true;
+      _purchasingTier = tier;
+    });
     try {
-      final result = await _subscriptionService.purchaseProSubscription();
+      final result = tier == 'starter'
+          ? await _subscriptionService.purchaseStarterSubscription()
+          : await _subscriptionService.purchaseProSubscription();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       if (result.success) {
@@ -56,7 +63,10 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
         ),
       );
     } finally {
-      if (mounted) setState(() => _purchasing = false);
+      if (mounted) setState(() {
+        _purchasing = false;
+        _purchasingTier = null;
+      });
     }
   }
 
@@ -134,12 +144,14 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                       const SizedBox(height: 28),
                       _buildComparisonCard(l10n),
                       const SizedBox(height: 16),
-                      _buildPricingCard(l10n),
-                      const SizedBox(height: 24),
-                      _buildSubscribeButton(l10n),
-                      const SizedBox(height: 10),
+                      _buildPricingCards(l10n),
+                      const SizedBox(height: 16),
                       _buildRestoreButton(l10n),
-                      const SizedBox(height: 20),
+                      if (widget.showSkipButton) ...[
+                        const SizedBox(height: 8),
+                        _buildSkipButton(l10n),
+                      ],
+                      const SizedBox(height: 16),
                       _buildDisclaimer(l10n),
                       const SizedBox(height: 24),
                     ],
@@ -189,7 +201,6 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Outer ambient glow ring
         Container(
           width: 118,
           height: 118,
@@ -198,7 +209,6 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
             color: AppColors.yellow.withValues(alpha: 0.10),
           ),
         ),
-        // Inner glow ring
         Container(
           width: 90,
           height: 90,
@@ -207,7 +217,6 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
             color: AppColors.yellow.withValues(alpha: 0.18),
           ),
         ),
-        // Badge
         Container(
           width: 68,
           height: 68,
@@ -242,7 +251,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
     return Column(
       children: [
         Text(
-          l10n.flowShiftPro,
+          l10n.chooseYourPlan,
           style: const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -264,22 +273,22 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
     );
   }
 
-  // ── Comparison card ────────────────────────────────────────────────────────
+  // ── Comparison card (3 columns: Free | Starter | Pro) ──────────────────────
 
   Widget _buildComparisonCard(AppLocalizations l10n) {
     final features = [
       _FeatureItem(Icons.check_circle_outline, l10n.proFeatureAcceptDecline,
-          freeLabel: l10n.readOnlyMode, proCheck: true),
+          freeLabel: l10n.readOnlyMode, starterCheck: true, proCheck: true),
       _FeatureItem(Icons.chat_bubble_outline, l10n.proFeatureChat,
-          freeCheck: false, proCheck: true),
-      _FeatureItem(Icons.auto_awesome, l10n.proFeatureAI,
-          freeCheck: false, proLabel: '20 msgs', proNote: l10n.plentyForMost),
+          freeCheck: false, starterCheck: true, proCheck: true),
+      _FeatureItem(Icons.auto_awesome, l10n.proFeatureAIShort,
+          freeCheck: false, starterLabel: l10n.starterAiLimit, proLabel: l10n.proAiLimit),
       _FeatureItem(Icons.access_time, l10n.proFeatureClockInOut,
-          freeCheck: false, proCheck: true),
+          freeCheck: false, starterCheck: true, proCheck: true),
       _FeatureItem(Icons.event_available, l10n.proFeatureAvailability,
-          freeCheck: false, proCheck: true),
-      _FeatureItem(Icons.face_retouching_natural, l10n.proFeatureCaricatures,
-          freeCheck: false, proCheck: true),
+          freeCheck: false, starterCheck: true, proCheck: true),
+      _FeatureItem(Icons.face_retouching_natural, l10n.proFeatureCaricaturesShort,
+          freeCheck: false, starterLabel: l10n.starterCaricatureLimit, proLabel: l10n.proCaricatureLimit),
     ];
 
     return _GlassCard(
@@ -289,14 +298,14 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           // Column headers
           Row(
             children: [
-              const Expanded(flex: 5, child: SizedBox()),
+              const Expanded(flex: 3, child: SizedBox()),
               Expanded(
                 flex: 2,
                 child: Center(
                   child: Text(
                     'Free',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
                       color: Colors.white.withValues(alpha: 0.50),
@@ -308,9 +317,23 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 flex: 2,
                 child: Center(
                   child: Text(
+                    l10n.flowShiftStarter,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                      color: Colors.white.withValues(alpha: 0.80),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Center(
+                  child: Text(
                     'Pro',
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.6,
                       color: AppColors.yellow,
@@ -335,21 +358,21 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
         children: [
           // Icon bubble
           Container(
-            width: 30,
-            height: 30,
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(7),
             ),
-            child: Icon(item.icon, size: 15, color: Colors.white.withValues(alpha: 0.70)),
+            child: Icon(item.icon, size: 14, color: Colors.white.withValues(alpha: 0.70)),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           // Feature name
           Expanded(
-            flex: 5,
+            flex: 3,
             child: Text(
               item.name,
-              style: const TextStyle(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w400),
+              style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w400),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -357,153 +380,220 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           // Free status
           Expanded(
             flex: 2,
-            child: Center(child: _statusWidget(item.freeCheck, item.freeLabel, isFree: true)),
+            child: Center(child: _statusWidget(item.freeCheck, item.freeLabel, tier: 'free')),
+          ),
+          // Starter status
+          Expanded(
+            flex: 2,
+            child: Center(child: _statusWidget(item.starterCheck, item.starterLabel, tier: 'starter')),
           ),
           // Pro status
           Expanded(
             flex: 2,
-            child: Center(child: _statusWidget(item.proCheck, item.proLabel, isFree: false, note: item.proNote)),
+            child: Center(child: _statusWidget(item.proCheck, item.proLabel, tier: 'pro')),
           ),
         ],
       ),
     );
   }
 
-  Widget _statusWidget(bool? check, String? label, {required bool isFree, String? note}) {
-    // Custom label (e.g. "Read only", "20 msgs")
+  Widget _statusWidget(bool? check, String? label, {required String tier}) {
+    final isFree = tier == 'free';
+    final isPro = tier == 'pro';
+
+    // Custom label (e.g. "3/mo", "25/mo")
     if (label != null) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isFree ? Colors.white.withValues(alpha: 0.42) : AppColors.yellow,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          if (note != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              note,
-              style: TextStyle(
-                fontSize: 9,
-                color: AppColors.yellow.withValues(alpha: 0.60),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ],
+      return Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: isPro
+              ? AppColors.yellow
+              : (isFree ? Colors.white.withValues(alpha: 0.42) : Colors.white.withValues(alpha: 0.80)),
+        ),
+        textAlign: TextAlign.center,
       );
     }
     // Checkmark
     if (check == true) {
       return Icon(
         Icons.check_circle_rounded,
-        size: 19,
-        color: isFree ? Colors.white.withValues(alpha: 0.42) : AppColors.yellow,
+        size: 17,
+        color: isPro
+            ? AppColors.yellow
+            : (isFree ? Colors.white.withValues(alpha: 0.42) : Colors.white.withValues(alpha: 0.70)),
       );
     }
     // Locked / unavailable
     return Icon(
       Icons.remove_circle_outline,
-      size: 17,
+      size: 15,
       color: Colors.white.withValues(alpha: 0.22),
     );
   }
 
-  // ── Pricing card ───────────────────────────────────────────────────────────
+  // ── Pricing cards (side-by-side) ──────────────────────────────────────────
 
-  Widget _buildPricingCard(AppLocalizations l10n) {
+  Widget _buildPricingCards(AppLocalizations l10n) {
+    return Row(
+      children: [
+        // Starter card
+        Expanded(child: _buildTierCard(
+          tierName: l10n.flowShiftStarter,
+          price: '6.99',
+          onPurchase: () => _handlePurchase('starter'),
+          isPurchasing: _purchasing && _purchasingTier == 'starter',
+          isDisabled: _purchasing || _restoring,
+          badge: null,
+          l10n: l10n,
+        )),
+        const SizedBox(width: 12),
+        // Pro card
+        Expanded(child: _buildTierCard(
+          tierName: l10n.flowShiftPro,
+          price: '11.99',
+          onPurchase: () => _handlePurchase('pro'),
+          isPurchasing: _purchasing && _purchasingTier == 'pro',
+          isDisabled: _purchasing || _restoring,
+          badge: l10n.bestValue,
+          l10n: l10n,
+          isHighlighted: true,
+        )),
+      ],
+    );
+  }
+
+  Widget _buildTierCard({
+    required String tierName,
+    required String price,
+    required VoidCallback onPurchase,
+    required bool isPurchasing,
+    required bool isDisabled,
+    required String? badge,
+    required AppLocalizations l10n,
+    bool isHighlighted = false,
+  }) {
     return _GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      padding: const EdgeInsets.all(16),
+      borderColor: isHighlighted ? AppColors.yellow.withValues(alpha: 0.40) : null,
+      child: Column(
         children: [
-          // Price with trial callout
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Free trial badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.yellow.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    '30 DAYS FREE',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                      color: AppColors.yellow,
-                    ),
-                  ),
+          // Badge
+          if (badge != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.yellow.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                badge.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                  color: AppColors.yellow,
                 ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 8),
-                      child: Text(
-                        '\$',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          height: 1.2,
-                        ),
-                      ),
-                    ),
-                    const Text(
-                      '8.99',
-                      style: TextStyle(
-                        fontSize: 50,
-                        fontWeight: FontWeight.bold,
-                        height: 1,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  'per month after trial',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.55),
-                  ),
-                ),
-              ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ] else ...[
+            const SizedBox(height: 22), // Align with badge height
+          ],
+          // Tier name
+          Text(
+            tierName,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isHighlighted ? AppColors.yellow : Colors.white,
             ),
           ),
-          // Cancel anytime badge
+          const SizedBox(height: 8),
+          // Price
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '\$',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isHighlighted ? Colors.white : Colors.white.withValues(alpha: 0.80),
+                  ),
+                ),
+              ),
+              Text(
+                price,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  height: 1,
+                  color: isHighlighted ? Colors.white : Colors.white.withValues(alpha: 0.80),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            '/mo',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.50),
+            ),
+          ),
+          const SizedBox(height: 6),
+          // Free trial badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: AppColors.yellow.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.yellow.withValues(alpha: 0.30), width: 1),
+              borderRadius: BorderRadius.circular(6),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.all_inclusive_rounded, color: AppColors.yellow, size: 22),
-                const SizedBox(height: 5),
-                Text(
-                  l10n.cancelAnytime,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.yellow,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+            child: const Text(
+              '30 DAYS FREE',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.6,
+                color: AppColors.yellow,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Purchase button
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: ElevatedButton(
+              onPressed: isDisabled ? null : onPurchase,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isHighlighted ? AppColors.yellow : Colors.white.withValues(alpha: 0.18),
+                foregroundColor: isHighlighted ? AppColors.navySpaceCadet : Colors.white,
+                elevation: 0,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: isPurchasing
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: isHighlighted ? AppColors.navySpaceCadet : Colors.white,
+                      ),
+                    )
+                  : Text(
+                      l10n.subscribeNow,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: isHighlighted ? AppColors.navySpaceCadet : Colors.white,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -512,37 +602,6 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
   }
 
   // ── CTA buttons ────────────────────────────────────────────────────────────
-
-  Widget _buildSubscribeButton(AppLocalizations l10n) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        onPressed: _purchasing || _restoring ? null : _handlePurchase,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.yellow,
-          foregroundColor: AppColors.navySpaceCadet,
-          elevation: 0,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
-        child: _purchasing
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.navySpaceCadet),
-              )
-            : Text(
-                l10n.subscribeNow,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.navySpaceCadet,
-                ),
-              ),
-      ),
-    );
-  }
 
   Widget _buildRestoreButton(AppLocalizations l10n) {
     return TextButton(
@@ -567,6 +626,20 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
     );
   }
 
+  Widget _buildSkipButton(AppLocalizations l10n) {
+    return TextButton(
+      onPressed: _purchasing || _restoring ? null : () => Navigator.pop(context, false),
+      style: TextButton.styleFrom(foregroundColor: Colors.white),
+      child: Text(
+        l10n.continueWithFreeTrial,
+        style: TextStyle(
+          fontSize: 14,
+          color: Colors.white.withValues(alpha: 0.50),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDisclaimer(AppLocalizations l10n) {
     return Text(
       l10n.subscriptionDisclaimer,
@@ -586,19 +659,21 @@ class _FeatureItem {
   final IconData icon;
   final String name;
   final bool? freeCheck;
+  final bool? starterCheck;
   final bool? proCheck;
   final String? freeLabel;
+  final String? starterLabel;
   final String? proLabel;
-  final String? proNote;
 
   const _FeatureItem(
     this.icon,
     this.name, {
     this.freeCheck,
+    this.starterCheck,
     this.proCheck,
     this.freeLabel,
+    this.starterLabel,
     this.proLabel,
-    this.proNote,
   });
 }
 
@@ -607,10 +682,12 @@ class _FeatureItem {
 class _GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final Color? borderColor;
 
   const _GlassCard({
     required this.child,
     this.padding = const EdgeInsets.all(20),
+    this.borderColor,
   });
 
   @override
@@ -626,8 +703,8 @@ class _GlassCard extends StatelessWidget {
             color: Colors.white.withValues(alpha: 0.09),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.16),
-              width: 1,
+              color: borderColor ?? Colors.white.withValues(alpha: 0.16),
+              width: borderColor != null ? 1.5 : 1,
             ),
           ),
           child: child,

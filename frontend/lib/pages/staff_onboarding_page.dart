@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/navigation/route_error_manager.dart';
+import '../features/ai_assistant/presentation/subscription_paywall_screen.dart';
 import '../services/api_exception.dart';
 import '../services/user_service.dart';
 import '../services/notification_service.dart';
@@ -23,6 +24,7 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
   UserProfile? _profile;
   bool _loading = true;
   String? _error;
+  bool _showPaywall = false;
 
   @override
   void initState() {
@@ -33,6 +35,35 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
   Future<void> _loadProfile() async {
     print('[ONBOARDING GATE] Loading profile...');
 
+    final prefs = await SharedPreferences.getInstance();
+    final cachedName = prefs.getString('cached_profile_name');
+    final cachedLastName = prefs.getString('cached_profile_last_name');
+    final cachedPhone = prefs.getString('cached_profile_phone');
+    final cachedPicture = prefs.getString('cached_profile_picture');
+    final onboardingComplete = prefs.getBool('staff_onboarding_complete') ?? false;
+
+    // Fast path: show RootPage immediately from cache, refresh in background.
+    if (onboardingComplete &&
+        cachedName != null && cachedName.isNotEmpty &&
+        cachedLastName != null && cachedLastName.isNotEmpty &&
+        cachedPhone != null && cachedPhone.isNotEmpty) {
+      print('[ONBOARDING GATE] Fast path — showing cached profile immediately');
+      final cachedProfile = UserProfile(
+        firstName: cachedName,
+        lastName: cachedLastName,
+        phoneNumber: cachedPhone,
+        picture: cachedPicture,
+      );
+      if (!mounted) return;
+      setState(() {
+        _profile = cachedProfile;
+        _loading = false;
+      });
+      _refreshInBackground(prefs);
+      return;
+    }
+
+    // First launch or incomplete cache — blocking load.
     setState(() {
       _loading = true;
       _error = null;
@@ -65,12 +96,35 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
         print('[ONBOARDING GATE] ❌ Failed to initialize subscription: $e');
       }
 
+      // Check if paywall should be shown (first time after onboarding)
+      bool shouldShowPaywall = false;
+      if (_isProfileComplete(profile)) {
+        final paywallShown = prefs.getBool('paywall_shown') ?? false;
+        if (!paywallShown) {
+          shouldShowPaywall = true;
+        }
+        // Save to cache for fast path on next launch
+        await prefs.setString('cached_profile_name', profile.firstName ?? '');
+        await prefs.setString('cached_profile_last_name', profile.lastName ?? '');
+        await prefs.setString('cached_profile_phone', profile.phoneNumber ?? '');
+        if (profile.picture != null) {
+          await prefs.setString('cached_profile_picture', profile.picture!);
+        }
+        await prefs.setBool('staff_onboarding_complete', true);
+      }
+
+      if (!mounted) return;
+
       setState(() {
         _profile = profile;
         _loading = false;
+        _showPaywall = shouldShowPaywall;
       });
 
       print('[ONBOARDING GATE] Profile complete: ${_isProfileComplete(profile)}');
+      if (shouldShowPaywall) {
+        print('[ONBOARDING GATE] Will show paywall interstitial');
+      }
     } catch (e) {
       print('[ONBOARDING GATE ERROR] Failed to load profile: $e');
 
@@ -87,6 +141,41 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
         _error = localizedErrorMessage(context, e);
         _loading = false;
       });
+    }
+  }
+
+  /// Background refresh after fast-path cache hit. Updates UI and cache
+  /// silently; signs out only on hard auth failures.
+  Future<void> _refreshInBackground(SharedPreferences prefs) async {
+    try {
+      await NotificationService().initialize();
+    } catch (_) {}
+    try {
+      await SubscriptionService().initialize();
+    } catch (_) {}
+
+    try {
+      final profile = await UserService.getMe();
+      if (!mounted) return;
+
+      // Update cache with fresh data
+      if (_isProfileComplete(profile)) {
+        await prefs.setString('cached_profile_name', profile.firstName ?? '');
+        await prefs.setString('cached_profile_last_name', profile.lastName ?? '');
+        await prefs.setString('cached_profile_phone', profile.phoneNumber ?? '');
+        if (profile.picture != null) {
+          await prefs.setString('cached_profile_picture', profile.picture!);
+        }
+      }
+
+      if (!mounted) return;
+      setState(() => _profile = profile);
+    } catch (e) {
+      // Hard auth failure: sign out so user re-authenticates
+      if (e is ApiException && (e.statusCode == 404 || e.statusCode == 401)) {
+        await _signOut();
+      }
+      // Network/server errors: silently keep cached data visible
     }
   }
 
@@ -161,8 +250,15 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // If profile is complete, show main app
+    // If profile is complete, check if we need to show paywall first
     if (_isProfileComplete(profile)) {
+      if (_showPaywall) {
+        return _OnboardingPaywallInterstitial(
+          onDone: () {
+            if (mounted) setState(() => _showPaywall = false);
+          },
+        );
+      }
       return const RootPage();
     }
 
@@ -171,6 +267,64 @@ class _StaffOnboardingGateState extends State<StaffOnboardingGate> {
       profile: profile,
       onComplete: _loadProfile,
       onSignOut: _signOut,
+    );
+  }
+}
+
+class _OnboardingPaywallInterstitial extends StatefulWidget {
+  const _OnboardingPaywallInterstitial({required this.onDone});
+
+  final VoidCallback onDone;
+
+  @override
+  State<_OnboardingPaywallInterstitial> createState() =>
+      _OnboardingPaywallInterstitialState();
+}
+
+class _OnboardingPaywallInterstitialState
+    extends State<_OnboardingPaywallInterstitial> {
+  bool _pushed = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_pushed) return;
+    _pushed = true;
+
+    // If already subscribed, skip the paywall entirely
+    if (SubscriptionService().isSubscribed) {
+      _markShownAndFinish();
+      return;
+    }
+
+    // Show paywall as a fullscreen dialog after the frame builds
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context)
+          .push<bool>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) =>
+              const SubscriptionPaywallScreen(showSkipButton: true),
+        ),
+      )
+          .then((_) {
+        _markShownAndFinish();
+      });
+    });
+  }
+
+  Future<void> _markShownAndFinish() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('paywall_shown', true);
+    widget.onDone();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Blank screen while the paywall is being pushed
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

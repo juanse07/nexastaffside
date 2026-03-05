@@ -2,82 +2,82 @@ FlowShift - Shifts & Pay is your all-in-one companion app for managing your work
 
 Whether you're working weddings, corporate events, concerts, sports games, or private parties - FlowShift - Shifts & Pay keeps you connected and in control.
 
-📅 SMART SHIFT MANAGEMENT
-• View all your upcoming shifts, events, or jobs in a beautiful calendar view
-• Get instant notifications when new opportunities match your availability
-• Accept or decline shift offers with one tap
-• Set your availability so managers know when you're free to work
-• View event details including location, time, role, dress code, and pay rate
-• Get directions to venues with integrated maps
-• Clock in/out tracking for accurate timekeeping
+SMART SHIFT MANAGEMENT
+- View all your upcoming shifts, events, or jobs in a beautiful calendar view
+- Get instant notifications when new opportunities match your availability
+- Accept or decline shift offers with one tap
+- Set your availability so managers know when you're free to work
+- View event details including location, time, role, dress code, and pay rate
+- Get directions to venues with integrated maps
+- Clock in/out tracking for accurate timekeeping
 
-💰 EARNINGS TRACKER
-• Track your earnings by month and year
-• See detailed breakdowns of each completed shift
-• Monitor your income growth over time
-• View hourly rates and total hours worked
-• Perfect for managing income from multiple teams
+EARNINGS TRACKER
+- Track your earnings by month and year
+- See detailed breakdowns of each completed shift
+- Monitor your income growth over time
+- View hourly rates and total hours worked
+- Perfect for managing income from multiple teams
 
-💬 TEAM COMMUNICATION
-• Chat directly with your managers in real-time
-• Coordinate with teammates on event-specific group chats
-• Get important updates and announcements instantly
-• Call managers directly from the app
-• Never miss a message with push notifications
+TEAM COMMUNICATION
+- Chat directly with your managers in real-time
+- Coordinate with teammates on event-specific group chats
+- Get important updates and announcements instantly
+- Call managers directly from the app
+- Never miss a message with push notifications
 
-🤖 AI ASSISTANT (Premium Feature)
-• Get instant help managing your schedule with our smart AI assistant
-• Ask questions about your shifts, availability, and earnings
-• Accept or decline shifts through natural conversation
-• Voice input support for hands-free operation
-• "What shifts do I have this week?" - Just ask!
+AI ASSISTANT (Premium Feature)
+- Get instant help managing your schedule with our smart AI assistant
+- Ask questions about your shifts, availability, and earnings
+- Accept or decline shifts through natural conversation
+- Voice input support for hands-free operation
+- "What shifts do I have this week?" - Just ask!
 
-👥 TEAM CENTER
-• Join multiple teams and staffing agencies
-• Accept team invitations with a simple code
-• See your colleagues working the same events
-• Manage all your team memberships in one place
+TEAM CENTER
+- Join multiple teams and staffing agencies
+- Accept team invitations with a simple code
+- See your colleagues working the same events
+- Manage all your team memberships in one place
 
-✨ ADDITIONAL FEATURES
-• Works offline - view your schedule even without internet
-• Customizable terminology (shifts, jobs, or events - you choose!)
-• Available in English and Spanish
-• Dark mode support
-• Secure sign-in with Google or Apple
+ADDITIONAL FEATURES
+- Works offline - view your schedule even without internet
+- Customizable terminology (shifts, jobs, or events - you choose!)
+- Available in English and Spanish
+- Dark mode support
+- Secure sign-in with Google or Apple
 
 WHO IS THIS APP FOR?
 FlowShift - Shifts & Pay is perfect for professionals in:
 
-🎪 EVENT INDUSTRY
-• Event staff and catering teams
-• Banquet servers and waitstaff
-• Bartenders, barbacks, and mixologists
-• Setup and breakdown crews
-• Security personnel
+EVENT INDUSTRY
+- Event staff and catering teams
+- Banquet servers and waitstaff
+- Bartenders, barbacks, and mixologists
+- Setup and breakdown crews
+- Security personnel
 
-🍽️ HOSPITALITY
-• Hotel and resort workers
-• Restaurant staff
-• Country club employees
-• Venue coordinators
+HOSPITALITY
+- Hotel and resort workers
+- Restaurant staff
+- Country club employees
+- Venue coordinators
 
-🎤 ENTERTAINMENT & SPORTS
-• Concert and festival staff
-• Stadium and arena workers
-• VIP service teams
-• Production assistants
+ENTERTAINMENT & SPORTS
+- Concert and festival staff
+- Stadium and arena workers
+- VIP service teams
+- Production assistants
 
-📣 PROMOTIONAL & MARKETING
-• Brand ambassadors
-• Trade show representatives
-• Product demonstrators
-• Experiential marketing staff
+PROMOTIONAL & MARKETING
+- Brand ambassadors
+- Trade show representatives
+- Product demonstrators
+- Experiential marketing staff
 
-💼 GIG ECONOMY
-• Freelance hospitality workers
-• On-demand staff
-• Part-time workers managing multiple jobs
-• Anyone working with staffing agencies
+GIG ECONOMY
+- Freelance hospitality workers
+- On-demand staff
+- Part-time workers managing multiple jobs
+- Anyone working with staffing agencies
 
 Download FlowShift - Shifts & Pay today and take control of your work life. Say goodbye to missed shifts, confusing schedules, and endless phone calls. Everything you need is right here in your pocket.
 

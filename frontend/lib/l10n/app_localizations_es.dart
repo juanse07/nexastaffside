@@ -1531,18 +1531,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String freeMonthBanner(int days) {
-    return 'Mes gratis: $days días restantes';
+    return 'Prueba gratis: $days días restantes';
   }
 
   @override
   String get freeMonthExpired =>
-      'Tu mes gratis ha terminado — Suscríbete para desbloquear';
+      'Tu prueba gratis ha terminado — Suscríbete para desbloquear';
 
   @override
   String get subscriptionRequired => 'Suscripción Requerida';
 
   @override
-  String get featureLocked => 'requiere FlowShift Pro';
+  String get featureLocked => 'requiere una suscripción a FlowShift';
 
   @override
   String get subscribeToUnlock => 'Prueba 30 Días Gratis';
@@ -1569,7 +1569,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get generateCaricature => 'Generar caricatura';
 
   @override
-  String get freeMonthExplore => '¡Tienes un mes gratis para explorar todo!';
+  String get freeMonthExplore => '¡Tienes 7 días gratis para explorar todo!';
 
   @override
   String get proFeatureAcceptDecline => 'Aceptar y rechazar turnos';
@@ -1578,7 +1578,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get proFeatureChat => 'Chatear con managers y equipo';
 
   @override
-  String get proFeatureAI => 'Asistente IA (20 mensajes/mes)';
+  String get proFeatureAI => 'Asistente IA (25 mensajes/mes)';
+
+  @override
+  String get proFeatureAIShort => 'Asistente IA';
+
+  @override
+  String get proFeatureCaricaturesShort => 'Caricaturas';
 
   @override
   String get proFeatureClockInOut => 'Registrar entrada/salida';
@@ -1590,7 +1596,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get proFeatureCaricatures => 'Generar caricaturas de perfil';
 
   @override
-  String get proPrice => '\$8.99/mes';
+  String get proPrice => '\$11.99/mes';
+
+  @override
+  String get flowShiftStarter => 'Starter';
+
+  @override
+  String get chooseYourPlan => 'Elige Tu Plan';
+
+  @override
+  String get starterAiLimit => '3/mes';
+
+  @override
+  String get proAiLimit => '25/mes';
+
+  @override
+  String get starterCaricatureLimit => '1/mes';
+
+  @override
+  String get proCaricatureLimit => '8/mes';
 
   @override
   String get unlockFeature => 'Desbloquea';
@@ -1599,10 +1623,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tryProFree => 'Prueba FlowShift Pro gratis por 30 días';
 
   @override
+  String get tryFlowShiftFree => 'Prueba FlowShift gratis por 7 días';
+
+  @override
   String get noChargeUntilTrialEnds => 'Sin cargo hasta que termine la prueba';
 
   @override
-  String get priceAnchor => '\$8.99 — menos que una visita al café.';
+  String get priceAnchor => '\$6.99 — menos que una visita al café.';
 
   @override
   String get errorValidationFailed =>
@@ -1665,4 +1692,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get broadcastTeamMessage => 'Mensaje grupal al equipo';
+
+  @override
+  String get continueWithFreeTrial => 'Continuar con prueba gratuita de 7 días';
 }
