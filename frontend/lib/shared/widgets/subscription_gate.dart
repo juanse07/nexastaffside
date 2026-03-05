@@ -89,7 +89,7 @@ class _SubscriptionGateSheet extends StatelessWidget {
 
           // Value-first subtitle
           Text(
-            l10n.tryProFree,
+            l10n.tryFlowShiftFree,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,

@@ -39,7 +39,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   bool _isInitialized = false;
   String _subscriptionTier = 'free';
   int _aiMessagesUsed = 0;
-  int _aiMessagesLimit = 20; // Free tier limit (changed from 50 to reduce costs)
+  int _aiMessagesLimit = 4; // Free tier: 4 messages before paywall
   String? _userFirstName;
   String? _userLastName;
   String? _userPictureUrl;
