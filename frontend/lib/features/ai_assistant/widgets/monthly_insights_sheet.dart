@@ -43,6 +43,7 @@ class _MonthlyInsightsSheetState extends State<MonthlyInsightsSheet>
   // Used only for follow-up messages (seeded after initial analysis succeeds).
   final StaffChatService _chatService = StaffChatService();
   final TextEditingController _followUpController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   late AnimationController _pulseController;
 
@@ -65,10 +66,32 @@ class _MonthlyInsightsSheetState extends State<MonthlyInsightsSheet>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Auto-scroll to bottom when keyboard appears so the input bar stays visible.
+    if (MediaQuery.of(context).viewInsets.bottom > 0) {
+      _scrollToBottom();
+    }
+  }
+
+  @override
   void dispose() {
     _pulseController.dispose();
     _followUpController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   // ─── Initial Analysis (direct HTTP, no context pre-fetch) ──────────────────
@@ -227,6 +250,7 @@ class _MonthlyInsightsSheetState extends State<MonthlyInsightsSheet>
         _followUpResponse = response.content;
         _sendingFollowUp = false;
       });
+      _scrollToBottom();
     } catch (e) {
       debugPrint('[MonthlyInsights] Follow-up error: $e');
       if (mounted) setState(() => _sendingFollowUp = false);
@@ -238,13 +262,24 @@ class _MonthlyInsightsSheetState extends State<MonthlyInsightsSheet>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final height = MediaQuery.of(context).size.height * 0.63;
+    // Sheet sits at the screen bottom and the keyboard overlaps it from below.
+    // Strategy: make the sheet tall (93% of screen) when keyboard is open so
+    // the visible area above the keyboard has plenty of room, then add
+    // viewInsets.bottom as internal bottom padding so content ends above the
+    // keyboard. When keyboard is hidden, use the normal 65% height.
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final height = keyboardHeight > 0
+        ? screenHeight * 0.93
+        : screenHeight * 0.65;
     final String headerTitle = widget.customTitle ?? l10n.monthlyInsights;
     final String? headerSubtitle = widget.customPrompt == null
         ? DateFormat.yMMMM().format(widget.focusedMonth)
         : null;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
       height: height,
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -322,7 +357,8 @@ class _MonthlyInsightsSheetState extends State<MonthlyInsightsSheet>
           if (_analysis != null && !_loading && !_hitMessageLimit)
             _buildFollowUpBar(l10n),
 
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
+          // Pad the portion hidden behind the keyboard so content stays above it.
+          SizedBox(height: keyboardHeight + MediaQuery.of(context).padding.bottom),
         ],
       ),
     );
@@ -410,6 +446,7 @@ class _MonthlyInsightsSheetState extends State<MonthlyInsightsSheet>
 
   Widget _buildAnalysisContent() {
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

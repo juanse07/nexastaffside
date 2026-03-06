@@ -129,8 +129,11 @@ class GeofenceService {
 
         if (startStr == null) continue;
 
-        final startTime = DateTime.parse(startStr);
-        final endTime = endStr != null ? DateTime.parse(endStr) : startTime.add(const Duration(hours: 12));
+        final dateStr = event['date']?.toString() ?? '';
+        final startTime = _parseShiftDateTime(dateStr, startStr);
+        final endTime = endStr != null
+            ? _parseShiftDateTime(dateStr, endStr)
+            : startTime.add(const Duration(hours: 12));
 
         // Only create geofences for events that haven't ended yet
         // Note: We don't check the 2-minute window here - that's checked during location monitoring
@@ -175,6 +178,23 @@ class GeofenceService {
       await startMonitoring();
     } else {
       await stopMonitoring();
+    }
+  }
+
+  /// Parses a shift DateTime from separate date ('yyyy-MM-dd') and time
+  /// ('H:mm' or 'HH:mm') strings. Falls back to a full ISO parse for safety.
+  static DateTime _parseShiftDateTime(String dateStr, String timeStr) {
+    // Try full ISO first (future-proofing if backend ever sends full datetime)
+    try { return DateTime.parse(timeStr); } catch (_) {}
+    final timeParts = timeStr.split(':');
+    final hour = int.tryParse(timeParts[0]) ?? 0;
+    final minute = timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
+    try {
+      final d = DateTime.parse(dateStr);
+      return DateTime(d.year, d.month, d.day, hour, minute);
+    } catch (_) {
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day, hour, minute);
     }
   }
 
