@@ -104,6 +104,13 @@ class StaffChatService {
     }
   }
 
+  /// Seed conversation history with a completed exchange (used by MonthlyInsightsSheet
+  /// so follow-up questions have context of the initial AI analysis).
+  void seedExchange(String userContent, String assistantContent) {
+    _conversationHistory.add(ChatMessage(role: 'user', content: userContent));
+    _conversationHistory.add(ChatMessage(role: 'assistant', content: assistantContent));
+  }
+
   /// Get default system instructions (inline fallback)
   String _getDefaultSystemInstructions({String? terminology}) {
     final workTerm = terminology ?? 'shifts';
@@ -359,7 +366,7 @@ When marking availability or accepting/declining $workTerm, use the appropriate 
           'Content-Type': 'application/json',
         },
         body: jsonEncode(requestBody),
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(const Duration(seconds: 90));
 
       _isLoading = false;
 

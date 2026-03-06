@@ -312,6 +312,16 @@ class AppColors {
     ],
   );
 
+  // Personal Event Colors
+  /// Personal event primary - dusty rose
+  static const Color personalEvent = Color(0xFFC4707A);
+
+  /// Personal event dark variant - deeper dusty rose
+  static const Color personalEventDark = Color(0xFFAD5B65);
+
+  /// Personal event light - soft rose tint
+  static const Color personalEventLight = Color(0xFFF5E4E7);
+
   // Divider Colors
   /// Light divider
   static const Color dividerLight = Color(0xFFF1F5F9);

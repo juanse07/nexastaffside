@@ -57,6 +57,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get failedToUploadPicture => 'Error al subir la imagen';
 
   @override
+  String get homeAddress => 'Dirección de Casa';
+
+  @override
+  String get homeAddressHint => 'Busca tu dirección...';
+
+  @override
+  String get homeAddressInfo =>
+      'Valerio usa esto para estimar tu distancia y tiempo de traslado a cada turno. Tu dirección nunca se comparte.';
+
+  @override
   String get workTerminology => 'Terminología de Trabajo';
 
   @override
@@ -1668,6 +1678,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get valerioAnalyzing => 'Valerio está analizando tu mes...';
 
   @override
+  String get myShiftsInsights => 'Resumen de Mis Turnos';
+
+  @override
+  String get valerioAnalyzingShifts => 'Valerio está analizando tus turnos...';
+
+  @override
+  String myShiftsAnalysisPrompt(String today) {
+    return 'Hoy es $today. Primero llama get_my_schedule para obtener mis turnos próximos aceptados, luego analiza los resultados: (1) suma las horas de los turnos que ocurren en los próximos 7 días calendario desde hoy, luego suma las horas de TODOS los turnos próximos en conjunto; (2) cuenta cuántos venues únicos aparecen; (3) identifica mi turno próximo más largo en horas. Si aparecen distancias en auto abajo, calcula las millas de ida y vuelta totales para todos los turnos listados y estima el costo mensual de gasolina a ~28 MPG y ~\$3.50/galón — luego invítame a compartir mi modelo de auto o consumo para una cifra precisa (conoces los ratings EPA de la mayoría de modelos). Cierra con una nota motivadora breve. Viñetas y emojis. Sin enlaces.';
+  }
+
+  @override
   String monthlyAnalysisPrompt(String month, String today) {
     return 'Estoy viendo $month en mi calendario (hoy es $today). Analiza ese mes usando mi historial de disponibilidad y turnos asignados. Divide los turnos en COMPLETADOS (antes de hoy) y PRÓXIMOS (hoy o después). Para cada sección: cantidad de turnos, total de horas, venues. Luego: días que marqué como no disponible, días sin turno (indica cuántos caen en fin de semana), días más ocupados, resumen de ganancias. Por último, cuenta solo los días FUTUROS que NO tienen turno Y NO están marcados como no disponible — esos son mis días realmente libres. Según mi tarifa promedio y solo esos días libres, sugiere cuánto más podría ganar de forma realista. Nunca sugieras días pasados ni días no disponibles. Sé conciso con viñetas y emojis.';
   }
@@ -1692,6 +1713,78 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get broadcastTeamMessage => 'Mensaje grupal al equipo';
+
+  @override
+  String get uploadPdf => 'Subir PDF';
+
+  @override
+  String get manualEntry => 'Entrada manual';
+
+  @override
+  String get extractingData => 'Extrayendo datos...';
+
+  @override
+  String get extractionFailed =>
+      'No se pudieron extraer los datos. Intenta de nuevo o ingresa manualmente.';
+
+  @override
+  String get personalEvent => 'Trabajo Independiente';
+
+  @override
+  String get addPersonalEvent => 'Agregar Trabajo Independiente';
+
+  @override
+  String get editPersonalEvent => 'Editar Trabajo Independiente';
+
+  @override
+  String get personalEventCreated => 'Trabajo independiente creado';
+
+  @override
+  String get personalEventUpdated => 'Trabajo independiente actualizado';
+
+  @override
+  String get personalEventDeleted => 'Trabajo independiente eliminado';
+
+  @override
+  String get personalBadge => 'Independiente';
+
+  @override
+  String get personalEventTitle => 'Título';
+
+  @override
+  String get personalEventTitleHint => 'ej. Evento de boda, Trabajo extra';
+
+  @override
+  String get personalEventDate => 'Fecha';
+
+  @override
+  String get personalEventStartTime => 'Hora de inicio';
+
+  @override
+  String get personalEventEndTime => 'Hora de fin';
+
+  @override
+  String get personalEventLocation => 'Ubicación (opcional)';
+
+  @override
+  String get personalEventLocationHint => 'ej. Salón de fiestas';
+
+  @override
+  String get personalEventNotes => 'Notas (opcional)';
+
+  @override
+  String get personalEventNotesHint => 'ej. Llevar chaleco negro';
+
+  @override
+  String get personalEventDeleteConfirm =>
+      '¿Eliminar este trabajo independiente? También se eliminará la no disponibilidad para los managers.';
+
+  @override
+  String get personalEventRequiresPro =>
+      'Los trabajos independientes requieren una suscripción Pro.';
+
+  @override
+  String get personalEventDetails => 'Detalles del Evento';
 
   @override
   String get continueWithFreeTrial => 'Continuar con prueba gratuita de 7 días';

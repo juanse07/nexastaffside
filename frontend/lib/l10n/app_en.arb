@@ -19,6 +19,11 @@
   "profilePictureUploaded": "Profile picture uploaded",
   "failedToUploadPicture": "Failed to upload picture",
 
+  "@@ Home Address": {},
+  "homeAddress": "Home Address",
+  "homeAddressHint": "Search your home address...",
+  "homeAddressInfo": "Valerio uses this to estimate your driving distance and commute time to each shift. Your address is never shared.",
+
   "@@ Terminology Settings": {},
   "workTerminology": "Work Terminology",
   "howDoYouPreferToCallWork": "How do you prefer to call your work?",
@@ -905,6 +910,17 @@
   "@@ Monthly Insights": {},
   "monthlyInsights": "Monthly Insights",
   "valerioAnalyzing": "Valerio is analyzing your month...",
+  "myShiftsInsights": "My Shifts Breakdown",
+  "valerioAnalyzingShifts": "Valerio is analyzing your shifts...",
+  "myShiftsAnalysisPrompt": "Today is {today}. First call get_my_schedule to fetch my upcoming accepted shifts, then analyze the results: (1) sum the hours for shifts occurring within the next 7 calendar days of today, then sum hours for ALL upcoming shifts combined; (2) count how many unique venues appear; (3) identify my single longest upcoming shift by hours. If pre-computed driving distances appear below, calculate the total round-trip mileage across all listed shifts and estimate the monthly fuel cost at ~28 MPG and ~$3.50/gal — then invite me to share my car model or MPG for a precise figure (you know EPA fuel economy ratings for most models). Close with a brief motivational note. Use bullet points and emojis. No links.",
+  "@myShiftsAnalysisPrompt": {
+    "placeholders": {
+      "today": {
+        "type": "String",
+        "example": "March 5, 2026"
+      }
+    }
+  },
   "monthlyAnalysisPrompt": "I'm viewing {month} in my calendar (today is {today}). Analyze that month using my availability history and assigned shifts. Split shifts into COMPLETED (before today) and UPCOMING (today or later). For each section: count of shifts, total hours, venues. Then: days I marked as unavailable, unscheduled days (note how many fall on weekends), busiest days, earnings summary. Finally, count only FUTURE days that have NO shift AND are NOT marked unavailable — those are my truly open days. Based on my average pay rate and those open days only, suggest how much extra I could realistically earn. Never suggest past days or unavailable days. Be concise with bullet points and emojis.",
   "@monthlyAnalysisPrompt": {
     "placeholders": {
@@ -927,6 +943,33 @@
     "placeholders": { "eventName": { "type": "String" } }
   },
   "broadcastTeamMessage": "Team broadcast",
+
+  "@@ Extraction / Attachment": {},
+  "uploadPdf": "Upload PDF",
+  "manualEntry": "Manual Entry",
+  "extractingData": "Extracting data...",
+  "extractionFailed": "Could not extract data. Please try again or enter manually.",
+
+  "@@ Personal Events": {},
+  "personalEvent": "Independent Job",
+  "addPersonalEvent": "Add Independent Job",
+  "editPersonalEvent": "Edit Independent Job",
+  "personalEventCreated": "Independent job created",
+  "personalEventUpdated": "Independent job updated",
+  "personalEventDeleted": "Independent job deleted",
+  "personalBadge": "Independent",
+  "personalEventTitle": "Title",
+  "personalEventTitleHint": "e.g. Wedding Gig, Side Job",
+  "personalEventDate": "Date",
+  "personalEventStartTime": "Start Time",
+  "personalEventEndTime": "End Time",
+  "personalEventLocation": "Location (optional)",
+  "personalEventLocationHint": "e.g. Grand Ballroom",
+  "personalEventNotes": "Notes (optional)",
+  "personalEventNotesHint": "e.g. Bring black vest",
+  "personalEventDeleteConfirm": "Delete this independent job? This will also remove the unavailability for managers.",
+  "personalEventRequiresPro": "Independent jobs require a Pro subscription.",
+  "personalEventDetails": "Event Details",
 
   "@@ Post-Onboarding Paywall": {},
   "continueWithFreeTrial": "Continue with 7-Day Free Trial"

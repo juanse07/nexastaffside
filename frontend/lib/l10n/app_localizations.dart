@@ -194,6 +194,24 @@ abstract class AppLocalizations {
   /// **'Failed to upload picture'**
   String get failedToUploadPicture;
 
+  /// No description provided for @homeAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Home Address'**
+  String get homeAddress;
+
+  /// No description provided for @homeAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search your home address...'**
+  String get homeAddressHint;
+
+  /// No description provided for @homeAddressInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Valerio uses this to estimate your driving distance and commute time to each shift. Your address is never shared.'**
+  String get homeAddressInfo;
+
   /// No description provided for @workTerminology.
   ///
   /// In en, this message translates to:
@@ -3128,6 +3146,24 @@ abstract class AppLocalizations {
   /// **'Valerio is analyzing your month...'**
   String get valerioAnalyzing;
 
+  /// No description provided for @myShiftsInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'My Shifts Breakdown'**
+  String get myShiftsInsights;
+
+  /// No description provided for @valerioAnalyzingShifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Valerio is analyzing your shifts...'**
+  String get valerioAnalyzingShifts;
+
+  /// No description provided for @myShiftsAnalysisPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Today is {today}. First call get_my_schedule to fetch my upcoming accepted shifts, then analyze the results: (1) sum the hours for shifts occurring within the next 7 calendar days of today, then sum hours for ALL upcoming shifts combined; (2) count how many unique venues appear; (3) identify my single longest upcoming shift by hours. If pre-computed driving distances appear below, calculate the total round-trip mileage across all listed shifts and estimate the monthly fuel cost at ~28 MPG and ~\$3.50/gal — then invite me to share my car model or MPG for a precise figure (you know EPA fuel economy ratings for most models). Close with a brief motivational note. Use bullet points and emojis. No links.'**
+  String myShiftsAnalysisPrompt(String today);
+
   /// No description provided for @monthlyAnalysisPrompt.
   ///
   /// In en, this message translates to:
@@ -3169,6 +3205,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Team broadcast'**
   String get broadcastTeamMessage;
+
+  /// No description provided for @uploadPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload PDF'**
+  String get uploadPdf;
+
+  /// No description provided for @manualEntry.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual Entry'**
+  String get manualEntry;
+
+  /// No description provided for @extractingData.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracting data...'**
+  String get extractingData;
+
+  /// No description provided for @extractionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not extract data. Please try again or enter manually.'**
+  String get extractionFailed;
+
+  /// No description provided for @personalEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent Job'**
+  String get personalEvent;
+
+  /// No description provided for @addPersonalEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Independent Job'**
+  String get addPersonalEvent;
+
+  /// No description provided for @editPersonalEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Independent Job'**
+  String get editPersonalEvent;
+
+  /// No description provided for @personalEventCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent job created'**
+  String get personalEventCreated;
+
+  /// No description provided for @personalEventUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent job updated'**
+  String get personalEventUpdated;
+
+  /// No description provided for @personalEventDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent job deleted'**
+  String get personalEventDeleted;
+
+  /// No description provided for @personalBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent'**
+  String get personalBadge;
+
+  /// No description provided for @personalEventTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get personalEventTitle;
+
+  /// No description provided for @personalEventTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Wedding Gig, Side Job'**
+  String get personalEventTitleHint;
+
+  /// No description provided for @personalEventDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get personalEventDate;
+
+  /// No description provided for @personalEventStartTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Time'**
+  String get personalEventStartTime;
+
+  /// No description provided for @personalEventEndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End Time'**
+  String get personalEventEndTime;
+
+  /// No description provided for @personalEventLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location (optional)'**
+  String get personalEventLocation;
+
+  /// No description provided for @personalEventLocationHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Grand Ballroom'**
+  String get personalEventLocationHint;
+
+  /// No description provided for @personalEventNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes (optional)'**
+  String get personalEventNotes;
+
+  /// No description provided for @personalEventNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Bring black vest'**
+  String get personalEventNotesHint;
+
+  /// No description provided for @personalEventDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this independent job? This will also remove the unavailability for managers.'**
+  String get personalEventDeleteConfirm;
+
+  /// No description provided for @personalEventRequiresPro.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent jobs require a Pro subscription.'**
+  String get personalEventRequiresPro;
+
+  /// No description provided for @personalEventDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Event Details'**
+  String get personalEventDetails;
 
   /// No description provided for @continueWithFreeTrial.
   ///

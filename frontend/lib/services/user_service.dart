@@ -49,6 +49,9 @@ class UserProfile {
   final String? appId;
   final String? phoneNumber;
   final String? eventTerminology; // 'shift', 'job', or 'event'
+  final String? homeAddress;
+  final double? homeLat;
+  final double? homeLng;
 
   UserProfile({
     this.id,
@@ -62,6 +65,9 @@ class UserProfile {
     this.appId,
     this.phoneNumber,
     this.eventTerminology,
+    this.homeAddress,
+    this.homeLat,
+    this.homeLng,
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
@@ -80,6 +86,9 @@ class UserProfile {
       appId: map['appId']?.toString(),
       phoneNumber: map['phoneNumber']?.toString(),
       eventTerminology: map['eventTerminology']?.toString(),
+      homeAddress: map['homeAddress']?.toString(),
+      homeLat: (map['homeCoordinates']?['lat'] as num?)?.toDouble(),
+      homeLng: (map['homeCoordinates']?['lng'] as num?)?.toDouble(),
     );
   }
 }
@@ -176,6 +185,9 @@ class UserService {
     String? picture,
     String? eventTerminology,
     bool isCaricature = false,
+    String? homeAddress,
+    double? homeLat,
+    double? homeLng,
   }) async {
     final token = await _getJwt();
     if (token == null) {
@@ -190,6 +202,13 @@ class UserService {
     if (picture != null && picture.isNotEmpty) payload['picture'] = picture;
     if (eventTerminology != null && eventTerminology.isNotEmpty) payload['eventTerminology'] = eventTerminology;
     if (isCaricature) payload['isCaricature'] = true;
+    // homeAddress can be explicitly set to null to clear it
+    if (homeAddress != null) {
+      payload['homeAddress'] = homeAddress;
+    }
+    if (homeLat != null && homeLng != null) {
+      payload['homeCoordinates'] = {'lat': homeLat, 'lng': homeLng};
+    }
 
     _log('Update payload: ${jsonEncode(payload)}');
 

@@ -57,6 +57,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedToUploadPicture => 'Failed to upload picture';
 
   @override
+  String get homeAddress => 'Home Address';
+
+  @override
+  String get homeAddressHint => 'Search your home address...';
+
+  @override
+  String get homeAddressInfo =>
+      'Valerio uses this to estimate your driving distance and commute time to each shift. Your address is never shared.';
+
+  @override
   String get workTerminology => 'Work Terminology';
 
   @override
@@ -1655,6 +1665,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get valerioAnalyzing => 'Valerio is analyzing your month...';
 
   @override
+  String get myShiftsInsights => 'My Shifts Breakdown';
+
+  @override
+  String get valerioAnalyzingShifts => 'Valerio is analyzing your shifts...';
+
+  @override
+  String myShiftsAnalysisPrompt(String today) {
+    return 'Today is $today. First call get_my_schedule to fetch my upcoming accepted shifts, then analyze the results: (1) sum the hours for shifts occurring within the next 7 calendar days of today, then sum hours for ALL upcoming shifts combined; (2) count how many unique venues appear; (3) identify my single longest upcoming shift by hours. If pre-computed driving distances appear below, calculate the total round-trip mileage across all listed shifts and estimate the monthly fuel cost at ~28 MPG and ~\$3.50/gal — then invite me to share my car model or MPG for a precise figure (you know EPA fuel economy ratings for most models). Close with a brief motivational note. Use bullet points and emojis. No links.';
+  }
+
+  @override
   String monthlyAnalysisPrompt(String month, String today) {
     return 'I\'m viewing $month in my calendar (today is $today). Analyze that month using my availability history and assigned shifts. Split shifts into COMPLETED (before today) and UPCOMING (today or later). For each section: count of shifts, total hours, venues. Then: days I marked as unavailable, unscheduled days (note how many fall on weekends), busiest days, earnings summary. Finally, count only FUTURE days that have NO shift AND are NOT marked unavailable — those are my truly open days. Based on my average pay rate and those open days only, suggest how much extra I could realistically earn. Never suggest past days or unavailable days. Be concise with bullet points and emojis.';
   }
@@ -1678,6 +1699,78 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get broadcastTeamMessage => 'Team broadcast';
+
+  @override
+  String get uploadPdf => 'Upload PDF';
+
+  @override
+  String get manualEntry => 'Manual Entry';
+
+  @override
+  String get extractingData => 'Extracting data...';
+
+  @override
+  String get extractionFailed =>
+      'Could not extract data. Please try again or enter manually.';
+
+  @override
+  String get personalEvent => 'Independent Job';
+
+  @override
+  String get addPersonalEvent => 'Add Independent Job';
+
+  @override
+  String get editPersonalEvent => 'Edit Independent Job';
+
+  @override
+  String get personalEventCreated => 'Independent job created';
+
+  @override
+  String get personalEventUpdated => 'Independent job updated';
+
+  @override
+  String get personalEventDeleted => 'Independent job deleted';
+
+  @override
+  String get personalBadge => 'Independent';
+
+  @override
+  String get personalEventTitle => 'Title';
+
+  @override
+  String get personalEventTitleHint => 'e.g. Wedding Gig, Side Job';
+
+  @override
+  String get personalEventDate => 'Date';
+
+  @override
+  String get personalEventStartTime => 'Start Time';
+
+  @override
+  String get personalEventEndTime => 'End Time';
+
+  @override
+  String get personalEventLocation => 'Location (optional)';
+
+  @override
+  String get personalEventLocationHint => 'e.g. Grand Ballroom';
+
+  @override
+  String get personalEventNotes => 'Notes (optional)';
+
+  @override
+  String get personalEventNotesHint => 'e.g. Bring black vest';
+
+  @override
+  String get personalEventDeleteConfirm =>
+      'Delete this independent job? This will also remove the unavailability for managers.';
+
+  @override
+  String get personalEventRequiresPro =>
+      'Independent jobs require a Pro subscription.';
+
+  @override
+  String get personalEventDetails => 'Event Details';
 
   @override
   String get continueWithFreeTrial => 'Continue with 7-Day Free Trial';

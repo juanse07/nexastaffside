@@ -16,6 +16,7 @@ import '../shared/widgets/caricature_generator_sheet.dart';
 import '../services/subscription_service.dart';
 import '../shared/widgets/subscription_gate.dart';
 import '../utils/error_helpers.dart';
+import '../shared/widgets/home_address_field.dart';
 import 'chat_page.dart';
 
 class UserProfilePage extends StatefulWidget {
@@ -32,7 +33,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
   final _phoneCtrl = TextEditingController();
   final _appIdCtrl = TextEditingController();
   final _pictureCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   final _imagePicker = ImagePicker();
+
+  double? _homeLat;
+  double? _homeLng;
 
   bool _loading = true;
   bool _saving = false;
@@ -58,6 +63,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _phoneCtrl.text = me.phoneNumber ?? '';
         _appIdCtrl.text = me.appId ?? '';
         _pictureCtrl.text = me.picture ?? '';
+        _addressCtrl.text = me.homeAddress ?? '';
+        _homeLat = me.homeLat;
+        _homeLng = me.homeLng;
         _originalPicture = me.originalPicture;
         _caricatureHistory = me.caricatureHistory;
         _loading = false;
@@ -236,12 +244,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
       _error = null;
     });
     try {
+      final addressTrimmed = _addressCtrl.text.trim();
       await UserService.updateMe(
         firstName: _firstNameCtrl.text.trim().isEmpty ? null : _firstNameCtrl.text.trim(),
         lastName: _lastNameCtrl.text.trim().isEmpty ? null : _lastNameCtrl.text.trim(),
         phoneNumber: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         appId: _appIdCtrl.text.trim().isEmpty ? null : _appIdCtrl.text.trim(),
         picture: _pictureCtrl.text.trim().isEmpty ? null : _pictureCtrl.text.trim(),
+        homeAddress: addressTrimmed.isEmpty ? null : addressTrimmed,
+        homeLat: addressTrimmed.isEmpty ? null : _homeLat,
+        homeLng: addressTrimmed.isEmpty ? null : _homeLng,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -293,6 +305,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     _phoneCtrl.dispose();
     _appIdCtrl.dispose();
     _pictureCtrl.dispose();
+    _addressCtrl.dispose();
     super.dispose();
   }
 
@@ -351,6 +364,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       ),
                     ),
                   _buildFormCard(l10n),
+                  const SizedBox(height: 16),
+                  _buildHomeAddressCard(l10n),
                   const SizedBox(height: 16),
                   _buildTerminologySettings(context),
                   const SizedBox(height: 16),
@@ -665,6 +680,63 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Widget _divider() => const Divider(height: 1, indent: 46, color: AppColors.borderLight);
+
+  // ─── Home Address ──────────────────────────────────────────────────────────
+
+  Widget _buildHomeAddressCard(AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Info banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF0FB),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('🤖', style: TextStyle(fontSize: 18)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    l10n.homeAddressInfo,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF3D4A9A),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AppColors.borderLight),
+          // Address field
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: HomeAddressField(
+              initialAddress: _addressCtrl.text,
+              onAddressSelected: (address, lat, lng) {
+                setState(() {
+                  _addressCtrl.text = address;
+                  _homeLat = lat;
+                  _homeLng = lng;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   // ─── Terminology ───────────────────────────────────────────────────────────
 

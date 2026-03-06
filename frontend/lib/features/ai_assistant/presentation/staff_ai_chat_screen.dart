@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,6 +16,7 @@ import '../../../services/subscription_service.dart';
 import '../../../services/user_service.dart';
 import '../services/chat_summary_service.dart';
 import '../services/staff_chat_service.dart';
+import '../services/staff_extraction_service.dart';
 import '../widgets/animated_ai_message_widget.dart';
 import '../widgets/availability_confirmation_card.dart';
 import '../widgets/chat_input_widget.dart';
@@ -20,6 +24,7 @@ import '../widgets/chat_message_widget.dart';
 import '../widgets/shift_action_card.dart';
 import 'subscription_paywall_screen.dart';
 import '../../../shared/widgets/subscription_gate.dart';
+import '../../../shared/widgets/personal_event_bottom_sheet.dart';
 
 /// Staff AI Assistant Chat Screen
 /// Main interface for staff to interact with AI assistant
@@ -37,6 +42,7 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   final SubscriptionService _subscriptionService = SubscriptionService();
 
   bool _isInitialized = false;
+  bool _isExtracting = false;
   String _subscriptionTier = 'free';
   int _aiMessagesUsed = 0;
   int _aiMessagesLimit = 4; // Free tier: 4 messages before paywall
@@ -114,6 +120,17 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
       // Invalidate availability cache if AI tool modified it
       if (response.toolsUsed.contains('mark_availability')) {
         context.read<DataService>().invalidateAvailabilityCache();
+      }
+      // Refresh data if personal event tools were used
+      const personalEventTools = {
+        'create_personal_event',
+        'create_personal_events_bulk',
+        'update_personal_event',
+        'update_personal_events_bulk',
+        'delete_personal_event',
+      };
+      if (response.toolsUsed.any((t) => personalEventTools.contains(t))) {
+        context.read<DataService>().forceRefresh();
       }
       // With reverse: true, new messages appear at bottom automatically - no scroll needed!
       // Refresh usage stats after sending message
@@ -343,6 +360,239 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
         ),
       ),
     );
+  }
+
+  /// Build an action chip that runs a callback instead of sending a message
+  Widget _buildActionChip(String label, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.personalEventLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.personalEvent.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.personalEvent,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddPersonalEvent() {
+    final sub = SubscriptionService();
+    final tier = sub.tier;
+    if (tier != 'pro' && tier != 'premium' && !sub.isInFreeMonth) {
+      showSubscriptionRequiredSheet(
+        context,
+        featureName: AppLocalizations.of(context)!.personalEvent,
+      );
+      return;
+    }
+
+    showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: const PersonalEventBottomSheet(),
+      ),
+    ).then((created) {
+      if (created == true && mounted) {
+        context.read<DataService>().forceRefresh();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.personalEventCreated),
+          ),
+        );
+      }
+    });
+  }
+
+  void _showAttachmentOptions() {
+    final l10n = AppLocalizations.of(context)!;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primaryPurple),
+                title: Text(l10n.takePhoto),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromCamera();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined, color: AppColors.primaryPurple),
+                title: Text(l10n.chooseFromGallery),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromGallery();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primaryPurple),
+                title: Text(l10n.uploadPdf),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickPdf();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_note_outlined, color: AppColors.personalEvent),
+                title: Text(l10n.manualEntry),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAddPersonalEvent();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85,
+    );
+    if (image != null) await _processImage(File(image.path));
+  }
+
+  Future<void> _pickImageFromGallery() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85,
+    );
+    if (image != null) await _processImage(File(image.path));
+  }
+
+  Future<void> _pickPdf() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+    if (result != null && result.files.single.path != null) {
+      await _processPdf(File(result.files.single.path!));
+    }
+  }
+
+  Future<void> _processImage(File imageFile) async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isExtracting = true);
+    try {
+      final extracted = await StaffExtractionService.extractFromImage(imageFile);
+      if (!mounted) return;
+      if (extracted != null) {
+        _openPrefilledEventSheet(extracted);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.extractionFailed),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.extractionFailed),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExtracting = false);
+    }
+  }
+
+  Future<void> _processPdf(File pdfFile) async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isExtracting = true);
+    try {
+      final extracted = await StaffExtractionService.extractFromPdf(pdfFile);
+      if (!mounted) return;
+      if (extracted != null) {
+        _openPrefilledEventSheet(extracted);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.extractionFailed),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.extractionFailed),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isExtracting = false);
+    }
+  }
+
+  void _openPrefilledEventSheet(Map<String, dynamic> extracted) {
+    showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: PersonalEventBottomSheet(existingEvent: extracted),
+      ),
+    ).then((created) {
+      if (created == true && mounted) {
+        context.read<DataService>().forceRefresh();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.personalEventCreated),
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -638,6 +888,11 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                                         isEs ? '📅 Disponibilidad' : '📅 Availability',
                                         isEs ? 'Ayúdame a marcar mi disponibilidad' : 'Help me mark my availability',
                                       ),
+                                      const SizedBox(width: 6),
+                                      _buildActionChip(
+                                        isEs ? '📌 Trabajo independiente' : '📌 Independent job',
+                                        _showAddPersonalEvent,
+                                      ),
                                     ],
                                   );
                                 },
@@ -645,9 +900,32 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                             ),
                           ),
                         // Chat input
+                        if (_isExtracting)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  l10n.extractingData,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ChatInputWidget(
                           onSendMessage: _sendMessage,
-                          isLoading: _chatService.isLoading,
+                          isLoading: _chatService.isLoading || _isExtracting,
+                          onAttachmentTap: _showAttachmentOptions,
                         ),
                       ],
                     ),

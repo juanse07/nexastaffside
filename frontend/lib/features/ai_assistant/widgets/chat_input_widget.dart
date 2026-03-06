@@ -12,11 +12,13 @@ import '../services/audio_transcription_service.dart';
 class ChatInputWidget extends StatefulWidget {
   final Function(String) onSendMessage;
   final bool isLoading;
+  final VoidCallback? onAttachmentTap;
 
   const ChatInputWidget({
     super.key,
     required this.onSendMessage,
     this.isLoading = false,
+    this.onAttachmentTap,
   });
 
   @override
@@ -256,6 +258,18 @@ class _ChatInputWidgetState extends State<ChatInputWidget> with SingleTickerProv
                       horizontal: 16,
                       vertical: 6,
                     ),
+                    prefixIcon: widget.onAttachmentTap != null
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.add_circle_outline,
+                              color: Colors.grey.shade600,
+                              size: 24,
+                            ),
+                            onPressed: (widget.isLoading || _isRecording || _isTranscribing)
+                                ? null
+                                : widget.onAttachmentTap,
+                          )
+                        : null,
                   ),
                   onSubmitted: (_) => _sendMessage(),
                 ),

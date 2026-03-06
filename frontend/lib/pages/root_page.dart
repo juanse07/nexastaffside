@@ -20,6 +20,7 @@ import '../services/offline_service.dart';
 import '../services/sync_service.dart';
 import '../services/geofence_service.dart';
 import '../services/chat_service.dart';
+import '../services/commute_service.dart';
 import '../providers/terminology_provider.dart';
 import '../models/pending_clock_action.dart';
 import '../utils/id.dart';
@@ -40,6 +41,8 @@ import '../core/navigation/route_error_manager.dart';
 import '../services/subscription_service.dart';
 import '../shared/widgets/free_month_banner.dart';
 import '../shared/widgets/subscription_gate.dart';
+import '../shared/widgets/personal_event_bottom_sheet.dart';
+import '../shared/widgets/personal_event_detail_sheet.dart';
 import '../features/ai_assistant/presentation/subscription_paywall_screen.dart';
 
 enum _AccountMenuAction { profile, teams, upgradePro, logout }
@@ -3482,6 +3485,22 @@ class _RolesSectionState extends State<_RolesSection> {
     }
   }
 
+  void _showShiftInsights(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final todayStr = DateFormat.yMMMMd().format(DateTime.now());
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => MonthlyInsightsSheet(
+        focusedMonth: DateTime.now(),
+        customTitle: l10n.myShiftsInsights,
+        customPrompt: l10n.myShiftsAnalysisPrompt(todayStr),
+        loadingLabel: l10n.valerioAnalyzingShifts,
+      ),
+    );
+  }
+
   /// Handles scroll notifications from child scrollable widgets
   bool _onScrollNotification(ScrollNotification notification) {
     if (notification is ScrollUpdateNotification) {
@@ -3957,6 +3976,38 @@ class _RolesSectionState extends State<_RolesSection> {
                               ),
                             ),
                             const Spacer(),
+                            // Valerio button — fades in only on My Shifts tab
+                            AnimatedOpacity(
+                              opacity: _selectedView == _ViewMode.myEvents ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: IgnorePointer(
+                                ignoring: _selectedView != _ViewMode.myEvents,
+                                child: GestureDetector(
+                                  onTap: () => _showShiftInsights(context),
+                                  child: Container(
+                                    width: 30,
+                                    height: 30,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.15),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipOval(
+                                      child: Image.asset(
+                                        'assets/ai_assistant_logo.png',
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
                             widget.profileMenu,
                           ],
                         ),
@@ -4128,10 +4179,11 @@ class _RolesSectionState extends State<_RolesSection> {
           ),
         ),
 
-
+        // Personal event FAB removed — creation is inside Valerio AI assistant
       ],
     );
   }
+
 }
 
 class _MyEventsList extends StatefulWidget {
@@ -4166,10 +4218,43 @@ class _MyEventsListState extends State<_MyEventsList> {
   String? _currentVisibleWeek;
   bool _didInitializeWeeks = false;
 
+  // Home address for commute estimates
+  double? _homeLat;
+  double? _homeLng;
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _loadHomeAddress();
+  }
+
+  Future<void> _loadHomeAddress() async {
+    try {
+      final profile = await UserService.getMe();
+      if (!mounted) return;
+      if (profile.homeLat != null && profile.homeLng != null) {
+        setState(() {
+          _homeLat = profile.homeLat;
+          _homeLng = profile.homeLng;
+        });
+      }
+    } catch (_) {}
+  }
+
+  /// Triggers a background OSRM lookup for [venueAddress] if not cached.
+  /// Calls setState when result arrives so the card re-renders.
+  void _triggerCommute(String venueAddress) {
+    if (_homeLat == null || _homeLng == null) return;
+    if (CommuteService.isCached(venueAddress)) return;
+    if (CommuteService.isPending(venueAddress)) return;
+    CommuteService.commuteFromHome(
+      homeLat: _homeLat!,
+      homeLng: _homeLng!,
+      venueAddress: venueAddress,
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -4590,6 +4675,38 @@ class _MyEventsListState extends State<_MyEventsList> {
     );
   }
 
+  Widget _buildCommuteChip(String venueAddress, ThemeData theme) {
+    final cached = CommuteService.getCached(venueAddress);
+    final isPending = CommuteService.isPending(venueAddress);
+    // Hide if not yet attempted, or if geocoding definitively failed (null stored).
+    if (!isPending && (cached == null)) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      children: [
+        const Icon(Icons.directions_car_outlined, size: 13, color: Color(0xFF6B7280)),
+        const SizedBox(width: 5),
+        if (isPending && cached == null)
+          const SizedBox(
+            width: 10,
+            height: 10,
+            child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF9CA3AF)),
+          )
+        else if (cached != null)
+          Text(
+            '${cached.distanceMiles.toStringAsFixed(1)} mi · ${cached.durationMinutes} min each way · from home',
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 11,
+              color: const Color(0xFF6B7280),
+              fontStyle: FontStyle.italic,
+            ),
+          )
+        else
+          const SizedBox.shrink(),
+      ],
+    );
+  }
+
   Widget _buildEventCard(
     BuildContext context,
     ThemeData theme,
@@ -4600,6 +4717,12 @@ class _MyEventsListState extends State<_MyEventsList> {
     final clientName = e['client_name']?.toString() ?? '';
     final venue = e['venue_name']?.toString() ?? '';
     final venueAddress = e['venue_address']?.toString() ?? '';
+    // For personal events, location is stored in 'location' or 'venue_name', not 'venue_address'.
+    final commuteAddress = venueAddress.isNotEmpty
+        ? venueAddress
+        : (e['location']?.toString() ?? '');
+    // Trigger background OSRM lookup (no-op if already cached/pending)
+    if (commuteAddress.isNotEmpty) _triggerCommute(commuteAddress);
     final rawMaps = e['google_maps_url']?.toString() ?? '';
     final googleMapsUrl = rawMaps.isNotEmpty
         ? rawMaps
@@ -4624,9 +4747,10 @@ class _MyEventsListState extends State<_MyEventsList> {
       }
     }
 
-    // Check if event is private (invitation)
+    // Check if event is private (invitation) or personal
     final visibilityType = e['visibilityType']?.toString() ?? '';
     final isPrivate = visibilityType == 'private';
+    final isPersonal = e['type']?.toString() == 'personal';
 
     // Look up role-specific times — prefer role-level over event-level
     final rolesList = e['roles'] as List? ?? [];
@@ -4687,6 +4811,15 @@ class _MyEventsListState extends State<_MyEventsList> {
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () {
+                if (isPersonal) {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    isScrollControlled: true,
+                    builder: (_) => PersonalEventDetailSheet(event: e),
+                  );
+                  return;
+                }
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => EventDetailPage(
@@ -4711,55 +4844,106 @@ class _MyEventsListState extends State<_MyEventsList> {
                           height: 8,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: isConfirmed
+                              colors: isPersonal
                                   ? [
-                                      Colors.green.shade400,
-                                      Colors.green.shade600,
+                                      AppColors.personalEvent,
+                                      AppColors.personalEventDark,
                                     ]
-                                  : (isPrivate
+                                  : (isConfirmed
                                       ? [
-                                          AppColors.purple,
-                                          const Color(0xFF7E22CE),
+                                          Colors.green.shade400,
+                                          Colors.green.shade600,
                                         ]
-                                      : [
-                                          AppColors.purpleLight,
-                                          const Color(0xFFEC4899),
-                                        ]),
+                                      : (isPrivate
+                                          ? [
+                                              AppColors.purple,
+                                              const Color(0xFF7E22CE),
+                                            ]
+                                          : [
+                                              AppColors.purpleLight,
+                                              const Color(0xFFEC4899),
+                                            ])),
                             ),
                             shape: BoxShape.circle,
-                            boxShadow: isConfirmed
+                            boxShadow: isPersonal
                                 ? [
                                     BoxShadow(
-                                      color: Colors.green.withOpacity(0.5),
+                                      color: AppColors.personalEvent.withOpacity(0.5),
                                       blurRadius: 8,
                                       spreadRadius: 2,
                                     ),
                                   ]
-                                : (isPrivate
+                                : (isConfirmed
                                     ? [
                                         BoxShadow(
-                                          color: AppColors.purple.withOpacity(0.5),
+                                          color: Colors.green.withOpacity(0.5),
                                           blurRadius: 8,
                                           spreadRadius: 2,
                                         ),
                                       ]
-                                    : null),
+                                    : (isPrivate
+                                        ? [
+                                            BoxShadow(
+                                              color: AppColors.purple.withOpacity(0.5),
+                                              blurRadius: 8,
+                                              spreadRadius: 2,
+                                            ),
+                                          ]
+                                        : null)),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            (role != null && role.isNotEmpty)
-                                ? role
-                                : (clientName.isNotEmpty
-                                      ? clientName
-                                      : eventName),
+                            isPersonal
+                                ? ((role != null && role.isNotEmpty)
+                                    ? role
+                                    : eventName)
+                                : ((role != null && role.isNotEmpty)
+                                    ? role
+                                    : (clientName.isNotEmpty
+                                          ? clientName
+                                          : eventName)),
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
-                        if (isConfirmed)
+                        if (isPersonal)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.personalEventLight,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.personalEvent.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: AppColors.personalEvent,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  AppLocalizations.of(context)!.personalBadge,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: AppColors.personalEvent,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (isConfirmed)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -4811,6 +4995,31 @@ class _MyEventsListState extends State<_MyEventsList> {
                           ),
                       ],
                     ),
+                    // Personal event subtitle: title · client · pay
+                    if (isPersonal) ...[
+                      () {
+                        final pTitle = eventName;
+                        final pClient = e['personal_client']?.toString() ?? '';
+                        final pPay = e['personal_estimated_pay'];
+                        final parts = <String>[
+                          if (pTitle.isNotEmpty) pTitle,
+                          if (pClient.isNotEmpty) pClient,
+                          if (pPay != null && pPay > 0) '${e['personal_currency'] ?? '\$'}${(pPay as num).toStringAsFixed(0)}',
+                        ];
+                        if (parts.isEmpty) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 16),
+                          child: Text(
+                            parts.join(' · '),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.personalEvent.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        );
+                      }(),
+                    ],
                     if (venueAddress.isNotEmpty ||
                         googleMapsUrl.isNotEmpty ||
                         (venue.isNotEmpty &&
@@ -4916,11 +5125,13 @@ class _MyEventsListState extends State<_MyEventsList> {
                             Icon(
                               Icons.calendar_today,
                               size: 16,
-                              color: isConfirmed
-                                  ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
-                                  : (isPrivate
-                                      ? AppColors.purple // Purple for invitations
-                                      : Colors.blue.shade600), // Blue for available
+                              color: isPersonal
+                                  ? AppColors.personalEvent.withOpacity(0.7) // Coral for personal
+                                  : (isConfirmed
+                                      ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
+                                      : (isPrivate
+                                          ? AppColors.purple // Purple for invitations
+                                          : Colors.blue.shade600)), // Blue for available
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -4948,11 +5159,13 @@ class _MyEventsListState extends State<_MyEventsList> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isConfirmed
-                              ? Colors.green.shade50.withOpacity(0.5) // Soft green for confirmed
-                              : (isPrivate
-                                  ? const Color(0xFFF3E8FF) // Soft purple for invitations
-                                  : const Color(0xFFEEF2FF)), // Light blue for available
+                          color: isPersonal
+                              ? AppColors.personalEventLight.withOpacity(0.5) // Soft coral for personal
+                              : (isConfirmed
+                                  ? Colors.green.shade50.withOpacity(0.5) // Soft green for confirmed
+                                  : (isPrivate
+                                      ? const Color(0xFFF3E8FF) // Soft purple for invitations
+                                      : const Color(0xFFEEF2FF))), // Light blue for available
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
@@ -4960,11 +5173,13 @@ class _MyEventsListState extends State<_MyEventsList> {
                             Icon(
                               Icons.business,
                               size: 14,
-                              color: isConfirmed
-                                  ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
-                                  : (isPrivate
-                                      ? AppColors.purple // Purple for invitations
-                                      : Colors.blue.shade600), // Blue for available
+                              color: isPersonal
+                                  ? AppColors.personalEvent.withOpacity(0.7) // Coral for personal
+                                  : (isConfirmed
+                                      ? Colors.green.shade600.withOpacity(0.5) // Green for confirmed
+                                      : (isPrivate
+                                          ? AppColors.purple // Purple for invitations
+                                          : Colors.blue.shade600)), // Blue for available
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -4994,11 +5209,13 @@ class _MyEventsListState extends State<_MyEventsList> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: isConfirmed
-                                      ? Colors.green.shade100 // Green for confirmed
-                                      : (isPrivate
-                                          ? const Color(0xFFF3E8FF) // Purple for invitations
-                                          : Colors.blue.shade100), // Blue for available
+                                  color: isPersonal
+                                      ? AppColors.personalEventLight // Coral for personal
+                                      : (isConfirmed
+                                          ? Colors.green.shade100 // Green for confirmed
+                                          : (isPrivate
+                                              ? const Color(0xFFF3E8FF) // Purple for invitations
+                                              : Colors.blue.shade100)), // Blue for available
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -5006,11 +5223,13 @@ class _MyEventsListState extends State<_MyEventsList> {
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 12,
-                                    color: isConfirmed
-                                        ? Colors.green.shade700 // Green for confirmed
-                                        : (isPrivate
-                                            ? AppColors.purple // Purple for invitations
-                                            : Colors.blue.shade700), // Blue for available
+                                    color: isPersonal
+                                        ? AppColors.personalEvent // Coral for personal
+                                        : (isConfirmed
+                                            ? Colors.green.shade700 // Green for confirmed
+                                            : (isPrivate
+                                                ? AppColors.purple // Purple for invitations
+                                                : Colors.blue.shade700)), // Blue for available
                                   ),
                                 ),
                               ),
@@ -5018,6 +5237,11 @@ class _MyEventsListState extends State<_MyEventsList> {
                           ],
                         ),
                       ),
+                    ],
+                    // Commute chip — shown once OSRM result is cached
+                    if (_homeLat != null && commuteAddress.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      _buildCommuteChip(commuteAddress, theme),
                     ],
                   ],
                 ),
@@ -5036,9 +5260,11 @@ class _MyEventsListState extends State<_MyEventsList> {
             child: CustomPaint(
               size: const Size(40, 40),
               painter: _TrianglePainter(
-                color: isConfirmed
-                    ? Colors.green.shade100.withOpacity(0.6)
-                    : Colors.grey.shade100.withOpacity(0.6),
+                color: isPersonal
+                    ? AppColors.personalEventLight.withOpacity(0.6)
+                    : (isConfirmed
+                        ? Colors.green.shade100.withOpacity(0.6)
+                        : Colors.grey.shade100.withOpacity(0.6)),
               ),
             ),
           ),
@@ -6595,6 +6821,7 @@ class _CalendarTabState extends State<_CalendarTab> {
       builder: (ctx) => MonthlyInsightsSheet(focusedMonth: _focusedDay),
     );
   }
+
 
   Future<void> _showAvailabilityDialog(BuildContext context) async {
     if (_selectedDay == null) return;
