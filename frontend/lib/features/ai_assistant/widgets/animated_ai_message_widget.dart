@@ -575,17 +575,18 @@ class _AnimatedAiMessageWidgetState extends State<AnimatedAiMessageWidget>
               GestureDetector(
                 onTap: () => _openMaps(venueName),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      venueName,
-                      style: const TextStyle(
-                        color: AppColors.oceanBlue,
-                        fontSize: 15,
-                        height: 1.4,
-                        decoration: TextDecoration.underline,
-                        decorationColor: AppColors.oceanBlue,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Text(
+                        venueName,
+                        style: const TextStyle(
+                          color: AppColors.oceanBlue,
+                          fontSize: 15,
+                          height: 1.4,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.oceanBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 4),
