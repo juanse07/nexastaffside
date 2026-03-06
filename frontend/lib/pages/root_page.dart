@@ -3976,38 +3976,6 @@ class _RolesSectionState extends State<_RolesSection> {
                               ),
                             ),
                             const Spacer(),
-                            // Valerio button — fades in only on My Shifts tab
-                            AnimatedOpacity(
-                              opacity: _selectedView == _ViewMode.myEvents ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 200),
-                              child: IgnorePointer(
-                                ignoring: _selectedView != _ViewMode.myEvents,
-                                child: GestureDetector(
-                                  onTap: () => _showShiftInsights(context),
-                                  child: Container(
-                                    width: 30,
-                                    height: 30,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.15),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipOval(
-                                      child: Image.asset(
-                                        'assets/ai_assistant_logo.png',
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
                             widget.profileMenu,
                           ],
                         ),
@@ -4601,18 +4569,62 @@ class _MyEventsListState extends State<_MyEventsList> {
       final weekLabel = sortedKeys[i];
       final weekEvents = grouped[weekLabel]!;
 
-      // Add week header text
+      // Add week header text (first header gets the Valerio icon on the right)
       sections.add(
         SliverToBoxAdapter(
           child: Container(
-            padding: EdgeInsets.fromLTRB(20, i == 0 ? 12 : 24, 20, 8),
-            child: Text(
-              weekLabel,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: theme.colorScheme.onSurface,
-              ),
+            padding: EdgeInsets.fromLTRB(20, i == 0 ? 12 : 24, 16, 8),
+            child: Row(
+              children: [
+                Text(
+                  weekLabel,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                if (i == 0) ...[
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      final l10n = AppLocalizations.of(context)!;
+                      final todayStr = DateFormat.yMMMMd().format(DateTime.now());
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (ctx) => MonthlyInsightsSheet(
+                          focusedMonth: DateTime.now(),
+                          customTitle: l10n.myShiftsInsights,
+                          customPrompt: l10n.myShiftsAnalysisPrompt(todayStr),
+                          loadingLabel: l10n.valerioAnalyzingShifts,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/ai_assistant_logo.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
