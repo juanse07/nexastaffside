@@ -429,21 +429,25 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (beforeLink.isNotEmpty) _buildMarkdownText(beforeLink, isUser),
-        GestureDetector(
-          onTap: () => widget.onLinkTap?.call(linkText),
-          child: Text(
-            linkText,
-            style: TextStyle(
-              color: isUser ? Colors.white : AppColors.secondaryPurple,
-              fontSize: 15,
-              height: 1.4,
-              decoration: TextDecoration.underline,
-              fontWeight: FontWeight.w600,
+        if (beforeLink.isNotEmpty)
+          Flexible(fit: FlexFit.loose, child: _buildMarkdownText(beforeLink, isUser)),
+        Flexible(
+          child: GestureDetector(
+            onTap: () => widget.onLinkTap?.call(linkText),
+            child: Text(
+              linkText,
+              style: TextStyle(
+                color: isUser ? Colors.white : AppColors.secondaryPurple,
+                fontSize: 15,
+                height: 1.4,
+                decoration: TextDecoration.underline,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
-        if (afterLink.isNotEmpty) _buildMarkdownText(afterLink, isUser),
+        if (afterLink.isNotEmpty)
+          Flexible(fit: FlexFit.loose, child: _buildMarkdownText(afterLink, isUser)),
       ],
     );
   }
@@ -459,7 +463,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Prefix (e.g., "- Lugar:" or "- **Venue:**") - render with markdown
-          _buildMarkdownText(prefix, isUser),
+          Flexible(fit: FlexFit.loose, child: _buildMarkdownText(prefix, isUser)),
           const SizedBox(width: 4),
           // Clickable address
           Expanded(
