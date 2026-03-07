@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
@@ -3466,6 +3467,9 @@ class _RolesSectionState extends State<_RolesSection> {
   bool _didInitializeLabel = false;
   bool _showToggle = true; // Controls visibility of "hide unavailable dates" toggle
   double _lastScrollOffset = 0;
+  double _appBarHeight = 0.0; // Set in build() for use in scroll handler
+  double _appBarSlideOffset = 0.0; // 0 = fully visible, _appBarHeight*0.65 = mostly hidden
+  bool _collapseEnabled = false; // Only collapse when list has > 3 items
 
   @override
   void initState() {
@@ -3511,6 +3515,15 @@ class _RolesSectionState extends State<_RolesSection> {
 
       // Only trigger if scrolled more than 10 pixels to avoid jitter
       if ((currentOffset - _lastScrollOffset).abs() > 10) {
+        final targetSlide = (_collapseEnabled && scrollingDown && currentOffset > 50)
+            ? _appBarHeight * 0.60
+            : (scrollingUp || !_collapseEnabled)
+                ? 0.0
+                : _appBarSlideOffset;
+        if (targetSlide != _appBarSlideOffset) {
+          setState(() => _appBarSlideOffset = targetSlide);
+          HapticFeedback.selectionClick();
+        }
         if (scrollingDown && _showToggle && currentOffset > 50) {
           setState(() => _showToggle = false);
         } else if (scrollingUp && !_showToggle) {
@@ -3860,6 +3873,18 @@ class _RolesSectionState extends State<_RolesSection> {
     // Calculate header heights - account for safe area (notch/Dynamic Island)
     final double safeAreaTop = MediaQuery.of(context).padding.top;
     final double appBarHeight = safeAreaTop + 56.0; // Safe area + content height
+    _appBarHeight = appBarHeight; // Sync for scroll handler
+
+    // Enable collapse only when there are more than 3 items in the current view
+    final int _viewItemCount = _selectedView == _ViewMode.available
+        ? roleSummaries.length
+        : myEvents.length;
+    _collapseEnabled = _viewItemCount > 3;
+
+    // Fade AppBar content proportionally as it slides away
+    final double appBarContentOpacity = _appBarHeight > 0
+        ? (1.0 - (_appBarSlideOffset / (_appBarHeight * 0.60)).clamp(0.0, 1.0))
+        : 1.0;
     const double chipsHeight = 60.0;
     // toggleHeight removed — the filter icon is inline inside the chips row, not a separate row
     final double totalHeaderHeight = appBarHeight + chipsHeight;
@@ -3920,9 +3945,11 @@ class _RolesSectionState extends State<_RolesSection> {
           ),
         ),
 
-        // Floating transparent headers on top
-        Positioned(
-          top: 0,
+        // Floating transparent headers on top — AppBar slides away on scroll
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          top: -_appBarSlideOffset,
           left: 0,
           right: 0,
           child: Column(
@@ -3958,7 +3985,10 @@ class _RolesSectionState extends State<_RolesSection> {
                           right: 20,
                           bottom: 12,
                         ),
-                        child: Row(
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 220),
+                          opacity: appBarContentOpacity,
+                          child: Row(
                           children: [
                             Expanded(
                               child: GestureDetector(
@@ -3979,6 +4009,7 @@ class _RolesSectionState extends State<_RolesSection> {
                             const Spacer(),
                             widget.profileMenu,
                           ],
+                        ),
                         ),
                       ),
                     ),
@@ -4013,8 +4044,9 @@ class _RolesSectionState extends State<_RolesSection> {
                             onSelected: (selected) {
                               if (selected) setState(() {
                                 _selectedView = _ViewMode.available;
-                                _showToggle = true; // Reset toggle visibility
+                                _showToggle = true;
                                 _lastScrollOffset = 0;
+                                _appBarSlideOffset = 0.0;
                               });
                             },
                             backgroundColor: Colors.white.withOpacity(0.7),
@@ -4045,7 +4077,10 @@ class _RolesSectionState extends State<_RolesSection> {
                             ),
                             selected: _selectedView == _ViewMode.myEvents,
                             onSelected: (selected) {
-                              if (selected) setState(() => _selectedView = _ViewMode.myEvents);
+                              if (selected) setState(() {
+                                _selectedView = _ViewMode.myEvents;
+                                _appBarSlideOffset = 0.0;
+                              });
                             },
                             backgroundColor: Colors.white.withOpacity(0.7),
                             selectedColor: AppColors.primaryIndigo,
@@ -4075,7 +4110,10 @@ class _RolesSectionState extends State<_RolesSection> {
                             ),
                             selected: _selectedView == _ViewMode.calendar,
                             onSelected: (selected) {
-                              if (selected) setState(() => _selectedView = _ViewMode.calendar);
+                              if (selected) setState(() {
+                                _selectedView = _ViewMode.calendar;
+                                _appBarSlideOffset = 0.0;
+                              });
                             },
                             backgroundColor: Colors.white.withOpacity(0.7),
                             selectedColor: AppColors.primaryIndigo,
