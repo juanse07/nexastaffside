@@ -12,10 +12,17 @@ import '../presentation/theme/app_colors.dart';
 
 /// Bottom sheet for creating or editing a personal event.
 /// Pass [existingEvent] to pre-fill for editing.
+/// Pass [onLocalEdit] for local-only editing (bulk import preview) — Save
+/// button calls the callback with form data instead of hitting the API.
 class PersonalEventBottomSheet extends StatefulWidget {
   final Map<String, dynamic>? existingEvent;
+  final void Function(Map<String, dynamic> editedData)? onLocalEdit;
 
-  const PersonalEventBottomSheet({super.key, this.existingEvent});
+  const PersonalEventBottomSheet({
+    super.key,
+    this.existingEvent,
+    this.onLocalEdit,
+  });
 
   @override
   State<PersonalEventBottomSheet> createState() =>
@@ -24,7 +31,6 @@ class PersonalEventBottomSheet extends StatefulWidget {
 
 class _PersonalEventBottomSheetState extends State<PersonalEventBottomSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
   final _locationController = TextEditingController();
   final _notesController = TextEditingController();
   final _roleController = TextEditingController();
@@ -53,7 +59,6 @@ class _PersonalEventBottomSheetState extends State<PersonalEventBottomSheet> {
     _getUserLocation();
     if (widget.existingEvent != null) {
       final e = widget.existingEvent!;
-      _titleController.text = e['title'] ?? e['event_name'] ?? '';
       _locationController.text = e['location'] ?? e['venue_name'] ?? '';
       _notesController.text = e['notes'] ?? '';
       _roleController.text = e['personal_role'] ?? e['role'] ?? '';
@@ -101,7 +106,6 @@ class _PersonalEventBottomSheetState extends State<PersonalEventBottomSheet> {
   @override
   void dispose() {
     _placeDebounce?.cancel();
-    _titleController.dispose();
     _locationController.dispose();
     _notesController.dispose();
     _roleController.dispose();
@@ -180,6 +184,30 @@ class _PersonalEventBottomSheetState extends State<PersonalEventBottomSheet> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Local-edit mode: return form data without hitting API
+    if (widget.onLocalEdit != null) {
+      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      final rateVal = double.tryParse(_rateController.text.trim());
+      final formData = <String, dynamic>{
+        'date': dateStr,
+        'startTime': _formatTime(_startTime),
+        'endTime': _formatTime(_endTime),
+        if (_locationController.text.trim().isNotEmpty)
+          'location': _locationController.text.trim(),
+        if (_notesController.text.trim().isNotEmpty)
+          'notes': _notesController.text.trim(),
+        if (_roleController.text.trim().isNotEmpty)
+          'role': _roleController.text.trim(),
+        if (_clientController.text.trim().isNotEmpty)
+          'client': _clientController.text.trim(),
+        if (rateVal != null && rateVal > 0) 'hourlyRate': rateVal,
+      };
+      widget.onLocalEdit!(formData);
+      if (mounted) Navigator.pop(context, true);
+      return;
+    }
+
     setState(() => _saving = true);
 
     try {
@@ -192,7 +220,6 @@ class _PersonalEventBottomSheetState extends State<PersonalEventBottomSheet> {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
       final rateVal = double.tryParse(_rateController.text.trim());
       final body = jsonEncode({
-        'title': _titleController.text.trim(),
         'date': dateStr,
         'startTime': _formatTime(_startTime),
         'endTime': _formatTime(_endTime),
@@ -339,33 +366,6 @@ class _PersonalEventBottomSheetState extends State<PersonalEventBottomSheet> {
               key: _formKey,
               child: Column(
                 children: [
-                  // Title
-                  TextFormField(
-                    controller: _titleController,
-                    decoration: InputDecoration(
-                      labelText: l10n.personalEventTitle,
-                      hintText: l10n.personalEventTitleHint,
-                      filled: true,
-                      fillColor: AppColors.formFillLight,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: AppColors.personalEvent, width: 1.5),
-                      ),
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 16),
-
                   // Date picker
                   InkWell(
                     onTap: _pickDate,

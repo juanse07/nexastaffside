@@ -971,6 +971,46 @@
   "personalEventRequiresPro": "Los trabajos independientes requieren una suscripción Pro.",
   "personalEventDetails": "Detalles del Evento",
 
+  "@@ Bulk Import": {},
+  "bulkImport": "Importar en lote",
+  "bulkImportTitle": "Importar trabajos independientes",
+  "bulkImportSubtitle": "Selecciona PDFs o fotos.\nLa IA extraerá los detalles de cada archivo.",
+  "bulkImportMultiHint": "Importar múltiples trabajos de archivos",
+  "selectFiles": "Seleccionar archivos",
+  "addMoreFiles": "Agregar archivos",
+  "extractFiles": "Extraer {count} archivos",
+  "@extractFiles": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "extractingFiles": "Extrayendo datos...",
+  "eventsFoundAcrossFiles": "{count} trabajos en {fileCount} archivos",
+  "@eventsFoundAcrossFiles": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "fileCount": { "type": "int" }
+    }
+  },
+  "createNSelected": "Crear {count} seleccionados",
+  "@createNSelected": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "selectAll": "Seleccionar todo",
+  "deselectAll": "Deseleccionar todo",
+  "bulkImportComplete": "¡Importación completada!",
+  "nCreatedNFailed": "{created} creados, {failed} fallidos",
+  "@nCreatedNFailed": {
+    "placeholders": {
+      "created": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "viewSchedule": "Ver horario",
+  "importMore": "Importar más",
+  "noEventsFoundInFile": "No se encontraron trabajos",
+  "supportedFormats": "PDF, JPG, PNG, HEIC",
+  "reviewExtractedJobs": "Revisar trabajos extraídos",
+  "tapToEdit": "Toca para editar",
+
   "@@ Post-Onboarding Paywall": {},
   "continueWithFreeTrial": "Continuar con prueba gratuita de 7 días"
 }

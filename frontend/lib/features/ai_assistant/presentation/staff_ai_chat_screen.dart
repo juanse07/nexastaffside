@@ -23,6 +23,7 @@ import '../widgets/chat_input_widget.dart';
 import '../widgets/chat_message_widget.dart';
 import '../widgets/shift_action_card.dart';
 import 'subscription_paywall_screen.dart';
+import 'bulk_import_screen.dart';
 import '../../../shared/widgets/subscription_gate.dart';
 import '../../../shared/widgets/personal_event_bottom_sheet.dart';
 
@@ -320,12 +321,16 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
   String _getTimeOfDayGreeting() {
     final hour = DateTime.now().hour;
     String timeOfDay;
-    if (hour < 12) {
+    if (hour < 5) {
+      timeOfDay = 'tonight';
+    } else if (hour < 12) {
       timeOfDay = 'this morning';
     } else if (hour < 17) {
       timeOfDay = 'this afternoon';
-    } else {
+    } else if (hour < 21) {
       timeOfDay = 'this evening';
+    } else {
+      timeOfDay = 'tonight';
     }
     return 'How can I help you\n$timeOfDay?';
   }
@@ -466,6 +471,18 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                 },
               ),
               ListTile(
+                leading: const Icon(Icons.post_add_rounded, color: AppColors.personalEvent),
+                title: Text(l10n.bulkImport),
+                subtitle: Text(l10n.bulkImportMultiHint),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BulkImportScreen()),
+                  );
+                },
+              ),
+              ListTile(
                 leading: const Icon(Icons.edit_note_outlined, color: AppColors.personalEvent),
                 title: Text(l10n.manualEntry),
                 onTap: () {
@@ -516,10 +533,16 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _isExtracting = true);
     try {
-      final extracted = await StaffExtractionService.extractFromImage(imageFile);
+      // Try multi extraction first — handles both single and multi-event docs
+      final events = await StaffExtractionService.extractMultiFromImage(imageFile);
       if (!mounted) return;
-      if (extracted != null) {
-        _openPrefilledEventSheet(extracted);
+
+      if (events != null && events.isNotEmpty) {
+        if (events.length == 1) {
+          _openPrefilledEventSheet(events.first);
+        } else {
+          _openBulkPreview(imageFile, events);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -546,10 +569,16 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _isExtracting = true);
     try {
-      final extracted = await StaffExtractionService.extractFromPdf(pdfFile);
+      // Try multi extraction first — handles both single and multi-event docs
+      final events = await StaffExtractionService.extractMultiFromPdf(pdfFile);
       if (!mounted) return;
-      if (extracted != null) {
-        _openPrefilledEventSheet(extracted);
+
+      if (events != null && events.isNotEmpty) {
+        if (events.length == 1) {
+          _openPrefilledEventSheet(events.first);
+        } else {
+          _openBulkPreview(pdfFile, events);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -570,6 +599,23 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
     } finally {
       if (mounted) setState(() => _isExtracting = false);
     }
+  }
+
+  /// Navigate to bulk import preview when multi-event extraction found >1 event.
+  void _openBulkPreview(File file, List<Map<String, dynamic>> events) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BulkImportScreen.preloaded(
+          preloadedFile: file,
+          preloadedEvents: events,
+        ),
+      ),
+    ).then((_) {
+      if (mounted) {
+        context.read<DataService>().forceRefresh();
+      }
+    });
   }
 
   void _openPrefilledEventSheet(Map<String, dynamic> extracted) {
@@ -889,9 +935,9 @@ class _StaffAIChatScreenState extends State<StaffAIChatScreen> {
                                         isEs ? 'Ayúdame a marcar mi disponibilidad' : 'Help me mark my availability',
                                       ),
                                       const SizedBox(width: 6),
-                                      _buildActionChip(
+                                      _buildSuggestionChip(
                                         isEs ? '📌 Trabajo independiente' : '📌 Independent job',
-                                        _showAddPersonalEvent,
+                                        isEs ? 'Quiero registrar un trabajo independiente' : 'I want to add an independent job',
                                       ),
                                     ],
                                   );

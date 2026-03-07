@@ -971,6 +971,46 @@
   "personalEventRequiresPro": "Independent jobs require a Pro subscription.",
   "personalEventDetails": "Event Details",
 
+  "@@ Bulk Import": {},
+  "bulkImport": "Bulk Import",
+  "bulkImportTitle": "Import Independent Jobs",
+  "bulkImportSubtitle": "Select PDFs or photos.\nAI will extract job details from each file.",
+  "bulkImportMultiHint": "Import multiple jobs from files",
+  "selectFiles": "Select Files",
+  "addMoreFiles": "Add Files",
+  "extractFiles": "Extract {count} Files",
+  "@extractFiles": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "extractingFiles": "Extracting data...",
+  "eventsFoundAcrossFiles": "{count} jobs found across {fileCount} files",
+  "@eventsFoundAcrossFiles": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "fileCount": { "type": "int" }
+    }
+  },
+  "createNSelected": "Create {count} Selected",
+  "@createNSelected": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "selectAll": "Select All",
+  "deselectAll": "Deselect All",
+  "bulkImportComplete": "Import Complete!",
+  "nCreatedNFailed": "{created} created, {failed} failed",
+  "@nCreatedNFailed": {
+    "placeholders": {
+      "created": { "type": "int" },
+      "failed": { "type": "int" }
+    }
+  },
+  "viewSchedule": "View Schedule",
+  "importMore": "Import More",
+  "noEventsFoundInFile": "No jobs found in this file",
+  "supportedFormats": "PDF, JPG, PNG, HEIC",
+  "reviewExtractedJobs": "Review Extracted Jobs",
+  "tapToEdit": "Tap to edit",
+
   "@@ Post-Onboarding Paywall": {},
   "continueWithFreeTrial": "Continue with 7-Day Free Trial"
 }

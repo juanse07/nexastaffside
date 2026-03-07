@@ -1787,5 +1787,74 @@ class AppLocalizationsEs extends AppLocalizations {
   String get personalEventDetails => 'Detalles del Evento';
 
   @override
+  String get bulkImport => 'Importar en lote';
+
+  @override
+  String get bulkImportTitle => 'Importar trabajos independientes';
+
+  @override
+  String get bulkImportSubtitle =>
+      'Selecciona PDFs o fotos.\nLa IA extraerá los detalles de cada archivo.';
+
+  @override
+  String get bulkImportMultiHint => 'Importar múltiples trabajos de archivos';
+
+  @override
+  String get selectFiles => 'Seleccionar archivos';
+
+  @override
+  String get addMoreFiles => 'Agregar archivos';
+
+  @override
+  String extractFiles(int count) {
+    return 'Extraer $count archivos';
+  }
+
+  @override
+  String get extractingFiles => 'Extrayendo datos...';
+
+  @override
+  String eventsFoundAcrossFiles(int count, int fileCount) {
+    return '$count trabajos en $fileCount archivos';
+  }
+
+  @override
+  String createNSelected(int count) {
+    return 'Crear $count seleccionados';
+  }
+
+  @override
+  String get selectAll => 'Seleccionar todo';
+
+  @override
+  String get deselectAll => 'Deseleccionar todo';
+
+  @override
+  String get bulkImportComplete => '¡Importación completada!';
+
+  @override
+  String nCreatedNFailed(int created, int failed) {
+    return '$created creados, $failed fallidos';
+  }
+
+  @override
+  String get viewSchedule => 'Ver horario';
+
+  @override
+  String get importMore => 'Importar más';
+
+  @override
+  String get noEventsFoundInFile => 'No se encontraron trabajos';
+
+  @override
+  String get supportedFormats => 'PDF, JPG, PNG, HEIC';
+
+  @override
+  String get reviewExtractedJobs => 'Revisar trabajos extraídos';
+
+  @override
+  String get tapToEdit => 'Toca para editar';
+
+  @override
   String get continueWithFreeTrial => 'Continuar con prueba gratuita de 7 días';
 }

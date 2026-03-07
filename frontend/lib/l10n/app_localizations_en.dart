@@ -1773,5 +1773,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get personalEventDetails => 'Event Details';
 
   @override
+  String get bulkImport => 'Bulk Import';
+
+  @override
+  String get bulkImportTitle => 'Import Independent Jobs';
+
+  @override
+  String get bulkImportSubtitle =>
+      'Select PDFs or photos.\nAI will extract job details from each file.';
+
+  @override
+  String get bulkImportMultiHint => 'Import multiple jobs from files';
+
+  @override
+  String get selectFiles => 'Select Files';
+
+  @override
+  String get addMoreFiles => 'Add Files';
+
+  @override
+  String extractFiles(int count) {
+    return 'Extract $count Files';
+  }
+
+  @override
+  String get extractingFiles => 'Extracting data...';
+
+  @override
+  String eventsFoundAcrossFiles(int count, int fileCount) {
+    return '$count jobs found across $fileCount files';
+  }
+
+  @override
+  String createNSelected(int count) {
+    return 'Create $count Selected';
+  }
+
+  @override
+  String get selectAll => 'Select All';
+
+  @override
+  String get deselectAll => 'Deselect All';
+
+  @override
+  String get bulkImportComplete => 'Import Complete!';
+
+  @override
+  String nCreatedNFailed(int created, int failed) {
+    return '$created created, $failed failed';
+  }
+
+  @override
+  String get viewSchedule => 'View Schedule';
+
+  @override
+  String get importMore => 'Import More';
+
+  @override
+  String get noEventsFoundInFile => 'No jobs found in this file';
+
+  @override
+  String get supportedFormats => 'PDF, JPG, PNG, HEIC';
+
+  @override
+  String get reviewExtractedJobs => 'Review Extracted Jobs';
+
+  @override
+  String get tapToEdit => 'Tap to edit';
+
+  @override
   String get continueWithFreeTrial => 'Continue with 7-Day Free Trial';
 }

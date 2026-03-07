@@ -50,6 +50,76 @@ class StaffExtractionService {
     return _callExtractEndpoint(text, isImage: false);
   }
 
+  // ── Multi-event extraction (bulk import) ──
+
+  /// Process an image file → base64 → POST with multi=true
+  static Future<List<Map<String, dynamic>>?> extractMultiFromImage(File imageFile) async {
+    final bytes = await imageFile.readAsBytes();
+    final base64Input = base64Encode(bytes);
+    return _callExtractEndpointMulti(base64Input, isImage: true);
+  }
+
+  /// Process a PDF file → text → POST with multi=true
+  static Future<List<Map<String, dynamic>>?> extractMultiFromPdf(File pdfFile) async {
+    final bytes = await pdfFile.readAsBytes();
+    final document = PdfDocument(inputBytes: bytes);
+    final extractor = PdfTextExtractor(document);
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < document.pages.count; i++) {
+      final pageText = extractor.extractText(startPageIndex: i);
+      if (pageText.isNotEmpty) buffer.writeln(pageText);
+    }
+    document.dispose();
+
+    final text = buffer.toString().trim();
+    if (text.isEmpty) return null;
+
+    return _callExtractEndpointMulti(text, isImage: false);
+  }
+
+  /// Multi-event API call — sends multi=true and parses response as List.
+  static Future<List<Map<String, dynamic>>?> _callExtractEndpointMulti(
+    String input, {
+    bool isImage = false,
+  }) async {
+    final jwt = await AuthService.getJwt();
+    if (jwt == null) return null;
+
+    final url = Uri.parse('$_apiBaseUrl$_apiPathPrefix/ai/staff/extract');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $jwt',
+      },
+      body: jsonEncode({
+        'input': input,
+        'isImage': isImage,
+        'multi': true,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final extracted = data['extracted'];
+      if (extracted is List) {
+        return extracted.cast<Map<String, dynamic>>();
+      }
+      // Single object returned — wrap in list
+      if (extracted is Map<String, dynamic>) {
+        return [extracted];
+      }
+      return null;
+    }
+
+    print('[StaffExtractionService] Multi error ${response.statusCode}: ${response.body}');
+    return null;
+  }
+
+  // ── Single-event extraction (existing) ──
+
   /// Raw API call to the staff extraction endpoint.
   static Future<Map<String, dynamic>?> _callExtractEndpoint(
     String input, {

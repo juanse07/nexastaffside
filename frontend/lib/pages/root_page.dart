@@ -36,6 +36,7 @@ import 'conversations_page.dart';
 import '../l10n/app_localizations.dart';
 import '../shared/presentation/theme/theme.dart';
 import '../features/ai_assistant/presentation/staff_ai_chat_screen.dart';
+import '../features/ai_assistant/presentation/bulk_import_screen.dart';
 import '../features/ai_assistant/widgets/monthly_insights_sheet.dart';
 import '../core/navigation/route_error_manager.dart';
 import '../services/subscription_service.dart';
@@ -4281,11 +4282,11 @@ class _MyEventsListState extends State<_MyEventsList> {
 
   void _updateWeekGroups() {
     final mine = _filterMyAccepted();
-    _weekGroups = _groupEventsByWeek(mine);
+    final newGroups = _groupEventsByWeek(mine);
 
     // Sort week keys
     final preferredOrder = [AppLocalizations.of(context)!.thisWeek, AppLocalizations.of(context)!.nextWeek];
-    _weekKeys = _weekGroups.keys.toList()
+    final newKeys = newGroups.keys.toList()
       ..sort((a, b) {
         final aIndex = preferredOrder.indexOf(a);
         final bIndex = preferredOrder.indexOf(b);
@@ -4294,8 +4295,8 @@ class _MyEventsListState extends State<_MyEventsList> {
         if (bIndex != -1) return 1;
 
         // For date-based labels, parse and compare
-        final aEvents = _weekGroups[a]!;
-        final bEvents = _weekGroups[b]!;
+        final aEvents = newGroups[a]!;
+        final bEvents = newGroups[b]!;
         if (aEvents.isNotEmpty && bEvents.isNotEmpty) {
           final aDate = _parseDateSafe(aEvents.first['date']?.toString() ?? '');
           final bDate = _parseDateSafe(bEvents.first['date']?.toString() ?? '');
@@ -4305,6 +4306,11 @@ class _MyEventsListState extends State<_MyEventsList> {
         }
         return a.compareTo(b);
       });
+
+    setState(() {
+      _weekGroups = newGroups;
+      _weekKeys = newKeys;
+    });
 
     // Only set initial week label if not already set
     if (_weekKeys.isNotEmpty && _currentVisibleWeek == null) {
@@ -5668,24 +5674,124 @@ class _RoleList extends StatelessWidget {
         ? AppColors.purple.withOpacity(0.15)  // Purple shadow for private
         : AppColors.purpleLight.withOpacity(0.08);
 
-    return Stack(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: cardColor,
-            border: Border.all(
-              color: borderColor,
-              width: isPrivate ? 1.5 : 1,  // Thicker border for private
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: isPrivate ? 16 : 12,
-                offset: const Offset(0, 2),
+    final eventId = resolveEventId(e);
+
+    return _SwipeActionCard(
+      onAccept: () async {
+        if (SubscriptionService().isReadOnly) {
+          await showSubscriptionRequiredSheet(
+            context,
+            featureName: AppLocalizations.of(context)!.acceptShifts,
+          );
+          return;
+        }
+        if (eventId == null) return;
+        try {
+          final result = await AuthService.respondToEvent(
+            eventId: eventId,
+            response: 'accept',
+            role: (role?.trim().isEmpty == true) ? null : role,
+          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(result['success'] == true
+                  ? 'Shift accepted!'
+                  : result['message'] ?? 'Failed to accept shift'),
+              backgroundColor: result['success'] == true
+                  ? AppColors.success
+                  : Theme.of(context).colorScheme.error,
+            ));
+          }
+          if (result['success'] == true && context.mounted) {
+            await context.read<DataService>().invalidateEventsCache();
+            await context.read<DataService>().forceRefresh();
+          }
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to accept shift')));
+          }
+        }
+      },
+      onDecline: () async {
+        if (SubscriptionService().isReadOnly) {
+          await showSubscriptionRequiredSheet(
+            context,
+            featureName: AppLocalizations.of(context)!.declineShifts,
+          );
+          return;
+        }
+        if (eventId == null) return;
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Decline this shift?'),
+            content: const Text(
+                "We'll let the scheduling team know you can't make it."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Keep it'),
+              ),
+              FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.errorContainer,
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Decline'),
               ),
             ],
           ),
+        );
+        if (confirmed != true) return;
+        try {
+          final result = await AuthService.respondToEvent(
+            eventId: eventId,
+            response: 'decline',
+            role: (role?.trim().isEmpty == true) ? null : role,
+          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(result['success'] == true
+                  ? 'Shift declined'
+                  : result['message'] ?? 'Failed to decline shift'),
+              backgroundColor: result['success'] == true
+                  ? AppColors.warning
+                  : Theme.of(context).colorScheme.error,
+            ));
+          }
+          if (result['success'] == true && context.mounted) {
+            await context.read<DataService>().invalidateEventsCache();
+            await context.read<DataService>().forceRefresh();
+          }
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to decline shift')));
+          }
+        }
+      },
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: cardColor,
+              border: Border.all(
+                color: borderColor,
+                width: isPrivate ? 1.5 : 1,  // Thicker border for private
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: isPrivate ? 16 : 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
@@ -6053,11 +6159,218 @@ class _RoleList extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ],
+          ),
+        ],
+      ),  // child: Stack
+    );    // _SwipeActionCard
+  }
+}
+
+// ─── Swipe-to-action card (Available tab) ────────────────────────────────────
+
+enum _SwipeCardDirection { accept, decline }
+
+class _SwipeActionCard extends StatefulWidget {
+  final Widget child;
+  final Future<void> Function() onAccept;
+  final Future<void> Function() onDecline;
+
+  const _SwipeActionCard({
+    required this.child,
+    required this.onAccept,
+    required this.onDecline,
+  });
+
+  @override
+  State<_SwipeActionCard> createState() => _SwipeActionCardState();
+}
+
+class _SwipeActionCardState extends State<_SwipeActionCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  static const double _revealThreshold = 80.0;
+  static const double _openOffset = 110.0;
+
+  double _dragOffset = 0;
+  _SwipeCardDirection? _openDirection;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    // Initialise _animation to a safe default so it is never late-uninitialised.
+    _animation = Tween<double>(begin: 0, end: 0).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails d) {
+    if (_loading) return;
+    setState(() {
+      _dragOffset += d.delta.dx;
+      _dragOffset = _dragOffset.clamp(-_openOffset, _openOffset);
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails d) {
+    if (_loading) return;
+    if (_dragOffset.abs() >= _revealThreshold) {
+      final dir = _dragOffset > 0
+          ? _SwipeCardDirection.accept
+          : _SwipeCardDirection.decline;
+      _animateTo(_dragOffset > 0 ? _openOffset : -_openOffset);
+      setState(() => _openDirection = dir);
+    } else {
+      _close();
+    }
+  }
+
+  void _animateTo(double target) {
+    final start = _dragOffset;
+    _controller.reset();
+    _animation = Tween<double>(begin: start, end: target).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    )..addListener(() => setState(() => _dragOffset = _animation.value));
+    _controller.forward();
+  }
+
+  void _close() {
+    _animateTo(0);
+    setState(() => _openDirection = null);
+  }
+
+  Future<void> _handleTapAction(_SwipeCardDirection dir) async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      if (dir == _SwipeCardDirection.accept) {
+        await widget.onAccept();
+      } else {
+        await widget.onDecline();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+        _close();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onHorizontalDragUpdate: _onHorizontalDragUpdate,
+      onHorizontalDragEnd: _onHorizontalDragEnd,
+      onTap: _openDirection != null ? _close : null,
+      child: Stack(
+        children: [
+          // Accept background — visible when swiping right
+          if (_dragOffset > 0)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.success,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: 16),
+                child: _loading && _openDirection == _SwipeCardDirection.accept
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : GestureDetector(
+                        onTap: _openDirection != null
+                            ? () => _handleTapAction(_SwipeCardDirection.accept)
+                            : null,
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle_outline,
+                                color: Colors.white, size: 28),
+                            SizedBox(height: 4),
+                            Text(
+                              'Accept',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          // Decline background — visible when swiping left
+          if (_dragOffset < 0)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.shade400,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 16),
+                child: _loading && _openDirection == _SwipeCardDirection.decline
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : GestureDetector(
+                        onTap: _openDirection != null
+                            ? () =>
+                                _handleTapAction(_SwipeCardDirection.decline)
+                            : null,
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.cancel_outlined,
+                                color: Colors.white, size: 28),
+                            SizedBox(height: 4),
+                            Text(
+                              'Decline',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          // The card itself — slides horizontally
+          Transform.translate(
+            offset: Offset(_dragOffset, 0),
+            child: widget.child,
+          ),
+        ],
+      ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class RoleSummary {
   final String roleName;
@@ -6106,6 +6419,17 @@ class _CalendarTabState extends State<_CalendarTab> {
     super.initState();
     _selectedDay = DateTime.now();
     _selectedEvents = ValueNotifier(_getEventsForDay(_selectedDay!));
+  }
+
+  @override
+  void didUpdateWidget(covariant _CalendarTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.events != widget.events) {
+      // Refresh selected day events when data changes
+      if (_selectedDay != null) {
+        _selectedEvents.value = _getEventsForDay(_selectedDay!);
+      }
+    }
   }
 
   @override

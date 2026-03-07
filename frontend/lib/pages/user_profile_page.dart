@@ -331,7 +331,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   : Text(
                       l10n.save,
                       style: const TextStyle(
-                        color: AppColors.textSecondary,
+                        color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),

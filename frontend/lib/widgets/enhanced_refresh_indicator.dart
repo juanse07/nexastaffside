@@ -7,7 +7,7 @@ import '../services/data_service.dart';
 /// Enhanced refresh indicator with smart refresh logic and better UX
 class EnhancedRefreshIndicator extends StatelessWidget {
   final Widget child;
-  final VoidCallback? onRefresh;
+  final Future<void> Function()? onRefresh;
   final bool showLastRefreshTime;
   final Color? backgroundColor;
   final Color? color;
@@ -31,7 +31,7 @@ class EnhancedRefreshIndicator extends StatelessWidget {
 
             // Call custom onRefresh if provided, otherwise use DataService
             if (onRefresh != null) {
-              onRefresh!();
+              await onRefresh!();
             } else {
               await dataService.forceRefresh();
             }

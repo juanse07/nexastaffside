@@ -3344,6 +3344,126 @@ abstract class AppLocalizations {
   /// **'Event Details'**
   String get personalEventDetails;
 
+  /// No description provided for @bulkImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulk Import'**
+  String get bulkImport;
+
+  /// No description provided for @bulkImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Independent Jobs'**
+  String get bulkImportTitle;
+
+  /// No description provided for @bulkImportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select PDFs or photos.\nAI will extract job details from each file.'**
+  String get bulkImportSubtitle;
+
+  /// No description provided for @bulkImportMultiHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Import multiple jobs from files'**
+  String get bulkImportMultiHint;
+
+  /// No description provided for @selectFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Files'**
+  String get selectFiles;
+
+  /// No description provided for @addMoreFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Files'**
+  String get addMoreFiles;
+
+  /// No description provided for @extractFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Extract {count} Files'**
+  String extractFiles(int count);
+
+  /// No description provided for @extractingFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracting data...'**
+  String get extractingFiles;
+
+  /// No description provided for @eventsFoundAcrossFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} jobs found across {fileCount} files'**
+  String eventsFoundAcrossFiles(int count, int fileCount);
+
+  /// No description provided for @createNSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Create {count} Selected'**
+  String createNSelected(int count);
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select All'**
+  String get selectAll;
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect All'**
+  String get deselectAll;
+
+  /// No description provided for @bulkImportComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Complete!'**
+  String get bulkImportComplete;
+
+  /// No description provided for @nCreatedNFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{created} created, {failed} failed'**
+  String nCreatedNFailed(int created, int failed);
+
+  /// No description provided for @viewSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'View Schedule'**
+  String get viewSchedule;
+
+  /// No description provided for @importMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Import More'**
+  String get importMore;
+
+  /// No description provided for @noEventsFoundInFile.
+  ///
+  /// In en, this message translates to:
+  /// **'No jobs found in this file'**
+  String get noEventsFoundInFile;
+
+  /// No description provided for @supportedFormats.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF, JPG, PNG, HEIC'**
+  String get supportedFormats;
+
+  /// No description provided for @reviewExtractedJobs.
+  ///
+  /// In en, this message translates to:
+  /// **'Review Extracted Jobs'**
+  String get reviewExtractedJobs;
+
+  /// No description provided for @tapToEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to edit'**
+  String get tapToEdit;
+
   /// No description provided for @continueWithFreeTrial.
   ///
   /// In en, this message translates to:
