@@ -266,6 +266,21 @@ class BulkPersonalEventProvider extends ChangeNotifier {
     }
   }
 
+  /// Apply shared field values to all selected events.
+  /// Skips 'date' to preserve each event's individual date.
+  void applyBulkEdit(Map<String, dynamic> edits) {
+    final safeEdits = Map<String, dynamic>.from(edits)..remove('date');
+    for (final file in _files) {
+      for (final event in file.extractedEvents) {
+        if (!event.isSelected) continue;
+        for (final entry in safeEdits.entries) {
+          event.data[entry.key] = entry.value;
+        }
+      }
+    }
+    notifyListeners();
+  }
+
   // ── Phase 2: Create selected events ──
 
   Future<void> createSelectedEvents() async {
@@ -343,9 +358,6 @@ class BulkPersonalEventProvider extends ChangeNotifier {
   Map<String, dynamic> _sanitizePayload(Map<String, dynamic> raw) {
     final p = <String, dynamic>{};
 
-    // Title
-    p['title'] = raw['title'] ?? raw['event_name'] ?? 'Untitled Job';
-
     // Date
     final dateRaw = raw['date']?.toString();
     if (dateRaw != null && dateRaw.isNotEmpty) {
@@ -357,9 +369,9 @@ class BulkPersonalEventProvider extends ChangeNotifier {
       p['date'] = DateFormat('yyyy-MM-dd').format(DateTime.now());
     }
 
-    // Times — normalize HH:mm
-    p['startTime'] = _normalizeTime(raw['startTime'] ?? raw['start_time']);
-    p['endTime'] = _normalizeTime(raw['endTime'] ?? raw['end_time']);
+    // Times — normalize HH:mm, default to 9-5 when AI didn't extract times
+    p['startTime'] = _normalizeTime(raw['startTime'] ?? raw['start_time']) ?? '09:00';
+    p['endTime'] = _normalizeTime(raw['endTime'] ?? raw['end_time']) ?? '17:00';
 
     // Optional fields
     final loc = raw['location'] ?? raw['venue_name'];
@@ -380,6 +392,20 @@ class BulkPersonalEventProvider extends ChangeNotifier {
     final client = raw['client'] ?? raw['personal_client'];
     if (client != null && client.toString().trim().isNotEmpty) {
       p['client'] = client.toString().trim();
+    }
+
+    // Title — use extracted title, or build from role/client/location/date
+    final rawTitle = raw['title'] ?? raw['event_name'];
+    if (rawTitle != null && rawTitle.toString().trim().isNotEmpty) {
+      p['title'] = rawTitle.toString().trim();
+    } else {
+      final parts = <String>[
+        if (p['role'] != null) p['role'] as String,
+        if (p['client'] != null) '@ ${p['client']}',
+        if (p['role'] == null && p['client'] == null && p['location'] != null)
+          p['location'] as String,
+      ];
+      p['title'] = parts.isNotEmpty ? parts.join(' ') : p['date'] as String;
     }
 
     final rate = raw['hourlyRate'] ?? raw['hourly_rate'];

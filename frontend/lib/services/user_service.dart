@@ -52,6 +52,10 @@ class UserProfile {
   final String? homeAddress;
   final double? homeLat;
   final double? homeLng;
+  // Smart scheduling fields
+  final List<String> skills;
+  final List<Map<String, dynamic>> certifications;
+  final Map<String, dynamic>? workPreferences;
 
   UserProfile({
     this.id,
@@ -68,10 +72,15 @@ class UserProfile {
     this.homeAddress,
     this.homeLat,
     this.homeLng,
+    this.skills = const [],
+    this.certifications = const [],
+    this.workPreferences,
   });
 
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     final historyRaw = map['caricatureHistory'] as List<dynamic>? ?? [];
+    final skillsRaw = map['skills'] as List<dynamic>? ?? [];
+    final certsRaw = map['certifications'] as List<dynamic>? ?? [];
     return UserProfile(
       id: map['id']?.toString(),
       email: map['email']?.toString(),
@@ -89,6 +98,9 @@ class UserProfile {
       homeAddress: map['homeAddress']?.toString(),
       homeLat: (map['homeCoordinates']?['lat'] as num?)?.toDouble(),
       homeLng: (map['homeCoordinates']?['lng'] as num?)?.toDouble(),
+      skills: skillsRaw.map((e) => e.toString()).toList(),
+      certifications: certsRaw.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+      workPreferences: map['workPreferences'] as Map<String, dynamic>?,
     );
   }
 }
@@ -188,6 +200,9 @@ class UserService {
     String? homeAddress,
     double? homeLat,
     double? homeLng,
+    List<String>? skills,
+    List<Map<String, dynamic>>? certifications,
+    Map<String, dynamic>? workPreferences,
   }) async {
     final token = await _getJwt();
     if (token == null) {
@@ -209,6 +224,9 @@ class UserService {
     if (homeLat != null && homeLng != null) {
       payload['homeCoordinates'] = {'lat': homeLat, 'lng': homeLng};
     }
+    if (skills != null) payload['skills'] = skills;
+    if (certifications != null) payload['certifications'] = certifications;
+    if (workPreferences != null) payload['workPreferences'] = workPreferences;
 
     _log('Update payload: ${jsonEncode(payload)}');
 

@@ -110,6 +110,12 @@ abstract class AppLocalizations {
   /// **'Save'**
   String get save;
 
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
   /// No description provided for @firstName.
   ///
   /// In en, this message translates to:
@@ -3464,11 +3470,209 @@ abstract class AppLocalizations {
   /// **'Tap to edit'**
   String get tapToEdit;
 
+  /// No description provided for @editAllSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit All'**
+  String get editAllSelected;
+
+  /// No description provided for @bulkEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Selected Events'**
+  String get bulkEditTitle;
+
+  /// No description provided for @applyToSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to Selected'**
+  String get applyToSelected;
+
+  /// No description provided for @bulkEditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Only checked fields will be applied'**
+  String get bulkEditHint;
+
+  /// No description provided for @startTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Time'**
+  String get startTime;
+
+  /// No description provided for @endTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End Time'**
+  String get endTime;
+
+  /// No description provided for @location.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get location;
+
+  /// No description provided for @hourlyRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Hourly Rate'**
+  String get hourlyRate;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
   /// No description provided for @continueWithFreeTrial.
   ///
   /// In en, this message translates to:
   /// **'Continue with 7-Day Free Trial'**
   String get continueWithFreeTrial;
+
+  /// No description provided for @mySkills.
+  ///
+  /// In en, this message translates to:
+  /// **'My Skills'**
+  String get mySkills;
+
+  /// No description provided for @addSkill.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Skill'**
+  String get addSkill;
+
+  /// No description provided for @removeSkill.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Skill'**
+  String get removeSkill;
+
+  /// No description provided for @skills.
+  ///
+  /// In en, this message translates to:
+  /// **'Skills'**
+  String get skills;
+
+  /// No description provided for @myCertifications.
+  ///
+  /// In en, this message translates to:
+  /// **'My Certifications'**
+  String get myCertifications;
+
+  /// No description provided for @addCertification.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Certification'**
+  String get addCertification;
+
+  /// No description provided for @certificationName.
+  ///
+  /// In en, this message translates to:
+  /// **'Certification Name'**
+  String get certificationName;
+
+  /// No description provided for @issuedDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Issued Date'**
+  String get issuedDate;
+
+  /// No description provided for @expiryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiry Date'**
+  String get expiryDate;
+
+  /// No description provided for @certNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Certificate Number'**
+  String get certNumber;
+
+  /// No description provided for @expired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get expired;
+
+  /// No description provided for @expiringSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiring soon'**
+  String get expiringSoon;
+
+  /// No description provided for @valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid'**
+  String get valid;
+
+  /// No description provided for @noExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'No expiry'**
+  String get noExpiry;
+
+  /// No description provided for @workPreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Work Preferences'**
+  String get workPreferences;
+
+  /// No description provided for @preferredRoles.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Roles'**
+  String get preferredRoles;
+
+  /// No description provided for @maxHoursPerWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Hours/Week'**
+  String get maxHoursPerWeek;
+
+  /// No description provided for @travelRadius.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel Radius (miles)'**
+  String get travelRadius;
+
+  /// No description provided for @preferredDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Days'**
+  String get preferredDays;
+
+  /// No description provided for @preferredShifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Shifts'**
+  String get preferredShifts;
+
+  /// No description provided for @morning.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning'**
+  String get morning;
+
+  /// No description provided for @afternoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Afternoon'**
+  String get afternoon;
+
+  /// No description provided for @evening.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening'**
+  String get evening;
+
+  /// No description provided for @overnight.
+  ///
+  /// In en, this message translates to:
+  /// **'Overnight'**
+  String get overnight;
 }
 
 class _AppLocalizationsDelegate

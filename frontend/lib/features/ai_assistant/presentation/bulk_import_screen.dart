@@ -365,7 +365,7 @@ class _PreviewPhase extends StatelessWidget {
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
               const SizedBox(height: 8),
-              // Select all toggle
+              // Select all toggle + Edit All button
               Row(
                 children: [
                   GestureDetector(
@@ -395,6 +395,26 @@ class _PreviewPhase extends StatelessWidget {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: provider.selectedCount > 0
+                        ? () => _showBulkEditSheet(context, provider)
+                        : null,
+                    icon: const Icon(Icons.edit_note, size: 18),
+                    label: Text(l10n.editAllSelected),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.personalEvent,
+                      side: const BorderSide(color: AppColors.personalEvent),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      textStyle: const TextStyle(fontSize: 13),
                     ),
                   ),
                 ],
@@ -533,6 +553,26 @@ class _PreviewPhase extends StatelessWidget {
       ),
     );
   }
+
+  void _showBulkEditSheet(
+    BuildContext context,
+    BulkPersonalEventProvider provider,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: _BulkEditBottomSheet(
+          selectedCount: provider.selectedCount,
+          onApply: (edits) => provider.applyBulkEdit(edits),
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Phase 4: Creating ───
@@ -564,7 +604,7 @@ class _CreatingPhase extends StatelessWidget {
             itemCount: selected.length,
             itemBuilder: (context, index) {
               final e = selected[index];
-              final title = e.data['title'] ?? e.data['event_name'] ?? 'Untitled';
+              final title = _buildTitle(e.data);
 
               IconData icon;
               Color iconColor;
@@ -700,6 +740,459 @@ class _CompletePhase extends StatelessWidget {
   }
 }
 
+// ─── Bulk Edit Bottom Sheet ───
+
+class _BulkEditBottomSheet extends StatefulWidget {
+  final int selectedCount;
+  final void Function(Map<String, dynamic> edits) onApply;
+
+  const _BulkEditBottomSheet({
+    required this.selectedCount,
+    required this.onApply,
+  });
+
+  @override
+  State<_BulkEditBottomSheet> createState() => _BulkEditBottomSheetState();
+}
+
+class _BulkEditBottomSheetState extends State<_BulkEditBottomSheet> {
+  // Toggle states for each field
+  bool _useStartTime = false;
+  bool _useEndTime = false;
+  bool _useRole = false;
+  bool _useClient = false;
+  bool _useLocation = false;
+  bool _useRate = false;
+  bool _useNotes = false;
+
+  // Field values
+  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _endTime = const TimeOfDay(hour: 17, minute: 0);
+  final _roleController = TextEditingController();
+  final _clientController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _rateController = TextEditingController();
+  final _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _roleController.dispose();
+    _clientController.dispose();
+    _locationController.dispose();
+    _rateController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _pickTime(BuildContext context, bool isStart) async {
+    final initial = isStart ? _startTime : _endTime;
+    final picked = await showTimePicker(context: context, initialTime: initial);
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startTime = picked;
+          _useStartTime = true;
+        } else {
+          _endTime = picked;
+          _useEndTime = true;
+        }
+      });
+    }
+  }
+
+  void _apply() {
+    final edits = <String, dynamic>{};
+    if (_useStartTime) edits['startTime'] = _formatTime(_startTime);
+    if (_useEndTime) edits['endTime'] = _formatTime(_endTime);
+    if (_useRole && _roleController.text.trim().isNotEmpty) {
+      edits['role'] = _roleController.text.trim();
+    }
+    if (_useClient && _clientController.text.trim().isNotEmpty) {
+      edits['client'] = _clientController.text.trim();
+    }
+    if (_useLocation && _locationController.text.trim().isNotEmpty) {
+      edits['location'] = _locationController.text.trim();
+    }
+    if (_useRate && _rateController.text.trim().isNotEmpty) {
+      final rate = double.tryParse(_rateController.text.trim());
+      if (rate != null && rate > 0) edits['hourlyRate'] = rate;
+    }
+    if (_useNotes && _notesController.text.trim().isNotEmpty) {
+      edits['notes'] = _notesController.text.trim();
+    }
+
+    if (edits.isNotEmpty) {
+      widget.onApply(edits);
+    }
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                const Icon(Icons.edit_note,
+                    color: AppColors.personalEvent, size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.bulkEditTitle,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.personalEventLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${widget.selectedCount}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.personalEvent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                l10n.bulkEditHint,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+
+          // Scrollable fields
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                children: [
+                  // Start Time
+                  _ToggleFieldRow(
+                    checked: _useStartTime,
+                    onChecked: (v) => setState(() => _useStartTime = v),
+                    label: l10n.startTime,
+                    child: InkWell(
+                      onTap: () => _pickTime(context, true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.access_time,
+                                size: 16, color: Colors.grey.shade600),
+                            const SizedBox(width: 6),
+                            Text(
+                              _startTime.format(context),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // End Time
+                  _ToggleFieldRow(
+                    checked: _useEndTime,
+                    onChecked: (v) => setState(() => _useEndTime = v),
+                    label: l10n.endTime,
+                    child: InkWell(
+                      onTap: () => _pickTime(context, false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.access_time,
+                                size: 16, color: Colors.grey.shade600),
+                            const SizedBox(width: 6),
+                            Text(
+                              _endTime.format(context),
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Role
+                  _ToggleFieldRow(
+                    checked: _useRole,
+                    onChecked: (v) => setState(() => _useRole = v),
+                    label: l10n.role,
+                    child: Expanded(
+                      child: TextField(
+                        controller: _roleController,
+                        onTap: () => setState(() => _useRole = true),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Bartender',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+
+                  // Client
+                  _ToggleFieldRow(
+                    checked: _useClient,
+                    onChecked: (v) => setState(() => _useClient = v),
+                    label: l10n.client,
+                    child: Expanded(
+                      child: TextField(
+                        controller: _clientController,
+                        onTap: () => setState(() => _useClient = true),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Marriott',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+
+                  // Location
+                  _ToggleFieldRow(
+                    checked: _useLocation,
+                    onChecked: (v) => setState(() => _useLocation = v),
+                    label: l10n.location,
+                    child: Expanded(
+                      child: TextField(
+                        controller: _locationController,
+                        onTap: () => setState(() => _useLocation = true),
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Grand Ballroom',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+
+                  // Hourly Rate
+                  _ToggleFieldRow(
+                    checked: _useRate,
+                    onChecked: (v) => setState(() => _useRate = v),
+                    label: l10n.hourlyRate,
+                    child: SizedBox(
+                      width: 120,
+                      child: TextField(
+                        controller: _rateController,
+                        onTap: () => setState(() => _useRate = true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '\$/hr',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+
+                  // Notes
+                  _ToggleFieldRow(
+                    checked: _useNotes,
+                    onChecked: (v) => setState(() => _useNotes = v),
+                    label: l10n.notes,
+                    child: Expanded(
+                      child: TextField(
+                        controller: _notesController,
+                        onTap: () => setState(() => _useNotes = true),
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Bring black vest',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Apply button
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: _apply,
+                icon: const Icon(Icons.check, size: 20),
+                label: Text(
+                  '${l10n.applyToSelected} (${widget.selectedCount})',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.personalEvent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A row with a leading checkbox, a label, and a field widget.
+class _ToggleFieldRow extends StatelessWidget {
+  final bool checked;
+  final ValueChanged<bool> onChecked;
+  final String label;
+  final Widget child;
+
+  const _ToggleFieldRow({
+    required this.checked,
+    required this.onChecked,
+    required this.label,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: checked,
+              onChanged: (v) => onChecked(v ?? false),
+              activeColor: AppColors.personalEvent,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: checked ? AppColors.textDark : Colors.grey.shade500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Shared Widgets ───
 
 class _FileCard extends StatelessWidget {
@@ -820,6 +1313,25 @@ class _FileStatusCard extends StatelessWidget {
   }
 }
 
+/// Build a display title from extracted event data.
+/// Mirrors the backend logic: title → role @ client → location → date.
+String _buildTitle(Map<String, dynamic> data) {
+  final rawTitle = data['title'] ?? data['event_name'];
+  if (rawTitle != null && rawTitle.toString().trim().isNotEmpty) {
+    return rawTitle.toString().trim();
+  }
+  final role = (data['role'] ?? data['personal_role'])?.toString().trim() ?? '';
+  final client = (data['client'] ?? data['personal_client'])?.toString().trim() ?? '';
+  final location = (data['location'] ?? data['venue_name'])?.toString().trim() ?? '';
+  final parts = <String>[
+    if (role.isNotEmpty) role,
+    if (client.isNotEmpty) '@ $client',
+    if (role.isEmpty && client.isEmpty && location.isNotEmpty) location,
+  ];
+  if (parts.isNotEmpty) return parts.join(' ');
+  return data['date']?.toString() ?? 'Job';
+}
+
 class _ExtractedEventCard extends StatelessWidget {
   final BulkExtractedEvent event;
   final VoidCallback onToggle;
@@ -834,7 +1346,7 @@ class _ExtractedEventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = event.data;
-    final title = data['title'] ?? data['event_name'] ?? 'Untitled';
+    final title = _buildTitle(data);
     final date = data['date']?.toString() ?? '';
     final startTime = data['startTime'] ?? data['start_time'] ?? '';
     final endTime = data['endTime'] ?? data['end_time'] ?? '';

@@ -15,6 +15,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get save => 'Save';
 
   @override
+  String get add => 'Add';
+
+  @override
   String get firstName => 'First name';
 
   @override
@@ -1842,5 +1845,104 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapToEdit => 'Tap to edit';
 
   @override
+  String get editAllSelected => 'Edit All';
+
+  @override
+  String get bulkEditTitle => 'Edit Selected Events';
+
+  @override
+  String get applyToSelected => 'Apply to Selected';
+
+  @override
+  String get bulkEditHint => 'Only checked fields will be applied';
+
+  @override
+  String get startTime => 'Start Time';
+
+  @override
+  String get endTime => 'End Time';
+
+  @override
+  String get location => 'Location';
+
+  @override
+  String get hourlyRate => 'Hourly Rate';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
   String get continueWithFreeTrial => 'Continue with 7-Day Free Trial';
+
+  @override
+  String get mySkills => 'My Skills';
+
+  @override
+  String get addSkill => 'Add Skill';
+
+  @override
+  String get removeSkill => 'Remove Skill';
+
+  @override
+  String get skills => 'Skills';
+
+  @override
+  String get myCertifications => 'My Certifications';
+
+  @override
+  String get addCertification => 'Add Certification';
+
+  @override
+  String get certificationName => 'Certification Name';
+
+  @override
+  String get issuedDate => 'Issued Date';
+
+  @override
+  String get expiryDate => 'Expiry Date';
+
+  @override
+  String get certNumber => 'Certificate Number';
+
+  @override
+  String get expired => 'Expired';
+
+  @override
+  String get expiringSoon => 'Expiring soon';
+
+  @override
+  String get valid => 'Valid';
+
+  @override
+  String get noExpiry => 'No expiry';
+
+  @override
+  String get workPreferences => 'Work Preferences';
+
+  @override
+  String get preferredRoles => 'Preferred Roles';
+
+  @override
+  String get maxHoursPerWeek => 'Max Hours/Week';
+
+  @override
+  String get travelRadius => 'Travel Radius (miles)';
+
+  @override
+  String get preferredDays => 'Preferred Days';
+
+  @override
+  String get preferredShifts => 'Preferred Shifts';
+
+  @override
+  String get morning => 'Morning';
+
+  @override
+  String get afternoon => 'Afternoon';
+
+  @override
+  String get evening => 'Evening';
+
+  @override
+  String get overnight => 'Overnight';
 }

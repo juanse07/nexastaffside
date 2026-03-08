@@ -15,6 +15,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get save => 'Guardar';
 
   @override
+  String get add => 'Agregar';
+
+  @override
   String get firstName => 'Nombre';
 
   @override
@@ -1856,5 +1859,104 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tapToEdit => 'Toca para editar';
 
   @override
+  String get editAllSelected => 'Editar todos';
+
+  @override
+  String get bulkEditTitle => 'Editar eventos seleccionados';
+
+  @override
+  String get applyToSelected => 'Aplicar a seleccionados';
+
+  @override
+  String get bulkEditHint => 'Solo los campos marcados se aplicarán';
+
+  @override
+  String get startTime => 'Hora de inicio';
+
+  @override
+  String get endTime => 'Hora de fin';
+
+  @override
+  String get location => 'Ubicación';
+
+  @override
+  String get hourlyRate => 'Tarifa por hora';
+
+  @override
+  String get notes => 'Notas';
+
+  @override
   String get continueWithFreeTrial => 'Continuar con prueba gratuita de 7 días';
+
+  @override
+  String get mySkills => 'Mis Habilidades';
+
+  @override
+  String get addSkill => 'Agregar habilidad';
+
+  @override
+  String get removeSkill => 'Eliminar habilidad';
+
+  @override
+  String get skills => 'Habilidades';
+
+  @override
+  String get myCertifications => 'Mis Certificaciones';
+
+  @override
+  String get addCertification => 'Agregar certificación';
+
+  @override
+  String get certificationName => 'Nombre de certificación';
+
+  @override
+  String get issuedDate => 'Fecha de emisión';
+
+  @override
+  String get expiryDate => 'Fecha de vencimiento';
+
+  @override
+  String get certNumber => 'Número de certificado';
+
+  @override
+  String get expired => 'Vencido';
+
+  @override
+  String get expiringSoon => 'Por vencer';
+
+  @override
+  String get valid => 'Vigente';
+
+  @override
+  String get noExpiry => 'Sin vencimiento';
+
+  @override
+  String get workPreferences => 'Preferencias de trabajo';
+
+  @override
+  String get preferredRoles => 'Roles preferidos';
+
+  @override
+  String get maxHoursPerWeek => 'Máx. horas/semana';
+
+  @override
+  String get travelRadius => 'Radio de viaje (millas)';
+
+  @override
+  String get preferredDays => 'Días preferidos';
+
+  @override
+  String get preferredShifts => 'Turnos preferidos';
+
+  @override
+  String get morning => 'Mañana';
+
+  @override
+  String get afternoon => 'Tarde';
+
+  @override
+  String get evening => 'Noche';
+
+  @override
+  String get overnight => 'Madrugada';
 }

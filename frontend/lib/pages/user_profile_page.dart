@@ -48,6 +48,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
   String? _originalPicture;
   List<CaricatureHistoryItem> _caricatureHistory = [];
 
+  // Smart scheduling fields
+  List<String> _skills = [];
+  List<Map<String, dynamic>> _certifications = [];
+  Map<String, dynamic>? _workPreferences;
+  bool _savingSchedulingData = false;
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +74,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
         _homeLng = me.homeLng;
         _originalPicture = me.originalPicture;
         _caricatureHistory = me.caricatureHistory;
+        _skills = List<String>.from(me.skills);
+        _certifications = List<Map<String, dynamic>>.from(me.certifications);
+        _workPreferences = me.workPreferences != null
+            ? Map<String, dynamic>.from(me.workPreferences!)
+            : null;
         _loading = false;
       });
     } catch (e) {
@@ -366,6 +377,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   _buildFormCard(l10n),
                   const SizedBox(height: 16),
                   _buildHomeAddressCard(l10n),
+                  const SizedBox(height: 16),
+                  _buildSkillsCard(l10n),
+                  const SizedBox(height: 16),
+                  _buildCertificationsCard(l10n),
+                  const SizedBox(height: 16),
+                  _buildWorkPreferencesCard(l10n),
                   const SizedBox(height: 16),
                   _buildTerminologySettings(context),
                   const SizedBox(height: 16),
@@ -736,6 +753,803 @@ class _UserProfilePageState extends State<UserProfilePage> {
         ],
       ),
     );
+  }
+
+  // ─── Skills ────────────────────────────────────────────────────────────────
+
+  Widget _buildSkillsCard(AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.psychology_outlined, size: 18, color: AppColors.yellow),
+                const SizedBox(width: 8),
+                Text(l10n.mySkills, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _showSkillPicker,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.yellow.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.add, size: 20, color: AppColors.yellow),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _skills.isEmpty
+                ? Text('Tap + to add your skills', style: TextStyle(fontSize: 14, color: Colors.grey.shade500))
+                : Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _skills.map((skill) => Chip(
+                      label: Text(
+                        _titleCase(skill),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                      deleteIcon: const Icon(Icons.close, size: 16),
+                      onDeleted: () => _removeSkill(skill),
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: AppColors.yellow.withOpacity(0.15),
+                    )).toList(),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static const _skillCategories = <String, (IconData, List<String>)>{
+    'Hospitality': (Icons.local_bar, ['Bartending', 'Mixology', 'Wine Service', 'Beer Knowledge', 'Barista', 'Table Service', 'Fine Dining', 'Banquet Service', 'Buffet Setup', 'Host/Hostess']),
+    'Kitchen': (Icons.restaurant, ['Line Cook', 'Prep Cook', 'Pastry', 'Grill', 'Sauté', 'Food Plating', 'Catering', 'Kitchen Management', 'Baking', 'Food Styling']),
+    'Events': (Icons.celebration, ['DJ', 'Sound & Lighting', 'Photography', 'Videography', 'Event Setup', 'Stage Management', 'Floral Arrangement', 'Decoration', 'MC/Emcee', 'Coat Check']),
+    'Childcare': (Icons.child_care, ['Infant Care', 'Toddler Care', 'Child Development', 'Tutoring', 'Activity Planning', 'Special Needs Care', 'Newborn Care', 'Homework Help']),
+    'Construction': (Icons.construction, ['Carpentry', 'Plumbing', 'Electrical', 'Painting', 'Drywall', 'Concrete', 'Welding', 'HVAC', 'Roofing', 'Demolition']),
+    'Healthcare': (Icons.medical_services, ['Patient Care', 'Vital Signs', 'Wound Care', 'Medication Admin', 'Phlebotomy', 'Physical Therapy', 'Elder Care', 'Home Health']),
+    'General': (Icons.work, ['Customer Service', 'Cash Handling', 'POS Systems', 'Inventory', 'Cleaning', 'Driving', 'Security', 'Warehouse', 'Forklift', 'Data Entry']),
+  };
+
+  Future<void> _showSkillPicker() async {
+    final l10n = AppLocalizations.of(context)!;
+    final existing = _skills.map((s) => s.toLowerCase()).toSet();
+    final selected = <String>{};
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        var searchQuery = '';
+        var activeCategory = 'All';
+
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            // Filter skills based on search + category
+            final entries = <MapEntry<String, List<String>>>[];
+            for (final cat in _skillCategories.entries) {
+              final filtered = cat.value.$2.where((s) {
+                if (activeCategory != 'All' && cat.key != activeCategory) return false;
+                if (searchQuery.isNotEmpty) return s.toLowerCase().contains(searchQuery.toLowerCase());
+                return true;
+              }).toList();
+              if (filtered.isNotEmpty) entries.add(MapEntry(cat.key, filtered));
+            }
+
+            return Container(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.85),
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceWhite,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
+                    child: Row(
+                      children: [
+                        Text(l10n.addSkill, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                        const Spacer(),
+                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                  ),
+                  // Search bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search skills...',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                      ),
+                      onChanged: (v) => setSheetState(() => searchQuery = v),
+                    ),
+                  ),
+                  // Category chips
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text('All', style: TextStyle(color: activeCategory == 'All' ? Colors.white : AppColors.textSecondary, fontSize: 13)),
+                            selected: activeCategory == 'All',
+                            selectedColor: AppColors.primaryPurple,
+                            side: const BorderSide(color: AppColors.border),
+                            onSelected: (_) => setSheetState(() => activeCategory = 'All'),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        ..._skillCategories.entries.map((cat) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            avatar: Icon(cat.value.$1, size: 16, color: activeCategory == cat.key ? Colors.white : AppColors.textMuted),
+                            label: Text(cat.key, style: TextStyle(color: activeCategory == cat.key ? Colors.white : AppColors.textSecondary, fontSize: 13)),
+                            selected: activeCategory == cat.key,
+                            selectedColor: AppColors.primaryPurple,
+                            side: const BorderSide(color: AppColors.border),
+                            onSelected: (_) => setSheetState(() => activeCategory = cat.key),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // Suggestion chips
+                  Flexible(
+                    child: entries.isEmpty
+                      ? Center(child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text('No skills match "$searchQuery"', style: TextStyle(color: Colors.grey.shade500)),
+                        ))
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: entries.expand((entry) => [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 6),
+                              child: Text(entry.key, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryPurple.withValues(alpha: 0.7))),
+                            ),
+                            Wrap(
+                              spacing: 8, runSpacing: 8,
+                              children: entry.value.map((skill) {
+                                final isExisting = existing.contains(skill.toLowerCase());
+                                final isSelected = selected.contains(skill.toLowerCase());
+                                final isActive = isExisting || isSelected;
+                                return FilterChip(
+                                  label: Text(skill, style: TextStyle(fontSize: 13, color: isExisting ? Colors.grey : isSelected ? Colors.white : AppColors.textSecondary)),
+                                  selected: isActive,
+                                  selectedColor: isExisting ? Colors.grey.shade200 : AppColors.primaryPurple,
+                                  checkmarkColor: isExisting ? Colors.grey : AppColors.primaryIndigo,
+                                  onSelected: isExisting ? null : (val) => setSheetState(() {
+                                    val ? selected.add(skill.toLowerCase()) : selected.remove(skill.toLowerCase());
+                                  }),
+                                  visualDensity: VisualDensity.compact,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: BorderSide(color: isActive ? (isExisting ? Colors.grey.shade300 : AppColors.primaryPurple) : AppColors.border),
+                                );
+                              }).toList(),
+                            ),
+                          ]).toList(),
+                        ),
+                  ),
+                  // Custom input + Done
+                  Container(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(ctx).viewInsets.bottom + MediaQuery.of(ctx).padding.bottom + 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                textCapitalization: TextCapitalization.words,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter custom skill...',
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+                                  isDense: true,
+                                ),
+                                onSubmitted: (v) {
+                                  final trimmed = v.trim();
+                                  if (trimmed.isNotEmpty && !existing.contains(trimmed.toLowerCase()) && !selected.contains(trimmed.toLowerCase())) {
+                                    setSheetState(() => selected.add(trimmed.toLowerCase()));
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryPurple,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(selected.isEmpty ? l10n.cancel : 'Done (${selected.length} selected)'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (selected.isNotEmpty) {
+      setState(() => _skills = [..._skills, ...selected]);
+      await _saveSchedulingData();
+    }
+  }
+
+  void _removeSkill(String skill) {
+    setState(() => _skills = _skills.where((s) => s != skill).toList());
+    _saveSchedulingData();
+  }
+
+  // ─── Certifications ───────────────────────────────────────────────────────
+
+  Widget _buildCertificationsCard(AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_outlined, size: 18, color: AppColors.yellow),
+                const SizedBox(width: 8),
+                Text(l10n.myCertifications, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _showCertPicker,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.yellow.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.add, size: 20, color: AppColors.yellow),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_certifications.isEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text('Add your certifications', style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
+            )
+          else
+            ..._certifications.asMap().entries.map((entry) {
+              final index = entry.key;
+              final cert = entry.value;
+              final name = cert['name']?.toString() ?? '';
+              final expiryStr = cert['expiryDate']?.toString();
+              final expiry = expiryStr != null ? DateTime.tryParse(expiryStr) : null;
+              final now = DateTime.now();
+
+              Color statusColor = Colors.green;
+              String statusText = l10n.valid;
+              if (expiry != null) {
+                if (expiry.isBefore(now)) {
+                  statusColor = Colors.red;
+                  statusText = l10n.expired;
+                } else if (expiry.isBefore(now.add(const Duration(days: 30)))) {
+                  statusColor = Colors.orange;
+                  statusText = l10n.expiringSoon;
+                }
+              } else {
+                statusText = l10n.noExpiry;
+              }
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(Icons.verified, size: 18, color: statusColor),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                          if (cert['certNumber'] != null && (cert['certNumber'] as String).isNotEmpty)
+                            Text('#${cert['certNumber']}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          if (expiry != null)
+                            Text('Exp: ${expiry.month}/${expiry.day}/${expiry.year}',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(statusText, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: statusColor)),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _certifications = [..._certifications]..removeAt(index));
+                        _saveSchedulingData();
+                      },
+                      child: Icon(Icons.close, size: 16, color: Colors.grey.shade400),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          if (_certifications.isNotEmpty) const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  static const _certCategories = <String, (IconData, List<String>)>{
+    'Food & Beverage': (Icons.restaurant_menu, ['TIPS', 'ServSafe Food Handler', 'ServSafe Manager', 'Alcohol Server (ABC)', "Food Handler's Card", 'Allergen Awareness']),
+    'Safety': (Icons.health_and_safety, ['CPR / First Aid', 'AED Certified', 'OSHA 10-Hour', 'OSHA 30-Hour', 'Fire Safety', 'Bloodborne Pathogens']),
+    'Childcare': (Icons.child_care, ['Child CPR', 'Mandated Reporter', 'Pediatric First Aid', 'Child Development Associate (CDA)', 'Background Check (cleared)']),
+    'Construction': (Icons.construction, ['Forklift Operator', 'Scaffolding Safety', 'Confined Space', 'Fall Protection', 'Rigging & Signaling']),
+    'Healthcare': (Icons.medical_services, ['CNA', 'BLS (Basic Life Support)', 'ACLS', 'Phlebotomy', 'Home Health Aide (HHA)', 'Medical Assistant']),
+    'Driving': (Icons.directions_car, ['Commercial Driver (CDL)', 'Passenger Endorsement', 'Chauffeur License', 'Clean Driving Record']),
+  };
+
+  Future<void> _showCertPicker() async {
+    final l10n = AppLocalizations.of(context)!;
+    final existingNames = _certifications.map((c) => (c['name'] as String?)?.toLowerCase() ?? '').toSet();
+    final newCerts = <Map<String, dynamic>>[];
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        var searchQuery = '';
+        var activeCategory = 'All';
+        final selectedNames = <String>{};
+        // For each selected cert, track optional expiry
+        final expiryDates = <String, DateTime?>{};
+
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final entries = <MapEntry<String, List<String>>>[];
+            for (final cat in _certCategories.entries) {
+              final filtered = cat.value.$2.where((c) {
+                if (activeCategory != 'All' && cat.key != activeCategory) return false;
+                if (searchQuery.isNotEmpty) return c.toLowerCase().contains(searchQuery.toLowerCase());
+                return true;
+              }).toList();
+              if (filtered.isNotEmpty) entries.add(MapEntry(cat.key, filtered));
+            }
+
+            return Container(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.85),
+              decoration: const BoxDecoration(
+                color: AppColors.surfaceWhite,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
+                    child: Row(
+                      children: [
+                        Text(l10n.addCertification, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                        const Spacer(),
+                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search certifications...',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        filled: true, fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+                      ),
+                      onChanged: (v) => setSheetState(() => searchQuery = v),
+                    ),
+                  ),
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text('All', style: TextStyle(color: activeCategory == 'All' ? Colors.white : AppColors.textSecondary, fontSize: 13)),
+                            selected: activeCategory == 'All',
+                            selectedColor: AppColors.primaryPurple,
+                            side: const BorderSide(color: AppColors.border),
+                            onSelected: (_) => setSheetState(() => activeCategory = 'All'),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        ..._certCategories.entries.map((cat) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            avatar: Icon(cat.value.$1, size: 16, color: activeCategory == cat.key ? Colors.white : AppColors.textMuted),
+                            label: Text(cat.key, style: TextStyle(color: activeCategory == cat.key ? Colors.white : AppColors.textSecondary, fontSize: 13)),
+                            selected: activeCategory == cat.key,
+                            selectedColor: AppColors.primaryPurple,
+                            side: const BorderSide(color: AppColors.border),
+                            onSelected: (_) => setSheetState(() => activeCategory = cat.key),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: entries.isEmpty
+                      ? Center(child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text('No certifications match "$searchQuery"', style: TextStyle(color: Colors.grey.shade500)),
+                        ))
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          children: entries.expand((entry) => [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 6),
+                              child: Text(entry.key, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryPurple.withValues(alpha: 0.7))),
+                            ),
+                            Wrap(
+                              spacing: 8, runSpacing: 8,
+                              children: entry.value.map((cert) {
+                                final isExisting = existingNames.contains(cert.toLowerCase());
+                                final isSelected = selectedNames.contains(cert);
+                                final isActive = isExisting || isSelected;
+                                return FilterChip(
+                                  label: Text(cert, style: TextStyle(fontSize: 13, color: isExisting ? Colors.grey : isSelected ? Colors.white : AppColors.textSecondary)),
+                                  selected: isActive,
+                                  selectedColor: isExisting ? Colors.grey.shade200 : AppColors.primaryPurple,
+                                  checkmarkColor: isExisting ? Colors.grey : AppColors.primaryIndigo,
+                                  onSelected: isExisting ? null : (val) async {
+                                    if (val) {
+                                      final expiry = await showDatePicker(
+                                        context: ctx,
+                                        initialDate: DateTime.now().add(const Duration(days: 365)),
+                                        firstDate: DateTime(2020),
+                                        lastDate: DateTime(2040),
+                                        helpText: '${l10n.expiryDate} (cancel to skip)',
+                                      );
+                                      setSheetState(() {
+                                        selectedNames.add(cert);
+                                        expiryDates[cert] = expiry;
+                                      });
+                                    } else {
+                                      setSheetState(() {
+                                        selectedNames.remove(cert);
+                                        expiryDates.remove(cert);
+                                      });
+                                    }
+                                  },
+                                  visualDensity: VisualDensity.compact,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: BorderSide(color: isActive ? (isExisting ? Colors.grey.shade300 : AppColors.primaryPurple) : AppColors.border),
+                                );
+                              }).toList(),
+                            ),
+                          ]).toList(),
+                        ),
+                  ),
+                  // Custom input + Done
+                  Container(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(ctx).viewInsets.bottom + MediaQuery.of(ctx).padding.bottom + 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                textCapitalization: TextCapitalization.words,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter custom certification...',
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.border)),
+                                  isDense: true,
+                                ),
+                                onSubmitted: (v) async {
+                                  final trimmed = v.trim();
+                                  if (trimmed.isNotEmpty && !existingNames.contains(trimmed.toLowerCase()) && !selectedNames.contains(trimmed)) {
+                                    final expiry = await showDatePicker(
+                                      context: ctx,
+                                      initialDate: DateTime.now().add(const Duration(days: 365)),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2040),
+                                      helpText: '${l10n.expiryDate} (cancel to skip)',
+                                    );
+                                    setSheetState(() {
+                                      selectedNames.add(trimmed);
+                                      expiryDates[trimmed] = expiry;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              for (final name in selectedNames) {
+                                final map = <String, dynamic>{'name': name};
+                                if (expiryDates[name] != null) {
+                                  map['expiryDate'] = expiryDates[name]!.toUtc().toIso8601String();
+                                }
+                                newCerts.add(map);
+                              }
+                              Navigator.pop(ctx);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryPurple,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(selectedNames.isEmpty ? l10n.cancel : 'Done (${selectedNames.length} selected)'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (newCerts.isNotEmpty) {
+      setState(() => _certifications = [..._certifications, ...newCerts]);
+      await _saveSchedulingData();
+    }
+  }
+
+  // ─── Work Preferences ─────────────────────────────────────────────────────
+
+  Widget _buildWorkPreferencesCard(AppLocalizations l10n) {
+    final prefs = _workPreferences ?? {};
+    final maxHours = (prefs['maxHoursPerWeek'] as num?)?.toDouble();
+    final travelRadius = (prefs['travelRadiusMiles'] as num?)?.toDouble();
+    final prefDays = List<String>.from(prefs['preferredDays'] ?? []);
+    final prefShifts = List<String>.from(prefs['preferredShifts'] ?? []);
+
+    const dayLabels = {'mon': 'M', 'tue': 'T', 'wed': 'W', 'thu': 'T', 'fri': 'F', 'sat': 'S', 'sun': 'S'};
+    const dayKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+    const shiftKeys = ['morning', 'afternoon', 'evening', 'overnight'];
+
+    String shiftLabel(String key) {
+      switch (key) {
+        case 'morning': return l10n.morning;
+        case 'afternoon': return l10n.afternoon;
+        case 'evening': return l10n.evening;
+        case 'overnight': return l10n.overnight;
+        default: return key;
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: ExpansionTile(
+        leading: const Icon(Icons.tune, size: 18, color: AppColors.yellow),
+        title: Text(l10n.workPreferences, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          // Max Hours/Week
+          Row(
+            children: [
+              Expanded(child: Text(l10n.maxHoursPerWeek, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500))),
+              SizedBox(
+                width: 80,
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: '40',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  controller: TextEditingController(text: maxHours?.toStringAsFixed(0) ?? ''),
+                  onSubmitted: (val) {
+                    final n = double.tryParse(val);
+                    if (n != null && n > 0) _updateWorkPref('maxHoursPerWeek', n);
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Travel Radius
+          Row(
+            children: [
+              Expanded(child: Text(l10n.travelRadius, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500))),
+              Text('${(travelRadius ?? 25).toStringAsFixed(0)} mi', style: const TextStyle(fontSize: 14)),
+            ],
+          ),
+          Slider(
+            value: travelRadius ?? 25,
+            min: 0, max: 100,
+            divisions: 20,
+            activeColor: AppColors.yellow,
+            onChanged: (val) {
+              _updateWorkPref('travelRadiusMiles', val.roundToDouble());
+            },
+          ),
+
+          // Preferred Days
+          const SizedBox(height: 8),
+          Text(l10n.preferredDays, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: dayKeys.map((day) {
+              final selected = prefDays.contains(day);
+              return GestureDetector(
+                onTap: () {
+                  final updated = selected
+                      ? prefDays.where((d) => d != day).toList()
+                      : [...prefDays, day];
+                  _updateWorkPref('preferredDays', updated);
+                },
+                child: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: selected ? AppColors.yellow : Colors.grey.shade200,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    dayLabels[day]!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? Colors.black : Colors.grey.shade600,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          // Preferred Shifts
+          const SizedBox(height: 16),
+          Text(l10n.preferredShifts, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: shiftKeys.map((shift) {
+              final selected = prefShifts.contains(shift);
+              return ChoiceChip(
+                label: Text(shiftLabel(shift)),
+                selected: selected,
+                selectedColor: AppColors.yellow.withOpacity(0.3),
+                onSelected: (_) {
+                  final updated = selected
+                      ? prefShifts.where((s) => s != shift).toList()
+                      : [...prefShifts, shift];
+                  _updateWorkPref('preferredShifts', updated);
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _updateWorkPref(String key, dynamic value) {
+    setState(() {
+      _workPreferences = Map<String, dynamic>.from(_workPreferences ?? {});
+      _workPreferences![key] = value;
+    });
+    _saveSchedulingData();
+  }
+
+  Future<void> _saveSchedulingData() async {
+    if (_savingSchedulingData) return;
+    setState(() => _savingSchedulingData = true);
+    try {
+      await UserService.updateMe(
+        skills: _skills,
+        certifications: _certifications,
+        workPreferences: _workPreferences,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = localizedErrorMessage(context, e));
+    } finally {
+      if (mounted) setState(() => _savingSchedulingData = false);
+    }
+  }
+
+  String _titleCase(String s) {
+    if (s.isEmpty) return s;
+    return s.split(' ').map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' ');
   }
 
   // ─── Terminology ───────────────────────────────────────────────────────────
