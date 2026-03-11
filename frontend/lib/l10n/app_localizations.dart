@@ -2393,7 +2393,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscribeNow.
   ///
   /// In en, this message translates to:
-  /// **'Start Free Trial'**
+  /// **'Subscribe Now'**
   String get subscribeNow;
 
   /// No description provided for @restorePurchase.
@@ -2435,7 +2435,7 @@ abstract class AppLocalizations {
   /// No description provided for @purchaseSuccessful.
   ///
   /// In en, this message translates to:
-  /// **'Purchase successful! Enjoy Pro features.'**
+  /// **'Purchase successful! Enjoy Plus features.'**
   String get purchaseSuccessful;
 
   /// No description provided for @failedToPurchase.
@@ -2921,7 +2921,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscribeToUnlock.
   ///
   /// In en, this message translates to:
-  /// **'Try 30 Days Free'**
+  /// **'Unlock more with Plus'**
   String get subscribeToUnlock;
 
   /// No description provided for @notNow.
@@ -3032,6 +3032,12 @@ abstract class AppLocalizations {
   /// **'Starter'**
   String get flowShiftStarter;
 
+  /// No description provided for @flowShiftPlus.
+  ///
+  /// In en, this message translates to:
+  /// **'FlowShift Plus'**
+  String get flowShiftPlus;
+
   /// No description provided for @chooseYourPlan.
   ///
   /// In en, this message translates to:
@@ -3061,6 +3067,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'8/mo'**
   String get proCaricatureLimit;
+
+  /// No description provided for @freeAiLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'4/mo'**
+  String get freeAiLimit;
+
+  /// No description provided for @plusAiLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'25/mo'**
+  String get plusAiLimit;
+
+  /// No description provided for @freeCaricatureLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'1/mo'**
+  String get freeCaricatureLimit;
+
+  /// No description provided for @plusCaricatureLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'9/mo'**
+  String get plusCaricatureLimit;
+
+  /// No description provided for @plusFeaturePersonalEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal events'**
+  String get plusFeaturePersonalEvents;
+
+  /// No description provided for @freePersonalEventLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'2/mo'**
+  String get freePersonalEventLimit;
+
+  /// No description provided for @plusPersonalEventLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get plusPersonalEventLimit;
 
   /// No description provided for @unlockFeature.
   ///
@@ -3527,7 +3575,7 @@ abstract class AppLocalizations {
   /// No description provided for @continueWithFreeTrial.
   ///
   /// In en, this message translates to:
-  /// **'Continue with 7-Day Free Trial'**
+  /// **'Continue with Free'**
   String get continueWithFreeTrial;
 
   /// No description provided for @mySkills.

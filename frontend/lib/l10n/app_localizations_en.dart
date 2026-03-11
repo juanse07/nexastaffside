@@ -1252,7 +1252,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get subscribeNow => 'Start Free Trial';
+  String get subscribeNow => 'Subscribe Now';
 
   @override
   String get restorePurchase => 'Restore Purchase';
@@ -1276,7 +1276,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.';
 
   @override
-  String get purchaseSuccessful => 'Purchase successful! Enjoy Pro features.';
+  String get purchaseSuccessful => 'Purchase successful! Enjoy Plus features.';
 
   @override
   String get failedToPurchase => 'Failed to complete purchase';
@@ -1545,7 +1545,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featureLocked => 'requires a FlowShift subscription';
 
   @override
-  String get subscribeToUnlock => 'Try 30 Days Free';
+  String get subscribeToUnlock => 'Unlock more with Plus';
 
   @override
   String get notNow => 'Not now';
@@ -1602,6 +1602,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flowShiftStarter => 'Starter';
 
   @override
+  String get flowShiftPlus => 'FlowShift Plus';
+
+  @override
   String get chooseYourPlan => 'Choose Your Plan';
 
   @override
@@ -1615,6 +1618,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get proCaricatureLimit => '8/mo';
+
+  @override
+  String get freeAiLimit => '4/mo';
+
+  @override
+  String get plusAiLimit => '25/mo';
+
+  @override
+  String get freeCaricatureLimit => '1/mo';
+
+  @override
+  String get plusCaricatureLimit => '9/mo';
+
+  @override
+  String get plusFeaturePersonalEvents => 'Personal events';
+
+  @override
+  String get freePersonalEventLimit => '2/mo';
+
+  @override
+  String get plusPersonalEventLimit => 'Unlimited';
 
   @override
   String get unlockFeature => 'Unlock';
@@ -1872,7 +1896,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notes => 'Notes';
 
   @override
-  String get continueWithFreeTrial => 'Continue with 7-Day Free Trial';
+  String get continueWithFreeTrial => 'Continue with Free';
 
   @override
   String get mySkills => 'My Skills';

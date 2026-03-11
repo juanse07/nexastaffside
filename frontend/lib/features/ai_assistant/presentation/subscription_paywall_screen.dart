@@ -4,9 +4,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../services/subscription_service.dart';
 import '../../../shared/presentation/theme/theme.dart';
 
-/// Modernized subscription paywall screen with two tiers.
-/// Full-bleed dark gradient with glassmorphism cards, a
-/// Free-vs-Starter-vs-Pro comparison table, and two pricing cards.
+/// Subscription paywall screen with two tiers: Free and Plus ($5.99/mo).
+/// Full-bleed dark gradient with glassmorphism cards and a
+/// Free-vs-Plus comparison table.
 class SubscriptionPaywallScreen extends StatefulWidget {
   const SubscriptionPaywallScreen({super.key, this.showSkipButton = false});
 
@@ -20,17 +20,11 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
   final _subscriptionService = SubscriptionService();
   bool _purchasing = false;
   bool _restoring = false;
-  String? _purchasingTier; // 'starter' or 'pro'
 
-  Future<void> _handlePurchase(String tier) async {
-    setState(() {
-      _purchasing = true;
-      _purchasingTier = tier;
-    });
+  Future<void> _handlePurchase() async {
+    setState(() => _purchasing = true);
     try {
-      final result = tier == 'starter'
-          ? await _subscriptionService.purchaseStarterSubscription()
-          : await _subscriptionService.purchaseProSubscription();
+      final result = await _subscriptionService.purchasePlusSubscription();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       if (result.success) {
@@ -63,10 +57,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
         ),
       );
     } finally {
-      if (mounted) setState(() {
-        _purchasing = false;
-        _purchasingTier = null;
-      });
+      if (mounted) setState(() => _purchasing = false);
     }
   }
 
@@ -144,7 +135,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                       const SizedBox(height: 28),
                       _buildComparisonCard(l10n),
                       const SizedBox(height: 16),
-                      _buildPricingCards(l10n),
+                      _buildPricingCard(l10n),
                       const SizedBox(height: 16),
                       _buildRestoreButton(l10n),
                       if (widget.showSkipButton) ...[
@@ -273,22 +264,24 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
     );
   }
 
-  // ── Comparison card (3 columns: Free | Starter | Pro) ──────────────────────
+  // ── Comparison card (2 columns: Free | Plus) ───────────────────────────────
 
   Widget _buildComparisonCard(AppLocalizations l10n) {
     final features = [
       _FeatureItem(Icons.check_circle_outline, l10n.proFeatureAcceptDecline,
-          freeLabel: l10n.readOnlyMode, starterCheck: true, proCheck: true),
+          freeCheck: true, plusCheck: true),
       _FeatureItem(Icons.chat_bubble_outline, l10n.proFeatureChat,
-          freeCheck: false, starterCheck: true, proCheck: true),
+          freeCheck: true, plusCheck: true),
       _FeatureItem(Icons.auto_awesome, l10n.proFeatureAIShort,
-          freeCheck: false, starterLabel: l10n.starterAiLimit, proLabel: l10n.proAiLimit),
-      _FeatureItem(Icons.access_time, l10n.proFeatureClockInOut,
-          freeCheck: false, starterCheck: true, proCheck: true),
-      _FeatureItem(Icons.event_available, l10n.proFeatureAvailability,
-          freeCheck: false, starterCheck: true, proCheck: true),
+          freeLabel: l10n.freeAiLimit, plusLabel: l10n.plusAiLimit),
       _FeatureItem(Icons.face_retouching_natural, l10n.proFeatureCaricaturesShort,
-          freeCheck: false, starterLabel: l10n.starterCaricatureLimit, proLabel: l10n.proCaricatureLimit),
+          freeLabel: l10n.freeCaricatureLimit, plusLabel: l10n.plusCaricatureLimit),
+      _FeatureItem(Icons.event_note, l10n.plusFeaturePersonalEvents,
+          freeLabel: l10n.freePersonalEventLimit, plusLabel: l10n.plusPersonalEventLimit),
+      _FeatureItem(Icons.access_time, l10n.proFeatureClockInOut,
+          freeCheck: true, plusCheck: true),
+      _FeatureItem(Icons.event_available, l10n.proFeatureAvailability,
+          freeCheck: true, plusCheck: true),
     ];
 
     return _GlassCard(
@@ -298,14 +291,14 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           // Column headers
           Row(
             children: [
-              const Expanded(flex: 3, child: SizedBox()),
+              const Expanded(flex: 4, child: SizedBox()),
               Expanded(
                 flex: 2,
                 child: Center(
                   child: Text(
                     'Free',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.6,
                       color: Colors.white.withValues(alpha: 0.50),
@@ -317,23 +310,9 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
                 flex: 2,
                 child: Center(
                   child: Text(
-                    l10n.flowShiftStarter,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.4,
-                      color: Colors.white.withValues(alpha: 0.80),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Center(
-                  child: Text(
-                    'Pro',
+                    'Plus',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.6,
                       color: AppColors.yellow,
@@ -369,7 +348,7 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           const SizedBox(width: 8),
           // Feature name
           Expanded(
-            flex: 3,
+            flex: 4,
             child: Text(
               item.name,
               style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w400),
@@ -380,37 +359,29 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           // Free status
           Expanded(
             flex: 2,
-            child: Center(child: _statusWidget(item.freeCheck, item.freeLabel, tier: 'free')),
+            child: Center(child: _statusWidget(item.freeCheck, item.freeLabel, isPlus: false)),
           ),
-          // Starter status
+          // Plus status
           Expanded(
             flex: 2,
-            child: Center(child: _statusWidget(item.starterCheck, item.starterLabel, tier: 'starter')),
-          ),
-          // Pro status
-          Expanded(
-            flex: 2,
-            child: Center(child: _statusWidget(item.proCheck, item.proLabel, tier: 'pro')),
+            child: Center(child: _statusWidget(item.plusCheck, item.plusLabel, isPlus: true)),
           ),
         ],
       ),
     );
   }
 
-  Widget _statusWidget(bool? check, String? label, {required String tier}) {
-    final isFree = tier == 'free';
-    final isPro = tier == 'pro';
-
-    // Custom label (e.g. "3/mo", "25/mo")
+  Widget _statusWidget(bool? check, String? label, {required bool isPlus}) {
+    // Custom label (e.g. "4/mo", "25/mo")
     if (label != null) {
       return Text(
         label,
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
-          color: isPro
+          color: isPlus
               ? AppColors.yellow
-              : (isFree ? Colors.white.withValues(alpha: 0.42) : Colors.white.withValues(alpha: 0.80)),
+              : Colors.white.withValues(alpha: 0.55),
         ),
         textAlign: TextAlign.center,
       );
@@ -420,9 +391,9 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
       return Icon(
         Icons.check_circle_rounded,
         size: 17,
-        color: isPro
+        color: isPlus
             ? AppColors.yellow
-            : (isFree ? Colors.white.withValues(alpha: 0.42) : Colors.white.withValues(alpha: 0.70)),
+            : Colors.white.withValues(alpha: 0.55),
       );
     }
     // Locked / unavailable
@@ -433,107 +404,47 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
     );
   }
 
-  // ── Pricing cards (side-by-side) ──────────────────────────────────────────
+  // ── Pricing card (single Plus card) ────────────────────────────────────────
 
-  Widget _buildPricingCards(AppLocalizations l10n) {
-    return Row(
-      children: [
-        // Starter card
-        Expanded(child: _buildTierCard(
-          tierName: l10n.flowShiftStarter,
-          price: '6.99',
-          onPurchase: () => _handlePurchase('starter'),
-          isPurchasing: _purchasing && _purchasingTier == 'starter',
-          isDisabled: _purchasing || _restoring,
-          badge: null,
-          l10n: l10n,
-        )),
-        const SizedBox(width: 12),
-        // Pro card
-        Expanded(child: _buildTierCard(
-          tierName: l10n.flowShiftPro,
-          price: '11.99',
-          onPurchase: () => _handlePurchase('pro'),
-          isPurchasing: _purchasing && _purchasingTier == 'pro',
-          isDisabled: _purchasing || _restoring,
-          badge: l10n.bestValue,
-          l10n: l10n,
-          isHighlighted: true,
-        )),
-      ],
-    );
-  }
-
-  Widget _buildTierCard({
-    required String tierName,
-    required String price,
-    required VoidCallback onPurchase,
-    required bool isPurchasing,
-    required bool isDisabled,
-    required String? badge,
-    required AppLocalizations l10n,
-    bool isHighlighted = false,
-  }) {
+  Widget _buildPricingCard(AppLocalizations l10n) {
     return _GlassCard(
-      padding: const EdgeInsets.all(16),
-      borderColor: isHighlighted ? AppColors.yellow.withValues(alpha: 0.40) : null,
+      padding: const EdgeInsets.all(20),
+      borderColor: AppColors.yellow.withValues(alpha: 0.40),
       child: Column(
         children: [
-          // Badge
-          if (badge != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.yellow.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                badge.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                  color: AppColors.yellow,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ] else ...[
-            const SizedBox(height: 22), // Align with badge height
-          ],
           // Tier name
-          Text(
-            tierName,
+          const Text(
+            'FlowShift Plus',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isHighlighted ? AppColors.yellow : Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.yellow,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           // Price
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
                 child: Text(
                   '\$',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: isHighlighted ? Colors.white : Colors.white.withValues(alpha: 0.80),
+                    color: Colors.white,
                   ),
                 ),
               ),
-              Text(
-                price,
+              const Text(
+                '5.99',
                 style: TextStyle(
-                  fontSize: 32,
+                  fontSize: 36,
                   fontWeight: FontWeight.bold,
                   height: 1,
-                  color: isHighlighted ? Colors.white : Colors.white.withValues(alpha: 0.80),
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -541,57 +452,39 @@ class _SubscriptionPaywallScreenState extends State<SubscriptionPaywallScreen> {
           Text(
             '/mo',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
               color: Colors.white.withValues(alpha: 0.50),
             ),
           ),
-          const SizedBox(height: 6),
-          // Free trial badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: AppColors.yellow.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text(
-              '30 DAYS FREE',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.6,
-                color: AppColors.yellow,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           // Purchase button
           SizedBox(
             width: double.infinity,
-            height: 42,
+            height: 48,
             child: ElevatedButton(
-              onPressed: isDisabled ? null : onPurchase,
+              onPressed: (_purchasing || _restoring) ? null : _handlePurchase,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isHighlighted ? AppColors.yellow : Colors.white.withValues(alpha: 0.18),
-                foregroundColor: isHighlighted ? AppColors.navySpaceCadet : Colors.white,
+                backgroundColor: AppColors.yellow,
+                foregroundColor: AppColors.navySpaceCadet,
                 elevation: 0,
                 shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: isPurchasing
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
+              child: _purchasing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: isHighlighted ? AppColors.navySpaceCadet : Colors.white,
+                        color: AppColors.navySpaceCadet,
                       ),
                     )
                   : Text(
                       l10n.subscribeNow,
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: const TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: isHighlighted ? AppColors.navySpaceCadet : Colors.white,
+                        color: AppColors.navySpaceCadet,
                       ),
                     ),
             ),
@@ -659,21 +552,17 @@ class _FeatureItem {
   final IconData icon;
   final String name;
   final bool? freeCheck;
-  final bool? starterCheck;
-  final bool? proCheck;
+  final bool? plusCheck;
   final String? freeLabel;
-  final String? starterLabel;
-  final String? proLabel;
+  final String? plusLabel;
 
   const _FeatureItem(
     this.icon,
     this.name, {
     this.freeCheck,
-    this.starterCheck,
-    this.proCheck,
+    this.plusCheck,
     this.freeLabel,
-    this.starterLabel,
-    this.proLabel,
+    this.plusLabel,
   });
 }
 

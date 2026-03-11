@@ -138,12 +138,17 @@ class SubscriptionService {
     }
   }
 
-  /// Purchase Starter subscription ($6.99/month)
+  /// Purchase Plus subscription ($5.99/month)
+  Future<({bool success, String? error})> purchasePlusSubscription() async {
+    return _purchaseSubscription('flowshift_staff_plus_monthly', 'plus_access', 'plus');
+  }
+
+  /// Purchase Starter subscription (legacy — kept for existing subscribers)
   Future<({bool success, String? error})> purchaseStarterSubscription() async {
     return _purchaseSubscription('flowshift_staff_starter_monthly', 'starter_access', 'starter');
   }
 
-  /// Purchase Pro subscription ($11.99/month)
+  /// Purchase Pro subscription (legacy — kept for existing subscribers)
   Future<({bool success, String? error})> purchaseProSubscription() async {
     return _purchaseSubscription('flowshift_shifts_pro_monthly', 'pro_access', 'pro');
   }

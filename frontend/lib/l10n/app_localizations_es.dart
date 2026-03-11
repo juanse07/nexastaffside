@@ -1263,7 +1263,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get subscribeNow => 'Iniciar Prueba Gratis';
+  String get subscribeNow => 'Suscribirse Ahora';
 
   @override
   String get restorePurchase => 'Restaurar Compra';
@@ -1288,7 +1288,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get purchaseSuccessful =>
-      '¡Compra exitosa! Disfruta las funciones Pro.';
+      '¡Compra exitosa! Disfruta las funciones Plus.';
 
   @override
   String get failedToPurchase => 'Error al completar la compra';
@@ -1558,7 +1558,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get featureLocked => 'requiere una suscripción a FlowShift';
 
   @override
-  String get subscribeToUnlock => 'Prueba 30 Días Gratis';
+  String get subscribeToUnlock => 'Desbloquea más con Plus';
 
   @override
   String get notNow => 'Ahora no';
@@ -1615,6 +1615,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get flowShiftStarter => 'Starter';
 
   @override
+  String get flowShiftPlus => 'FlowShift Plus';
+
+  @override
   String get chooseYourPlan => 'Elige Tu Plan';
 
   @override
@@ -1628,6 +1631,27 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get proCaricatureLimit => '8/mes';
+
+  @override
+  String get freeAiLimit => '4/mes';
+
+  @override
+  String get plusAiLimit => '25/mes';
+
+  @override
+  String get freeCaricatureLimit => '1/mes';
+
+  @override
+  String get plusCaricatureLimit => '9/mes';
+
+  @override
+  String get plusFeaturePersonalEvents => 'Eventos personales';
+
+  @override
+  String get freePersonalEventLimit => '2/mes';
+
+  @override
+  String get plusPersonalEventLimit => 'Ilimitado';
 
   @override
   String get unlockFeature => 'Desbloquea';
@@ -1886,7 +1910,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get notes => 'Notas';
 
   @override
-  String get continueWithFreeTrial => 'Continuar con prueba gratuita de 7 días';
+  String get continueWithFreeTrial => 'Continuar con Free';
 
   @override
   String get mySkills => 'Mis Habilidades';
